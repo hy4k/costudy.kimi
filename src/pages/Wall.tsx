@@ -1,6 +1,7 @@
 import { useMemo, useState } from 'react';
 import AppShell from '@/components/app/AppShell';
 import { DoodleBubble, DoodleSpark } from '@/components/Doodles';
+import SupabaseStatus from '@/components/app/SupabaseStatus';
 
 type PostType = 'QUESTION' | 'RESOURCE' | 'MCQ' | 'AUDIT' | 'BOUNTY' | 'DISCUSS' | 'EVENT' | 'GOAL';
 
@@ -381,6 +382,8 @@ export default function Wall() {
               <li className="flex justify-between"><span>Insights shared</span><span className="font-slab font-bold">7</span></li>
             </ul>
           </section>
+
+          <SupabaseStatus />
         </aside>
       </div>
     </AppShell>
