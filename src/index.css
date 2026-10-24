@@ -1,0 +1,205 @@
+@import url('https://fonts.googleapis.com/css2?family=Figtree:ital,wght@0,300..900;1,300..900&family=Zilla+Slab:ital,wght@0,300;0,400;0,500;0,600;0,700;1,400;1,500&display=swap');
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    /* ---- palette (warm earthy, selective pops) ---- */
+    --paper: #fcfbfa;
+    --ink: #21221f;
+    --charcoal: #2b2926;
+    --coral: #ea4467;
+    --beige: #c6b3a2;
+    --mint: #e7fec7;
+    --sky: #d9e6f3;
+    --cloud: #f3f1ee;
+    --hi: #ffff00;
+
+    /* ---- type ---- */
+    --font-slab: 'Zilla Slab', 'Iowan Old Style', Georgia, serif;
+    --font-sans: 'Figtree', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+
+    /* ---- motion ---- */
+    --ease-out: cubic-bezier(0.22, 1, 0.36, 1);
+    --ease-snap: cubic-bezier(1, 0, 0.5, 1);
+
+    /* ---- derived neutrals (dark-aware) ---- */
+    --ink-2: rgba(33, 34, 31, 0.6);
+    --ink-3: rgba(33, 34, 31, 0.45);
+    --card: #ffffff;
+    --line: rgba(33, 34, 31, 0.12);
+    --dotgrid: rgba(33, 34, 31, 0.13);
+    --glass: rgba(252, 251, 250, 0.85);
+
+    /* shadcn bridge */
+    --background: 30 20% 99%;
+    --foreground: 60 4% 13%;
+    --card: 0 0% 100%;
+    --card-foreground: 60 4% 13%;
+    --popover: 0 0% 100%;
+    --popover-foreground: 60 4% 13%;
+    --primary: 30 4% 16%;
+    --primary-foreground: 30 20% 99%;
+    --secondary: 30 10% 94%;
+    --secondary-foreground: 60 4% 13%;
+    --muted: 30 10% 94%;
+    --muted-foreground: 60 3% 40%;
+    --accent: 30 10% 94%;
+    --accent-foreground: 60 4% 13%;
+    --destructive: 0 84.2% 60.2%;
+    --destructive-foreground: 0 0% 98%;
+    --border: 36 9% 88%;
+    --input: 36 9% 88%;
+    --ring: 60 4% 13%;
+    --radius: 1.125rem;
+  }
+
+  * {
+    @apply border-border;
+  }
+
+  html {
+    scroll-behavior: auto;
+  }
+
+  body {
+    @apply antialiased;
+    background-color: var(--paper);
+    color: var(--ink);
+    font-family: var(--font-sans);
+    font-weight: 400;
+    overflow-x: clip;
+    -webkit-font-smoothing: antialiased;
+    transition: background-color 0.5s var(--ease-out), color 0.5s var(--ease-out);
+  }
+
+  ::selection {
+    background: var(--hi);
+    color: #000;
+  }
+
+  :focus-visible {
+    outline: 2px solid var(--ink);
+    outline-offset: 3px;
+    border-radius: 2px;
+  }
+
+  h1, h2, h3, .font-slab {
+    font-family: var(--font-slab);
+  }
+
+  /* ---- the night desk ---- */
+  .dark {
+    --paper: #171310;
+    --ink: #f1e8d8;
+    --ink-2: rgba(241, 232, 216, 0.62);
+    --ink-3: rgba(241, 232, 216, 0.42);
+    --card: #221b15;
+    --line: rgba(241, 232, 216, 0.14);
+    --dotgrid: rgba(241, 232, 216, 0.09);
+    --glass: rgba(23, 19, 16, 0.85);
+    --charcoal: #f1e8d8;
+    --cloud: #221b15;
+  }
+}
+
+/* ---- Lenis smooth scroll hooks ---- */
+html.lenis, html.lenis body { height: auto; }
+.lenis.lenis-smooth { scroll-behavior: auto !important; }
+.lenis.lenis-smooth [data-lenis-prevent] { overscroll-behavior: contain; }
+.lenis.lenis-stopped { overflow: hidden; }
+
+@layer components {
+  .slab-display {
+    font-family: var(--font-slab);
+    font-weight: 600;
+    letter-spacing: -0.015em;
+    line-height: 0.95;
+  }
+
+  .eyebrow {
+    font-family: var(--font-sans);
+    font-weight: 700;
+    font-size: 0.72rem;
+    letter-spacing: 0.22em;
+    text-transform: uppercase;
+  }
+
+  .pill-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.6rem;
+    border-radius: 999px;
+    padding: 0.9rem 1.7rem;
+    font-weight: 600;
+    font-size: 0.95rem;
+    line-height: 1;
+    background: var(--charcoal);
+    color: var(--paper);
+    transition: transform 0.35s var(--ease-out), background-color 0.35s var(--ease-out), color 0.35s var(--ease-out);
+    will-change: transform;
+  }
+  .pill-btn:hover { transform: translateY(-2px); background: var(--coral); color: #fff; }
+  .pill-btn:active { transform: translateY(0); }
+
+  .pill-btn--ghost {
+    background: transparent;
+    color: var(--ink);
+    box-shadow: inset 0 0 0 1.5px var(--ink);
+  }
+  .pill-btn--ghost:hover { background: var(--ink); color: var(--paper); }
+
+  .ease-out-soft {
+    transition-timing-function: var(--ease-out);
+  }
+
+  /* ---- theme-aware surfaces ---- */
+  .bg-paper { background-color: var(--paper); }
+  .bg-card { background-color: var(--card); }
+  .bg-glass { background-color: var(--glass); }
+  .t-ink { color: var(--ink); }
+  .t-paper { color: var(--paper); }
+  .t-muted { color: var(--ink-2); }
+  .t-faint { color: var(--ink-3); }
+  .b-line { border-color: var(--line); }
+  .dotgrid { background-image: radial-gradient(var(--dotgrid) 1px, transparent 1px); }
+
+  /* split-line reveal plumbing */
+  .split-line { display: block; overflow: hidden; }
+  .split-line > .split-inner {
+    display: block;
+    transform: translateY(110%);
+    will-change: transform;
+  }
+
+  /* underline link animation */
+  .link-underline {
+    position: relative;
+    text-decoration: none;
+  }
+  .link-underline::after {
+    content: '';
+    position: absolute;
+    left: 0; bottom: -3px;
+    width: 100%; height: 1.5px;
+    background: currentColor;
+    transform: scaleX(0);
+    transform-origin: right;
+    transition: transform 0.45s var(--ease-snap);
+  }
+  .link-underline:hover::after {
+    transform: scaleX(1);
+    transform-origin: left;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+  .split-line > .split-inner { transform: none !important; }
+}
