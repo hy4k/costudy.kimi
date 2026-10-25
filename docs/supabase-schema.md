@@ -2,6 +2,7 @@
 
 Project: `https://avtjxcdcjbwmggdimkgh.supabase.co` — shared by the original costudy.in app and this redesign.
 Compiled from the original repo's service layer (`services/*.ts`) and verified live against the project (anon key, Oct 2026).
+**Update (same day):** a full OpenAPI spec pull (service role, from the owner's VPS) revealed the project actually has **100+ tables** — the app-facing subset is listed below, plus the vault-relevant ones.
 
 ## Tables
 
@@ -53,6 +54,13 @@ supabase.from('posts').insert({
 3. Profile resolved via `user_profiles` row (`getUserProfile`); created just-in-time if missing (`createUserProfile`).
 4. Routing: `role === 'TEACHER'` → **Faculty Room** (`/mentor` in the redesign); students land on the Study Wall (`/wall`).
 
+## Library Vault contract (verified)
+
+- **Verified shelf** = `library_items` — columns: `id, title, description, category, file_url, file_type, uploaded_by, created_at`. Anonymously readable; writes blocked for anon (RLS), authenticated insert expected.
+- **Pending-review shelf** = `content_sources` rows with `source_kind = 'community_upload'` — columns: `id, source_kind, name, external_ref, metadata(jsonb), created_at`. Community submissions land here awaiting faculty review; `metadata` carries `{description, kind, submitted_by}`.
+- The separate `ingestion_staging` / `ingestion_review_events` tables are the **internal question-bank pipeline** (CSV sources → review → publish) — deliberately NOT reused for community uploads.
+- Optional future migration: add `status text not null default 'pending'` + `reviewed_by uuid` to `library_items` if uploads should live in the same table as curated items.
+
 ## Redesign wiring status
 
 | Feature | Status |
@@ -62,6 +70,8 @@ supabase.from('posts').insert({
 | Wall broadcast (insert, auth-gated) | Wired |
 | Likes (postgREST update) | Wired |
 | Comment threads (`comments`, count via `comments(count)`) | Wired |
+| Vault verified shelf (`library_items`) + pending shelf (`content_sources`) | Wired |
+| Vault community submission (insert into `content_sources`, auth-gated) | Wired |
 | Radar+ bookmarks | Local (no bookmark table exists yet — candidate: new `post_bookmarks` table) |
 | Login / role routing / mentor path | Wired |
-| Vault, Rooms, AI Deck, Mastery Path data | Local curated data (next phase) |
+| Rooms, AI Deck, Mastery Path data | Local curated data (next phase) |
