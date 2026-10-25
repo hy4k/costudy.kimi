@@ -8,9 +8,8 @@ const Ctx = createContext<ThemeCtx>({ dark: false, toggle: () => {} });
 export function ThemeProvider({ children }: { children: ReactNode }) {
   const [dark, setDark] = useState(() => {
     if (typeof window === 'undefined') return false;
-    const saved = localStorage.getItem('costudy-theme');
-    if (saved) return saved === 'dark';
-    return window.matchMedia('(prefers-color-scheme: dark)').matches;
+    // Light is the house default — only a saved explicit choice restores dark.
+    return localStorage.getItem('costudy-theme') === 'dark';
   });
 
   useEffect(() => {

@@ -1,6 +1,7 @@
 import type { ReactNode } from 'react';
 import { NavLink, Link } from 'react-router';
 import { ThemeToggle } from '@/components/Header';
+import { useAuth } from '@/lib/authStore';
 import {
   DoodleBook,
   DoodleBubble,
@@ -8,6 +9,7 @@ import {
   DoodleClock,
   DoodleNote,
   DoodlePeople,
+  DoodleSpark,
 } from '@/components/Doodles';
 
 const nav = [
@@ -18,6 +20,8 @@ const nav = [
   { to: '/path', label: 'Mastery Path', Doodle: DoodleNote, hint: 'The cockpit' },
 ];
 
+const facultyNav = { to: '/mentor', label: 'Faculty Room', Doodle: DoodleSpark, hint: 'Mentor cockpit' };
+
 export default function AppShell({
   title,
   eyebrow,
@@ -27,6 +31,12 @@ export default function AppShell({
   eyebrow: string;
   children: ReactNode;
 }) {
+  const { profile } = useAuth();
+  const items = profile?.role === 'TEACHER' ? [...nav, facultyNav] : nav;
+  const initials = profile
+    ? profile.name.split(' ').map((w) => w[0]).slice(0, 2).join('').toUpperCase()
+    : '?';
+
   return (
     <div className="min-h-screen bg-paper">
       <aside className="fixed inset-y-0 left-0 z-40 hidden w-64 flex-col border-r b-line bg-paper lg:flex">
@@ -38,7 +48,7 @@ export default function AppShell({
         </Link>
 
         <nav className="flex flex-col gap-1 p-4" aria-label="App modules">
-          {nav.map((n) => (
+          {items.map((n) => (
             <NavLink
               key={n.to}
               to={n.to}
@@ -60,16 +70,27 @@ export default function AppShell({
         </nav>
 
         <div className="mt-auto space-y-4 border-t b-line p-4">
-          <div className="flex items-center gap-3 rounded-xl bg-[var(--card)] p-3 shadow-[inset_0_0_0_1.5px_var(--line)]">
-            <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-[#ea4467] font-slab text-sm font-bold text-white">
-              M
-            </span>
-            <span className="min-w-0 flex-1">
-              <span className="block truncate text-sm font-semibold leading-tight t-ink">Midhun</span>
-              <span className="block text-xs t-faint">Scholar · CMA US P1</span>
-            </span>
-            <ThemeToggle className="!h-8 !w-8" />
-          </div>
+          {profile ? (
+            <div className="flex items-center gap-3 rounded-xl bg-[var(--card)] p-3 shadow-[inset_0_0_0_1.5px_var(--line)]">
+              <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-[#ea4467] font-slab text-sm font-bold text-white">
+                {initials}
+              </span>
+              <span className="min-w-0 flex-1">
+                <span className="block truncate text-sm font-semibold leading-tight t-ink">{profile.name}</span>
+                <span className="block text-xs t-faint">
+                  {profile.role === 'TEACHER' ? 'Faculty' : profile.level} · {profile.examFocus}
+                </span>
+              </span>
+            </div>
+          ) : (
+            <Link
+              to="/login"
+              className="flex items-center justify-center gap-2 rounded-xl bg-[#ea4467] px-4 py-3 text-sm font-bold text-white transition-opacity hover:opacity-90"
+            >
+              Log in
+            </Link>
+          )}
+          <ThemeToggle className="w-full justify-center" />
           <Link
             to="/"
             className="link-underline flex items-center gap-2 px-1 text-xs font-semibold t-muted hover:t-ink"
@@ -86,9 +107,8 @@ export default function AppShell({
             Co<span className="text-[#ea4467]">Study</span>
           </Link>
           <div className="flex items-center gap-2">
-            <ThemeToggle className="!h-8 !w-8" />
             <nav className="flex gap-1" aria-label="App modules">
-              {nav.map((n) => (
+              {items.map((n) => (
                 <NavLink
                   key={n.to}
                   to={n.to}

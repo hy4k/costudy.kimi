@@ -14,28 +14,13 @@ export function ThemeToggle({ className = '' }: { className?: string }) {
   return (
     <button
       onClick={toggle}
-      aria-label={dark ? 'Switch to day mode' : 'Switch to night desk'}
-      title={dark ? 'Day mode' : 'Night desk'}
-      className={`relative flex h-9 w-9 items-center justify-center rounded-full border-[1.5px] b-line text-[var(--ink)] transition-all duration-500 hover:-rotate-12 hover:border-[var(--ink)] ${className}`}
+      aria-label={dark ? 'Switch back to daylight' : 'Switch to the night desk'}
+      className={`group flex items-center gap-2 rounded-full border-[1.5px] b-line px-4 py-2 text-xs font-bold tracking-wide t-ink transition-all duration-500 hover:border-[var(--ink)] ${className}`}
     >
-      <span
-        className="absolute inset-0 flex items-center justify-center transition-all duration-500"
-        style={{
-          opacity: dark ? 0 : 1,
-          transform: dark ? 'rotate(90deg) scale(0.4)' : 'none',
-        }}
-      >
-        <DoodleSun className="h-5 w-5" />
+      <span className="transition-transform duration-500 group-hover:-rotate-12">
+        {dark ? <DoodleSun className="h-4 w-4" /> : <DoodleMoon className="h-4 w-4" />}
       </span>
-      <span
-        className="absolute inset-0 flex items-center justify-center transition-all duration-500"
-        style={{
-          opacity: dark ? 1 : 0,
-          transform: dark ? 'none' : 'rotate(-90deg) scale(0.4)',
-        }}
-      >
-        <DoodleMoon className="h-5 w-5" />
-      </span>
+      {dark ? 'Back to daylight' : 'Study after dark'}
     </button>
   );
 }
@@ -78,6 +63,9 @@ export default function Header() {
 
         <div className="flex items-center gap-3">
           <ThemeToggle />
+          <Link to="/login" className="link-underline hidden text-sm font-semibold t-muted transition-colors hover:t-ink sm:block">
+            Log in
+          </Link>
           <Link to="/rooms" className="pill-btn !px-5 !py-2.5 text-sm">
             Claim your desk
           </Link>

@@ -1,18 +1,20 @@
-import { useMemo, useState } from 'react';
+import { useEffect, useState } from 'react';
+import { Link } from 'react-router';
 import AppShell from '@/components/app/AppShell';
 import { DoodleBubble, DoodleSpark } from '@/components/Doodles';
 import SupabaseStatus from '@/components/app/SupabaseStatus';
+import { useAuth } from '@/lib/authStore';
+import { supabase } from '@/lib/supabase';
 
 type PostType = 'QUESTION' | 'RESOURCE' | 'MCQ' | 'AUDIT' | 'BOUNTY' | 'DISCUSS' | 'EVENT' | 'GOAL';
 
 type Post = {
-  id: number;
+  id: string;
   type: PostType;
   author: string;
   initials: string;
   level: 'LEARNER' | 'SCHOLAR' | 'EXPERT';
   role: 'STUDENT' | 'TEACHER';
-  signal: 'ACTIVE_SOLVER' | 'SILENT_LEARNER' | 'REVISION_FOCUSED';
   time: string;
   body: string;
   tags: string[];
@@ -20,7 +22,19 @@ type Post = {
   liked?: boolean;
   saved?: boolean;
   comments: number;
+  live?: boolean;
   mcq?: { q: string; options: string[]; answer: number; why: string };
+};
+
+type DbPost = {
+  id: string;
+  type?: string;
+  content?: string;
+  tags?: string[] | null;
+  likes?: number | null;
+  created_at?: string;
+  author_id?: string;
+  author?: { name?: string; role?: string; level?: string } | null;
 };
 
 const typeMeta: Record<PostType, { label: string; tone: string; ink: string }> = {
@@ -34,10 +48,46 @@ const typeMeta: Record<PostType, { label: string; tone: string; ink: string }> =
   GOAL: { label: 'GOAL', tone: '#e7fec7', ink: '#21221f' },
 };
 
+const initialsOf = (name: string) =>
+  name.split(' ').map((w) => w[0]).filter(Boolean).slice(0, 2).join('').toUpperCase() || 'A';
+
+const relTime = (iso?: string) => {
+  if (!iso) return 'just now';
+  const s = Math.max(1, Math.floor((Date.now() - new Date(iso).getTime()) / 1000));
+  if (s < 60) return `${s}s ago`;
+  if (s < 3600) return `${Math.floor(s / 60)} min ago`;
+  if (s < 86400) return `${Math.floor(s / 3600)} hr ago`;
+  return `${Math.floor(s / 86400)}d ago`;
+};
+
+const levelMap: Record<string, Post['level']> = {
+  STARTER: 'LEARNER', LEARNER: 'LEARNER', SCHOLAR: 'SCHOLAR', EXPERT: 'EXPERT', MENTOR: 'EXPERT',
+};
+
+const mapDbPost = (row: DbPost): Post => {
+  const type = (Object.keys(typeMeta) as string[]).includes(row.type || '') ? (row.type as PostType) : 'DISCUSS';
+  const name = row.author?.name || 'CMA Aspirant';
+  return {
+    id: row.id,
+    type,
+    author: name,
+    initials: initialsOf(name),
+    level: levelMap[(row.author?.level || '').toUpperCase()] || 'LEARNER',
+    role: (row.author?.role || '').toUpperCase() === 'TEACHER' ? 'TEACHER' : 'STUDENT',
+    time: relTime(row.created_at),
+    body: row.content || '',
+    tags: row.tags || [],
+    likes: row.likes ?? 0,
+    comments: 0,
+    live: true,
+  };
+};
+
+/* Starter posts — shown only until real broadcasts hit the wall. */
 const seed: Post[] = [
   {
-    id: 1, type: 'MCQ', author: 'Rohan Sharma', initials: 'RS', level: 'LEARNER', role: 'STUDENT', signal: 'ACTIVE_SOLVER',
-    time: '18 min ago',
+    id: 'seed-1', type: 'MCQ', author: 'Rohan Sharma', initials: 'RS', level: 'LEARNER', role: 'STUDENT',
+    time: 'starter',
     body: 'Trapped on this one from the Performance Management bank — my gut says B, the answer key says otherwise. What am I missing?',
     tags: ['#variance', '#part1', '#mcq'],
     likes: 14, comments: 6,
@@ -49,176 +99,190 @@ const seed: Post[] = [
     },
   },
   {
-    id: 2, type: 'DISCUSS', author: 'Dr. Anita Desai', initials: 'AD', level: 'EXPERT', role: 'TEACHER', signal: 'ACTIVE_SOLVER',
-    time: '1 hr ago',
+    id: 'seed-2', type: 'DISCUSS', author: 'Dr. Anita Desai', initials: 'AD', level: 'EXPERT', role: 'TEACHER',
+    time: 'starter',
     body: 'Colleagues, regarding the recent changes to Part 2 — the new emphasis on data analytics ethics means rote memorisation of the IMA statement is no longer enough. Expect scenario prompts. Discuss how you are adapting your revision.',
     tags: ['#part2', '#ethics', '#faculty'],
     likes: 41, comments: 12,
   },
   {
-    id: 3, type: 'AUDIT', author: 'Candidate #8842', initials: 'C8', level: 'SCHOLAR', role: 'STUDENT', signal: 'ACTIVE_SOLVER',
-    time: '2 hrs ago',
-    body: 'Requesting a peer audit of my essay argument: “Responsibility centres should always be evaluated on controllable costs alone.” I argue this is incomplete — controllability is a spectrum, and dual-rate allocations exist precisely because some costs are partially controllable. Rip it apart, please.',
-    tags: ['#essay-audit', '#responsibility-centres'],
-    likes: 9, comments: 4,
-  },
-  {
-    id: 4, type: 'BOUNTY', author: 'Prof. Vikram Sethi', initials: 'VS', level: 'EXPERT', role: 'TEACHER', signal: 'ACTIVE_SOLVER',
-    time: '3 hrs ago',
-    body: 'Bounty: 50 deck points to the clearest three-sentence explanation of why NPV dominates payback period for capital budgeting. Brevity wins. One entry per scholar.',
-    tags: ['#capital-budgeting', '#bounty'],
-    likes: 27, comments: 19,
-  },
-  {
-    id: 5, type: 'GOAL', author: 'Priya Nair', initials: 'PN', level: 'SCHOLAR', role: 'STUDENT', signal: 'REVISION_FOCUSED',
-    time: '5 hrs ago',
+    id: 'seed-3', type: 'GOAL', author: 'Priya Nair', initials: 'PN', level: 'SCHOLAR', role: 'STUDENT',
+    time: 'starter',
     body: 'Goal banked: “Complete Section A MCQs with 80% accuracy.” Landed 84%. The trick was drilling flexible-budget mechanics until the splits felt automatic — not memorising formulas, seeing the logic. Onto Section B.',
     tags: ['#goal', '#streak', '#part1'],
     likes: 33, comments: 8,
   },
-  {
-    id: 6, type: 'RESOURCE', author: 'Sarah Jenkins', initials: 'SJ', level: 'EXPERT', role: 'TEACHER', signal: 'ACTIVE_SOLVER',
-    time: 'Yesterday',
-    body: 'Posted my one-page variance analysis cheatsheet to the vault — every split with a worked mini-example. Grab it before your next mock. Print it, then throw it away: if you still need it on exam day, it did its job.',
-    tags: ['#cheatsheet', '#variance', '#vault'],
-    likes: 58, comments: 11,
-  },
-  {
-    id: 7, type: 'EVENT', author: 'Midhun', initials: 'M', level: 'SCHOLAR', role: 'STUDENT', signal: 'ACTIVE_SOLVER',
-    time: 'Yesterday',
-    body: 'Mock marathon this Saturday: full timed Part 1 paper, 09:00 IST, in the “Final-review war room”. Cameras optional, suffering shared. Bring water.',
-    tags: ['#mock-test', '#event', '#part1'],
-    likes: 22, comments: 15,
-  },
-  {
-    id: 8, type: 'QUESTION', author: 'Arjun Mehta', initials: 'AM', level: 'LEARNER', role: 'STUDENT', signal: 'SILENT_LEARNER',
-    time: '2 days ago',
-    body: 'When does the exam want dividing vs. multiplying a dollar variance by the exchange rate? I keep flipping translation adjustment direction. A rule of thumb would save my life.',
-    tags: ['#fx', '#part2', '#help'],
-    likes: 11, comments: 9,
-  },
 ];
 
-const categories = [
-  { label: 'All Feed', match: null as PostType[] | null },
-  { label: 'Audit Desk', match: ['AUDIT'] as PostType[] },
-  { label: 'Bounty Board', match: ['BOUNTY'] as PostType[] },
-  { label: 'Strategic Notes', match: ['RESOURCE', 'MCQ', 'GOAL'] as PostType[] },
-  { label: 'Expert Q&A', match: ['QUESTION', 'DISCUSS'] as PostType[] },
-];
+const RADAR_KEY = 'costudy-wall-radar';
 
-const signalOptions = ['ACTIVE_SOLVER', 'SILENT_LEARNER', 'REVISION_FOCUSED', 'EXAM_WEEK'] as const;
-
-const signalCopy: Record<string, string> = {
-  ACTIVE_SOLVER: 'Open to protocols, bounties and DMs.',
-  SILENT_LEARNER: 'Not accepting protocols. Watching quietly.',
-  REVISION_FOCUSED: 'Deep revision mode — mentions muted.',
-  EXAM_WEEK: 'Exam week. Signal intercepted for everything.',
+const loadRadar = (): Set<string> => {
+  try {
+    return new Set(JSON.parse(localStorage.getItem(RADAR_KEY) || '[]') as string[]);
+  } catch {
+    return new Set();
+  }
 };
 
 export default function Wall() {
-  const [posts, setPosts] = useState<Post[]>(seed);
-  const [cat, setCat] = useState(0);
+  const { profile } = useAuth();
+  const [live, setLive] = useState<Post[]>([]);
+  const [loaded, setLoaded] = useState(false);
   const [draft, setDraft] = useState('');
   const [draftType, setDraftType] = useState<PostType>('QUESTION');
-  const [signal, setSignal] = useState<(typeof signalOptions)[number]>('ACTIVE_SOLVER');
-  const [mcqPicked, setMcqPicked] = useState<Record<number, number>>({});
+  const [mcqPicked, setMcqPicked] = useState<Record<string, number>>({});
+  const [radarIds, setRadarIds] = useState<Set<string>>(loadRadar);
+  const [publishing, setPublishing] = useState(false);
+  const [pubError, setPubError] = useState<string | null>(null);
 
-  const visible = useMemo(() => {
-    const m = categories[cat].match;
-    return m ? posts.filter((p) => m.includes(p.type)) : posts;
-  }, [cat, posts]);
+  // initial load from the live `posts` table
+  useEffect(() => {
+    let cancelled = false;
+    supabase
+      .from('posts')
+      .select('*, author:user_profiles(name, role, level)')
+      .order('created_at', { ascending: false })
+      .limit(50)
+      .then(({ data }) => {
+        if (cancelled) return;
+        setLive(((data as DbPost[]) || []).map(mapDbPost));
+        setLoaded(true);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
-  const mutate = (id: number, fn: (p: Post) => Post) =>
-    setPosts((ps) => ps.map((p) => (p.id === id ? fn(p) : p)));
+  // realtime — new broadcasts from anyone appear instantly
+  useEffect(() => {
+    const channel = supabase
+      .channel('wall-posts')
+      .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'posts' }, (payload) => {
+        const row = payload.new as DbPost;
+        supabase
+          .from('posts')
+          .select('*, author:user_profiles(name, role, level)')
+          .eq('id', row.id)
+          .maybeSingle()
+          .then(({ data }) => {
+            if (data) setLive((l) => (l.some((p) => p.id === (data as DbPost).id) ? l : [mapDbPost(data as DbPost), ...l]));
+          });
+      })
+      .subscribe();
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, []);
 
-  const publish = () => {
-    const text = draft.trim();
-    if (!text) return;
-    setPosts((ps) => [
-      {
-        id: Date.now(),
-        type: draftType,
-        author: 'Midhun',
-        initials: 'M',
-        level: 'SCHOLAR',
-        role: 'STUDENT',
-        signal: 'ACTIVE_SOLVER',
-        time: 'just now',
-        body: text,
-        tags: ['#fresh'],
-        likes: 0,
-        comments: 0,
-      },
-      ...ps,
-    ]);
-    setDraft('');
-    setCat(0);
+  const toggleRadar = (p: Post) => {
+    setRadarIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(p.id)) next.delete(p.id);
+      else next.add(p.id);
+      localStorage.setItem(RADAR_KEY, JSON.stringify([...next]));
+      return next;
+    });
   };
 
+  const posts = (live.length > 0 ? live : seed).map((p) => ({ ...p, saved: radarIds.has(p.id) }));
+  const usingSeeds = live.length === 0;
   const radar = posts.filter((p) => p.saved);
+
+  const mutate = (id: string, fn: (p: Post) => Post) =>
+    setLive((ps) => ps.map((p) => (p.id === id ? fn(p) : p)));
+
+  const toggleLike = (p: Post) => {
+    if (p.live) {
+      const next = p.liked ? p.likes - 1 : p.likes + 1;
+      mutate(p.id, (x) => ({ ...x, liked: !x.liked, likes: next }));
+      supabase.from('posts').update({ likes: next }).eq('id', p.id).then(() => {});
+    } else {
+      mutate(p.id, (x) => ({ ...x, liked: !x.liked, likes: x.likes + (x.liked ? -1 : 1) }));
+    }
+  };
+
+  const publish = async () => {
+    const text = draft.trim();
+    if (!text || publishing || !profile) return;
+    setPublishing(true);
+    setPubError(null);
+    const { data, error } = await supabase
+      .from('posts')
+      .insert([{ author_id: profile.id, content: text, type: draftType, tags: ['#fresh'], likes: 0 }])
+      .select('*, author:user_profiles(name, role, level)');
+    setPublishing(false);
+    if (error || !data) {
+      setPubError(error?.message || 'Broadcast failed — try again.');
+      return;
+    }
+    setLive((l) => [mapDbPost(data[0] as DbPost), ...l]);
+    setDraft('');
+  };
 
   return (
     <AppShell eyebrow="The commons, out loud" title="Study Wall">
-      <div className="grid gap-6 xl:grid-cols-[1.7fr_1fr]">
-        {/* feed column */}
-        <div>
-          {/* composer */}
-          <section className="mb-6 rounded-[1.6rem] border-[1.5px] b-line bg-[var(--card)] p-5 md:p-6">
-            <label htmlFor="wall-draft" className="eyebrow t-faint">
-              What strategic insight have you learned today?
-            </label>
-            <textarea
-              id="wall-draft"
-              value={draft}
-              onChange={(e) => setDraft(e.target.value)}
-              rows={2}
-              placeholder="Share a thought…"
-              className="mt-3 w-full resize-none rounded-xl border-[1.5px] b-line bg-[var(--paper)] p-4 text-sm t-ink placeholder:t-faint focus:border-[var(--ink)] focus:outline-none"
-            />
-            <div className="mt-3 flex flex-wrap items-center justify-between gap-3">
-              <div className="flex flex-wrap gap-2">
-                {(Object.keys(typeMeta) as PostType[])
-                  .filter((t) => ['QUESTION', 'RESOURCE', 'MCQ', 'AUDIT'].includes(t))
-                  .map((t) => (
-                    <button
-                      key={t}
-                      onClick={() => setDraftType(t)}
-                      className={`rounded-full px-3.5 py-1.5 text-[0.65rem] font-bold tracking-widest transition-all duration-300 ${
-                        draftType === t ? '' : 'opacity-45 hover:opacity-80'
-                      }`}
-                      style={{ backgroundColor: typeMeta[t].tone, color: typeMeta[t].ink }}
-                    >
-                      {typeMeta[t].label}
-                    </button>
-                  ))}
-              </div>
-              <button onClick={publish} disabled={!draft.trim()} className="pill-btn !px-5 !py-2.5 text-sm disabled:opacity-40">
-                Broadcast
-              </button>
-            </div>
-          </section>
-
-          {/* categories */}
-          <div className="mb-6 flex flex-wrap gap-2">
-            {categories.map((c, i) => (
-              <button
-                key={c.label}
-                onClick={() => setCat(i)}
-                className={`rounded-full border-[1.5px] px-4 py-2 text-xs font-bold transition-all duration-300 ${
-                  cat === i
-                    ? 'border-[#ea4467] bg-[#ea4467] text-white'
-                    : 'b-line t-muted hover:t-ink hover:border-[var(--ink)]'
-                }`}
-              >
-                {c.label}
-              </button>
-            ))}
+      {/* composer — deliberately set apart from the three columns */}
+      {profile ? (
+        <section className="relative mb-8 overflow-hidden rounded-[1.6rem] bg-[#2b2926] p-6 text-[#fcfbfa] md:p-8">
+          <DoodleSpark className="pointer-events-none absolute -right-6 -top-6 h-28 w-28 text-[#e7fec7]/15" />
+          <div className="flex items-center gap-2">
+            <DoodleSpark className="h-5 w-5 text-[#e7fec7]" />
+            <p className="eyebrow text-[#e7fec7]">Broadcast to the wall</p>
           </div>
+          <textarea
+            value={draft}
+            onChange={(e) => setDraft(e.target.value)}
+            rows={2}
+            placeholder={profile.role === 'TEACHER' ? 'Drop a note, bounty or correction for the whole campus…' : 'What strategic insight have you learned today?'}
+            className="mt-4 w-full resize-none rounded-xl border-[1.5px] border-[#fcfbfa]/25 bg-[#fcfbfa]/10 p-4 text-sm text-[#fcfbfa] placeholder:text-[#fcfbfa]/50 focus:border-[#e7fec7] focus:outline-none"
+          />
+          {pubError && <p className="mt-3 rounded-lg bg-[#ea4467]/25 px-3 py-2 text-xs font-semibold">{pubError}</p>}
+          <div className="mt-4 flex flex-wrap items-center justify-between gap-3">
+            <div className="flex flex-wrap gap-2">
+              {(Object.keys(typeMeta) as PostType[])
+                .filter((t) => ['QUESTION', 'RESOURCE', 'MCQ', 'AUDIT'].includes(t))
+                .map((t) => (
+                  <button
+                    key={t}
+                    onClick={() => setDraftType(t)}
+                    className={`rounded-full px-3.5 py-1.5 text-[0.65rem] font-bold tracking-widest transition-all duration-300 ${
+                      draftType === t ? '' : 'opacity-45 hover:opacity-80'
+                    }`}
+                    style={{ backgroundColor: typeMeta[t].tone, color: typeMeta[t].ink }}
+                  >
+                    {typeMeta[t].label}
+                  </button>
+                ))}
+            </div>
+            <button
+              onClick={publish}
+              disabled={!draft.trim() || publishing}
+              className="rounded-full bg-[#e7fec7] px-5 py-2.5 text-sm font-bold text-[#21221f] transition-opacity disabled:opacity-40"
+            >
+              {publishing ? 'Broadcasting…' : 'Broadcast'}
+            </button>
+          </div>
+        </section>
+      ) : (
+        <section className="mb-8 flex flex-wrap items-center justify-between gap-4 rounded-[1.6rem] border-[1.5px] b-line bg-[var(--card)] p-6">
+          <div>
+            <p className="slab-display text-xl t-ink">The wall is live — log in to broadcast.</p>
+            <p className="mt-1 text-sm t-muted">Real posts from the campus flow here the moment they land.</p>
+          </div>
+          <Link to="/login" className="pill-btn !px-6 !py-3 text-sm">Log in to post</Link>
+        </section>
+      )}
 
-          {/* posts */}
+      <div className="grid gap-6 xl:grid-cols-[1.8fr_1fr]">
+        {/* feed column — the centre of gravity */}
+        <div>
+          {usingSeeds && loaded && (
+            <p className="mb-4 rounded-xl border-[1.5px] border-dashed b-line px-4 py-3 text-xs font-semibold t-muted">
+              Showing starter posts to set the tone — log in and broadcast the first real one.
+            </p>
+          )}
           <div className="space-y-4">
-            {visible.map((p) => {
+            {posts.map((p) => {
               const meta = typeMeta[p.type];
               const picked = mcqPicked[p.id];
               return (
@@ -297,9 +361,7 @@ export default function Wall() {
                         ))}
                         <span className="ml-auto flex items-center gap-1">
                           <button
-                            onClick={() =>
-                              mutate(p.id, (x) => ({ ...x, liked: !x.liked, likes: x.likes + (x.liked ? -1 : 1) }))
-                            }
+                            onClick={() => toggleLike(p)}
                             className={`flex items-center gap-1.5 rounded-full border-[1.5px] px-3 py-1.5 text-xs font-bold transition-all duration-300 ${
                               p.liked ? 'border-[#ea4467] bg-[#ea4467] text-white' : 'b-line t-muted hover:t-ink'
                             }`}
@@ -308,7 +370,7 @@ export default function Wall() {
                             ▲ {p.likes}
                           </button>
                           <button
-                            onClick={() => mutate(p.id, (x) => ({ ...x, saved: !x.saved }))}
+                            onClick={() => toggleRadar(p)}
                             className={`flex items-center gap-1.5 rounded-full border-[1.5px] px-3 py-1.5 text-xs font-bold transition-all duration-300 ${
                               p.saved ? 'border-[var(--ink)] bg-[var(--ink)] text-[var(--paper)]' : 'b-line t-muted hover:t-ink'
                             }`}
@@ -316,7 +378,7 @@ export default function Wall() {
                           >
                             Radar {p.saved ? '✓' : '+'}
                           </button>
-                          <span className="ml-1 text-xs t-faint">{p.comments} replies</span>
+                          {p.comments > 0 && <span className="ml-1 text-xs t-faint">{p.comments} replies</span>}
                         </span>
                       </div>
                     </div>
@@ -324,39 +386,26 @@ export default function Wall() {
                 </article>
               );
             })}
-            {visible.length === 0 && (
+            {posts.length === 0 && (
               <p className="py-10 text-center text-sm t-faint">Nothing here yet — be the first broadcast.</p>
             )}
           </div>
         </div>
 
-        {/* right rail */}
+        {/* right rail — Radar+ only */}
         <aside className="space-y-4">
-          <section className="rounded-[1.6rem] bg-[#2b2926] p-6 text-[#fcfbfa]">
-            <p className="eyebrow opacity-60">Your signal</p>
-            <div className="mt-3 flex flex-wrap gap-2">
-              {signalOptions.map((s) => (
-                <button
-                  key={s}
-                  onClick={() => setSignal(s)}
-                  className={`rounded-full border px-3 py-1.5 text-[0.6rem] font-bold tracking-widest transition-all duration-300 ${
-                    signal === s ? 'border-[#e7fec7] bg-[#e7fec7] text-[#21221f]' : 'border-[#fcfbfa]/30 text-[#fcfbfa]/70 hover:border-[#fcfbfa]'
-                  }`}
-                >
-                  {s.replace('_', ' ')}
-                </button>
-              ))}
-            </div>
-            <p className="mt-4 text-sm leading-relaxed opacity-75">{signalCopy[signal]}</p>
-          </section>
-
           <section className="rounded-[1.6rem] border-[1.5px] b-line bg-[var(--card)] p-6">
             <div className="mb-4 flex items-center justify-between">
-              <h2 className="slab-display text-xl t-ink">Academic Radar</h2>
-              <DoodleBubble className="h-5 w-5 t-muted" />
+              <div className="flex items-center gap-2">
+                <DoodleBubble className="h-5 w-5 t-muted" />
+                <h2 className="slab-display text-xl t-ink">Radar+</h2>
+              </div>
+              <span className={`rounded-full px-2.5 py-0.5 text-[0.65rem] font-bold tracking-widest ${radar.length > 0 ? 'bg-[#e7fec7] text-[#21221f]' : 'b-line t-faint'}`}>
+                {radar.length} tracked
+              </span>
             </div>
             {radar.length === 0 ? (
-              <p className="text-sm t-faint">
+              <p className="text-sm leading-relaxed t-faint">
                 Your silent track is empty. Bookmark any post with <strong className="t-muted">Radar +</strong> — it waits here without buzzing you.
               </p>
             ) : (
@@ -364,23 +413,16 @@ export default function Wall() {
                 {radar.map((p) => (
                   <li key={p.id} className="rounded-xl bg-[var(--paper)] p-3 shadow-[inset_0_0_0_1.5px_var(--line)]">
                     <p className="line-clamp-2 text-xs font-medium leading-snug t-ink">{p.body}</p>
-                    <p className="mt-1.5 text-[0.65rem] font-bold tracking-widest t-faint">{typeMeta[p.type].label} · {p.author}</p>
+                    <div className="mt-1.5 flex items-center justify-between">
+                      <p className="text-[0.65rem] font-bold tracking-widest t-faint">{typeMeta[p.type].label} · {p.author}</p>
+                      <button onClick={() => toggleRadar(p)} className="text-[0.65rem] font-bold tracking-widest t-faint hover:text-[#ea4467]">
+                        RELEASE
+                      </button>
+                    </div>
                   </li>
                 ))}
               </ul>
             )}
-          </section>
-
-          <section className="rounded-[1.6rem] bg-[#e7fec7] p-6 text-[#21221f]">
-            <div className="flex items-center gap-2">
-              <DoodleSpark className="h-5 w-5" />
-              <h2 className="slab-display text-xl">Wall karma this week</h2>
-            </div>
-            <ul className="mt-4 space-y-2.5 text-sm font-medium">
-              <li className="flex justify-between border-b border-[#21221f]/15 pb-2"><span>Audits given</span><span className="font-slab font-bold">3</span></li>
-              <li className="flex justify-between border-b border-[#21221f]/15 pb-2"><span>Bounties won</span><span className="font-slab font-bold">1</span></li>
-              <li className="flex justify-between"><span>Insights shared</span><span className="font-slab font-bold">7</span></li>
-            </ul>
           </section>
 
           <SupabaseStatus />
