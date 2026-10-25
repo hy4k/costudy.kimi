@@ -13,14 +13,14 @@ import {
 } from '@/components/Doodles';
 
 const nav = [
-  { to: '/rooms', label: 'Study Rooms', Doodle: DoodlePeople, hint: 'Live clusters' },
-  { to: '/wall', label: 'Study Wall', Doodle: DoodleBubble, hint: 'The commons' },
-  { to: '/vault', label: 'Library Vault', Doodle: DoodleBook, hint: 'Knowledge vault' },
-  { to: '/ai', label: 'AI Deck', Doodle: DoodleBulb, hint: 'Doubt desk' },
-  { to: '/path', label: 'Mastery Path', Doodle: DoodleNote, hint: 'The cockpit' },
+  { to: '/rooms', label: 'Study Rooms', short: 'Rooms', Doodle: DoodlePeople, hint: 'Live clusters' },
+  { to: '/wall', label: 'Study Wall', short: 'Wall', Doodle: DoodleBubble, hint: 'The commons' },
+  { to: '/vault', label: 'Library Vault', short: 'Vault', Doodle: DoodleBook, hint: 'Knowledge vault' },
+  { to: '/ai', label: 'AI Deck', short: 'AI', Doodle: DoodleBulb, hint: 'Doubt desk' },
+  { to: '/path', label: 'Mastery Path', short: 'Path', Doodle: DoodleNote, hint: 'The cockpit' },
 ];
 
-const facultyNav = { to: '/mentor', label: 'Faculty Room', Doodle: DoodleSpark, hint: 'Mentor cockpit' };
+const facultyNav = { to: '/mentor', label: 'Faculty Room', short: 'Faculty', Doodle: DoodleSpark, hint: 'Mentor cockpit' };
 
 export default function AppShell({
   title,
@@ -118,7 +118,7 @@ export default function AppShell({
                     }`
                   }
                 >
-                  {n.label.split(' ')[0]}
+                  {n.short}
                 </NavLink>
               ))}
             </nav>
