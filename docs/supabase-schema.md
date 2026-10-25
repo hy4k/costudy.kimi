@@ -61,6 +61,7 @@ supabase.from('posts').insert({
 | Wall feed read + realtime | Wired |
 | Wall broadcast (insert, auth-gated) | Wired |
 | Likes (postgREST update) | Wired |
+| Comment threads (`comments`, count via `comments(count)`) | Wired |
 | Radar+ bookmarks | Local (no bookmark table exists yet — candidate: new `post_bookmarks` table) |
 | Login / role routing / mentor path | Wired |
 | Vault, Rooms, AI Deck, Mastery Path data | Local curated data (next phase) |

@@ -26,6 +26,22 @@ type Post = {
   mcq?: { q: string; options: string[]; answer: number; why: string };
 };
 
+type WallComment = {
+  id: string;
+  author: string;
+  initials: string;
+  body: string;
+  time: string;
+};
+
+type DbComment = {
+  id: string;
+  post_id?: string;
+  content?: string;
+  created_at?: string;
+  author?: { name?: string } | null;
+};
+
 type DbPost = {
   id: string;
   type?: string;
@@ -35,6 +51,18 @@ type DbPost = {
   created_at?: string;
   author_id?: string;
   author?: { name?: string; role?: string; level?: string } | null;
+  comments?: { count: number }[];
+};
+
+const mapDbComment = (row: DbComment): WallComment => {
+  const name = row.author?.name || 'CMA Aspirant';
+  return {
+    id: row.id,
+    author: name,
+    initials: initialsOf(name),
+    body: row.content || '',
+    time: relTime(row.created_at),
+  };
 };
 
 const typeMeta: Record<PostType, { label: string; tone: string; ink: string }> = {
@@ -78,7 +106,7 @@ const mapDbPost = (row: DbPost): Post => {
     body: row.content || '',
     tags: row.tags || [],
     likes: row.likes ?? 0,
-    comments: 0,
+    comments: row.comments?.[0]?.count ?? 0,
     live: true,
   };
 };
@@ -134,13 +162,17 @@ export default function Wall() {
   const [radarIds, setRadarIds] = useState<Set<string>>(loadRadar);
   const [publishing, setPublishing] = useState(false);
   const [pubError, setPubError] = useState<string | null>(null);
+  const [openThread, setOpenThread] = useState<string | null>(null);
+  const [threads, setThreads] = useState<Record<string, { items: WallComment[]; loaded: boolean }>>({});
+  const [commentDrafts, setCommentDrafts] = useState<Record<string, string>>({});
+  const [commentBusy, setCommentBusy] = useState<string | null>(null);
 
   // initial load from the live `posts` table
   useEffect(() => {
     let cancelled = false;
     supabase
       .from('posts')
-      .select('*, author:user_profiles(name, role, level)')
+      .select('*, author:user_profiles(name, role, level), comments(count)')
       .order('created_at', { ascending: false })
       .limit(50)
       .then(({ data }) => {
@@ -153,7 +185,7 @@ export default function Wall() {
     };
   }, []);
 
-  // realtime — new broadcasts from anyone appear instantly
+  // realtime — new broadcasts and thread replies appear instantly
   useEffect(() => {
     const channel = supabase
       .channel('wall-posts')
@@ -161,18 +193,40 @@ export default function Wall() {
         const row = payload.new as DbPost;
         supabase
           .from('posts')
-          .select('*, author:user_profiles(name, role, level)')
+          .select('*, author:user_profiles(name, role, level), comments(count)')
           .eq('id', row.id)
           .maybeSingle()
           .then(({ data }) => {
             if (data) setLive((l) => (l.some((p) => p.id === (data as DbPost).id) ? l : [mapDbPost(data as DbPost), ...l]));
           });
       })
+      .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'comments' }, (payload) => {
+        const row = payload.new as DbComment;
+        if (!row.post_id) return;
+        setLive((l) => l.map((p) => (p.id === row.post_id ? { ...p, comments: p.comments + 1 } : p)));
+        if (openThread === row.post_id) {
+          supabase
+            .from('comments')
+            .select('*, author:user_profiles(name)')
+            .eq('id', row.id)
+            .maybeSingle()
+            .then(({ data }) => {
+              if (data) {
+                const c = mapDbComment(data as DbComment);
+                setThreads((t) => {
+                  const cur = t[row.post_id!];
+                  if (!cur || cur.items.some((x) => x.id === c.id)) return t;
+                  return { ...t, [row.post_id!]: { items: [...cur.items, c], loaded: true } };
+                });
+              }
+            });
+        }
+      })
       .subscribe();
     return () => {
       supabase.removeChannel(channel);
     };
-  }, []);
+  }, [openThread]);
 
   const toggleRadar = (p: Post) => {
     setRadarIds((prev) => {
@@ -217,6 +271,41 @@ export default function Wall() {
     }
     setLive((l) => [mapDbPost(data[0] as DbPost), ...l]);
     setDraft('');
+  };
+
+  const toggleThread = (postId: string) => {
+    setOpenThread((cur) => (cur === postId ? null : postId));
+    const cached = threads[postId];
+    if (!cached?.loaded) {
+      supabase
+        .from('comments')
+        .select('*, author:user_profiles(name)')
+        .eq('post_id', postId)
+        .order('created_at', { ascending: true })
+        .limit(100)
+        .then(({ data }) => {
+          setThreads((t) => ({ ...t, [postId]: { items: ((data as DbComment[]) || []).map(mapDbComment), loaded: true } }));
+        });
+    }
+  };
+
+  const publishComment = async (postId: string) => {
+    const text = (commentDrafts[postId] || '').trim();
+    if (!text || commentBusy || !profile) return;
+    setCommentBusy(postId);
+    const { data, error } = await supabase
+      .from('comments')
+      .insert([{ post_id: postId, author_id: profile.id, content: text }])
+      .select('*, author:user_profiles(name)');
+    setCommentBusy(null);
+    if (error || !data) return;
+    const c = mapDbComment(data[0] as DbComment);
+    setThreads((t) => {
+      const cur = t[postId] || { items: [], loaded: true };
+      return { ...t, [postId]: { items: [...cur.items, c], loaded: true } };
+    });
+    setLive((l) => l.map((p) => (p.id === postId ? { ...p, comments: p.comments + 1 } : p)));
+    setCommentDrafts((d) => ({ ...d, [postId]: '' }));
   };
 
   return (
@@ -378,9 +467,76 @@ export default function Wall() {
                           >
                             Radar {p.saved ? '✓' : '+'}
                           </button>
-                          {p.comments > 0 && <span className="ml-1 text-xs t-faint">{p.comments} replies</span>}
+                          {p.live ? (
+                            <button
+                              onClick={() => toggleThread(p.id)}
+                              aria-expanded={openThread === p.id}
+                              className={`ml-1 rounded-full border-[1.5px] px-3 py-1.5 text-xs font-bold transition-all duration-300 ${
+                                openThread === p.id ? 'b-line t-ink' : 'border-transparent t-faint hover:t-ink'
+                              }`}
+                            >
+                              {p.comments} {p.comments === 1 ? 'reply' : 'replies'} {openThread === p.id ? '▴' : '▾'}
+                            </button>
+                          ) : (
+                            p.comments > 0 && <span className="ml-1 text-xs t-faint">{p.comments} replies</span>
+                          )}
                         </span>
                       </div>
+
+                      {/* thread */}
+                      {p.live && openThread === p.id && (
+                        <div className="mt-4 rounded-xl bg-[var(--paper)] p-4 shadow-[inset_0_0_0_1.5px_var(--line)]">
+                          {(threads[p.id]?.items.length ?? 0) === 0 ? (
+                            <p className="text-xs t-faint">
+                              {threads[p.id]?.loaded ? 'No replies yet — open the thread.' : 'Loading thread…'}
+                            </p>
+                          ) : (
+                            <ul className="space-y-3">
+                              {threads[p.id].items.map((c) => (
+                                <li key={c.id} className="flex items-start gap-2.5">
+                                  <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-[#c6b3a2] font-slab text-[0.65rem] font-bold text-[#21221f]">
+                                    {c.initials}
+                                  </span>
+                                  <div className="min-w-0">
+                                    <p className="text-xs t-ink">
+                                      <strong>{c.author}</strong> <span className="t-faint">· {c.time}</span>
+                                    </p>
+                                    <p className="mt-0.5 text-sm leading-relaxed t-ink">{c.body}</p>
+                                  </div>
+                                </li>
+                              ))}
+                            </ul>
+                          )}
+
+                          {profile ? (
+                            <div className="mt-4 flex gap-2 border-t b-line pt-4">
+                              <input
+                                value={commentDrafts[p.id] || ''}
+                                onChange={(e) => setCommentDrafts((d) => ({ ...d, [p.id]: e.target.value }))}
+                                onKeyDown={(e) => {
+                                  if (e.key === 'Enter' && !e.shiftKey) {
+                                    e.preventDefault();
+                                    publishComment(p.id);
+                                  }
+                                }}
+                                placeholder="Add to the thread…"
+                                className="min-w-0 flex-1 rounded-full border-[1.5px] b-line bg-[var(--card)] px-4 py-2 text-xs t-ink placeholder:t-faint focus:border-[var(--ink)] focus:outline-none"
+                              />
+                              <button
+                                onClick={() => publishComment(p.id)}
+                                disabled={!(commentDrafts[p.id] || '').trim() || commentBusy === p.id}
+                                className="rounded-full bg-[#ea4467] px-4 py-2 text-xs font-bold text-white transition-opacity disabled:opacity-40"
+                              >
+                                {commentBusy === p.id ? '…' : 'Reply'}
+                              </button>
+                            </div>
+                          ) : (
+                            <p className="mt-4 border-t b-line pt-4 text-xs t-faint">
+                              <Link to="/login" className="font-bold text-[#ea4467]">Log in</Link> to join the thread.
+                            </p>
+                          )}
+                        </div>
+                      )}
                     </div>
                   </div>
                 </article>
