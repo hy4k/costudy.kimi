@@ -61,6 +61,14 @@ supabase.from('posts').insert({
 - The separate `ingestion_staging` / `ingestion_review_events` tables are the **internal question-bank pipeline** (CSV sources → review → publish) — deliberately NOT reused for community uploads.
 - Optional future migration: add `status text not null default 'pending'` + `reviewed_by uuid` to `library_items` if uploads should live in the same table as curated items.
 
+## Study Rooms contract (verified)
+
+- **Rooms** = `study_rooms` — anon-readable. Rich columns: `name, category, description, color_theme, room_type, is_live, max_members, members_count, active_count, tags, topic, exam_window, cluster_streak, focus_minutes_today, total_focus_hours`.
+- **Presence** = `room_presence` — one row per user currently in a room: `room_id, user_id, display_name, avatar_url, last_seen`. Anon-readable. Join = upsert own row (auth-gated, RLS blocks anon); leave = delete own row.
+- **Membership** = `study_room_members` — durable membership with `role, status, signal_light, is_online, streak, progress` (presence is ephemeral; membership is durable).
+- Realtime: `postgres_changes` on `room_presence` refreshes who's-in-the-room live; `INSERT` on `study_rooms` pulls in new clusters.
+- Freshness: `last_seen` within 15 min counts as an occupied desk; older rows show as away.
+
 ## Redesign wiring status
 
 | Feature | Status |
@@ -72,6 +80,8 @@ supabase.from('posts').insert({
 | Comment threads (`comments`, count via `comments(count)`) | Wired |
 | Vault verified shelf (`library_items`) + pending shelf (`content_sources`) | Wired |
 | Vault community submission (insert into `content_sources`, auth-gated) | Wired |
+| Faculty review queue (approve → `library_items`, reject → delete) | Wired |
+| Study Rooms (`study_rooms` + `room_presence`, realtime, join/leave) | Wired |
 | Radar+ bookmarks | Local (no bookmark table exists yet — candidate: new `post_bookmarks` table) |
 | Login / role routing / mentor path | Wired |
-| Rooms, AI Deck, Mastery Path data | Local curated data (next phase) |
+| AI Deck, Mastery Path data | Local curated data (next phase) |
