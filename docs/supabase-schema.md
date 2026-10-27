@@ -69,6 +69,15 @@ supabase.from('posts').insert({
 - Realtime: `postgres_changes` on `room_presence` refreshes who's-in-the-room live; `INSERT` on `study_rooms` pulls in new clusters.
 - Freshness: `last_seen` within 15 min counts as an occupied desk; older rows show as away.
 
+## Mastery Path contract (verified)
+
+- **Mock trend & mastery ring** = `mock_attempts` — anon-readable, real rows exist. Columns: `id, user_id, exam_id, scaled_score, started_at, completed_at, pass_threshold`. (Note: `mode`/`label` are reserved/blocked in PostGREST selects — avoid.) Per-user via `.eq('user_id', …)`.
+- **Exam milestone** = `user_exam_targets` — `user_id, exam_window (text), created_at`. No date column: the cockpit shows the window text and derives an *approximate* countdown only when the window string parses (e.g. "Jan-2027").
+- **Syllabus blocks** = `mcq_questions` — `part, section, question_text…` with real rows; the cockpit renders **question-bank coverage** per section (share of banked questions) instead of fabricated per-user mastery.
+- **Badges** = `user_badges(user_id, badge_id, earned_at)` joined to `badges(name, icon, description, category)`.
+- ⚠️ `user_progress` and `mastery_topics` are referenced by the original app's services but **do not exist** in this project — the original silently swallows those errors. If durable per-topic progress is wanted, both tables need a one-time migration.
+- ⚠️ `mcq_responses` has no `user_id` column (only `id, question_id, is_correct` confirmed) — per-user topic accuracy isn't derivable yet.
+
 ## Redesign wiring status
 
 | Feature | Status |
@@ -82,6 +91,7 @@ supabase.from('posts').insert({
 | Vault community submission (insert into `content_sources`, auth-gated) | Wired |
 | Faculty review queue (approve → `library_items`, reject → delete) | Wired |
 | Study Rooms (`study_rooms` + `room_presence`, realtime, join/leave) | Wired |
+| Mastery Path (`mock_attempts`, `user_exam_targets`, `mcq_questions` coverage, `user_badges`) | Wired |
 | Radar+ bookmarks | Local (no bookmark table exists yet — candidate: new `post_bookmarks` table) |
 | Login / role routing / mentor path | Wired |
-| AI Deck, Mastery Path data | Local curated data (next phase) |
+| AI Deck data | Local curated data (next phase) |
