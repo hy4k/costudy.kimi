@@ -80,10 +80,14 @@ supabase.from('posts').insert({
 
 ## AI Deck contract (verified)
 
-- **Question bank** = `mcq_questions` — full contract: `id, part, section, question_text, option_a, option_b, option_c, option_d, correct_answer, created_at`. Anon-readable; 20 real rows across 11 sections (Part 1 ×5 sections, Part 2 ×6). The mentor fetches the bank on load and grounds every answer in it: topic match → teaching note + an interactive drill card (real question, real options, self-check against the bank's `correct_answer`). Session drill score is tracked client-side.
-- ⚠️ The bank has **no explanation/rationale column** — the mentor's teaching notes live in the page (keyed by section), not in the DB.
-- **`ai_requests`** — this is the *backend API call log* for the original app's Gemini proxy (columns: `id, user_id, endpoint, model, provider, status, prompt_hash, prompt_tokens, completion_tokens, latency_ms, metadata(jsonb), created_at`). There is **no retrievable prompt/answer text** — answers can't be cached or replayed from it from the frontend. It is currently empty.
-- **`ai_question_cache`** — stores AI-generated question *variants* (columns: `id, base_question_id, part, section, topic, difficulty, question_type, question_data(jsonb), quality_score, generation_model, times_shown, is_used, created_at`). Populated by the backend generation pipeline; currently empty. Future hook: surface `is_used` variants as extra drills.
+- **The real question bank** = `question_bank` — **15,324 rows total**: `id, external_id, part, section, topic, question_kind, difficulty, source_kind, question_text, options(jsonb {"A"…"D"}), correct_answer, explanation, reference_links(jsonb), tags, is_active, quality_flag, created_at, updated_at`. **6,924 MCQs**, of which **3,646 active** after the Oct 2027 recovery pass (was 1,671). Part 1 ≈ 2,850 / Part 2 ≈ 130 active — Part 2 volume is the known gap (user holds it in Google Drive; CBQ case-based questions absent everywhere — `question_kind` has no CBQ type).
+- **Direct table reads are RLS-blocked for anon** (returns `[]`). The frontend uses the existing **`pick_practice_mcqs(p_part text, p_section text, p_count int)` RPC** — anon-executable, SECURITY-style access, returns random **active** MCQs with full `options`, `correct_answer`, and `explanation`. Verified: respects `is_active`, random per call.
+- **Oct 2027 recovery pass** (service-role, run on owner's VPS): screened all 5,253 inactive MCQs (complete A–D options, valid `correct_answer`, distinct options, stem 25–600 chars), deduped against active stems and within the set → **1,975 reactivated** (`quality_flag='recovered'`; 1,231 include explanations). ~3,300 remain inactive — genuinely broken (`no_answer`, `missing_options`, `truncated_scrape` per their `quality_flag`).
+- The Deck pairs live syllabus teaching notes (in-page, keyed by section) with an RPC-drawn drill card: answer → bank's worked `explanation` unlocks; session drill score tracked client-side.
+- ⚠️ `mcq_questions` (the 20-row table) is just a tiny seed — superseded by `question_bank` for drills.
+- **`ai_requests`** — the *backend API call log* for the original app's LLM proxy (columns: `id, user_id, endpoint, model, provider, status, prompt_hash, prompt_tokens, completion_tokens, latency_ms, metadata(jsonb), created_at`). No retrievable prompt/answer text; currently empty.
+- **`ai_question_cache`** — AI-generated question *variants* (`id, base_question_id, part, section, topic, difficulty, question_type, question_data(jsonb), quality_score, generation_model, times_shown, is_used, created_at`), populated by the backend pipeline; currently empty.
+- **Backend AI service** (`/root/costudy-api/server.js` on the VPS, port 8080): real RAG tutor `POST /api/ask-cma` (embeds query → retrieves `content_chunks` — 43,860 rows → GPT-4o-mini / Anthropic fallback, returns cited sources). ⚠️ Not wired to the site (no nginx proxy) and **currently broken — OpenAI quota exhausted; chat path doesn't fall back to Anthropic** despite a configured key.
 
 ## Redesign wiring status
 
@@ -99,6 +103,6 @@ supabase.from('posts').insert({
 | Faculty review queue (approve → `library_items`, reject → delete) | Wired |
 | Study Rooms (`study_rooms` + `room_presence`, realtime, join/leave) | Wired |
 | Mastery Path (`mock_attempts`, `user_exam_targets`, `mcq_questions` coverage, `user_badges`) | Wired |
-| AI Deck (`mcq_questions` bank-grounded mentor + drills) | Wired |
+| AI Deck (`question_bank` via `pick_practice_mcqs` RPC: notes + drills + explanations) | Wired |
 | Radar+ bookmarks | Local (no bookmark table exists yet — candidate: new `post_bookmarks` table) |
 | Login / role routing / mentor path | Wired |

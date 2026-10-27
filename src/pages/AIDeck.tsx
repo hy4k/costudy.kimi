@@ -1,68 +1,82 @@
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import AppShell from '@/components/app/AppShell';
 import { DoodleBulb } from '@/components/Doodles';
 import { useDeckPins, togglePin } from '@/lib/deckStore';
 import { supabase } from '@/lib/supabase';
 
-type BankQ = {
+type Part = 'Part 1' | 'Part 2';
+
+// Row shape returned by the pick_practice_mcqs RPC (question_bank table).
+type PracticeQ = {
   id: string;
   part: string;
-  section: string;
+  section: string | null;
+  topic: string | null;
+  difficulty: string | null;
   question_text: string;
-  option_a: string;
-  option_b: string;
-  option_c: string;
-  option_d: string;
+  options: Record<string, string>;
   correct_answer: string;
+  explanation: string | null;
 };
 
-type SectionNote = { note: string; trap: string };
+type SectionNote = { note: string; trap: string; part: Part };
 
-// Teaching notes per real bank section — grounded in what the banked questions test.
+// Teaching notes per syllabus area — grounded in CMA exam practice.
 const SECTION_NOTES: Record<string, SectionNote> = {
   'External Financial Reporting': {
+    part: 'Part 1',
     note: "US GAAP mechanics the exam loves. Statement of cash flows: under US GAAP both interest paid and interest received are operating activities — IFRS is the one that offers a choice. Contra-assets like Accumulated Depreciation sit against their related asset. Revenue runs on ASC 606's five-step model: identify the contract → identify performance obligations → determine the transaction price → allocate it → recognize as obligations are satisfied. The third step is determining the transaction price.",
     trap: 'Interest paid is operating under US GAAP — never financing. IFRS distractors are the classic wrong answers.',
   },
   'Planning, Budgeting, and Forecasting': {
-    note: 'Regression (Y = a + bX) quantifies planning relationships — R-squared measures how much of Y\u2019s variation X explains (0\u20131, closer to 1 = tighter fit). In volatile markets, rolling (continuous) budgets keep a constant 12-month horizon by adding a period as each one closes. Zero-based budgeting makes every manager justify all spending from a zero baseline each cycle — powerful for cutting fat, expensive to run.',
+    part: 'Part 1',
+    note: 'Regression (Y = a + bX) quantifies planning relationships — R-squared measures how much of Y’s variation X explains (0–1, closer to 1 = tighter fit). In volatile markets, rolling (continuous) budgets keep a constant 12-month horizon by adding a period as each one closes. Zero-based budgeting makes every manager justify all spending from a zero baseline each cycle — powerful for cutting fat, expensive to run.',
     trap: 'R-squared measures fit strength, not causation — and ZBB re-justifies everything, not just the increment.',
   },
   'Performance Management': {
+    part: 'Part 1',
     note: 'Responsibility centers: cost centers own only costs, revenue centers only revenue, profit centers both, and investment centers also control the assets employed (evaluated on ROI and residual income). The Balanced Scorecard spans Financial, Customer, Internal Process, and Learning & Growth — retention and training-hours metrics live in Learning & Growth. On variances: an unfavorable price variance paired with a favorable quantity variance often signals buying cheaper, lower-quality material.',
     trap: 'Never judge a center manager on corporate overhead they cannot control — controllability is the principle.',
   },
   'Cost Management': {
-    note: 'Process costing spreads costs over equivalent units of production (EUP) — under weighted-average, EUP = units completed + (ending WIP \u00d7 % complete), merging prior-period work with current. Activity-Based Costing assigns overhead by activities (cost drivers) instead of one volume base — it typically raises the cost of low-volume, complex products and lowers the cost of high-volume, simple ones.',
+    part: 'Part 1',
+    note: 'Process costing spreads costs over equivalent units of production (EUP) — under weighted-average, EUP = units completed + (ending WIP × % complete), merging prior-period work with current. Activity-Based Costing assigns overhead by activities (cost drivers) instead of one volume base — it typically raises the cost of low-volume, complex products and lowers the cost of high-volume, simple ones.',
     trap: 'Weighted-average merges beginning inventory into current work — FIFO is the method that separates the two.',
   },
   'Internal Controls': {
-    note: 'COSO\u2019s five components: Control Environment (tone at the top — the foundation), Risk Assessment, Control Activities, Information & Communication, and Monitoring. Segregation of duties splits custody of assets from record-keeping and authorization, so no single person can both execute and hide a fraud in cash management.',
+    part: 'Part 1',
+    note: 'COSO’s five components: Control Environment (tone at the top — the foundation), Risk Assessment, Control Activities, Information & Communication, and Monitoring. Segregation of duties splits custody of assets from record-keeping and authorization, so no single person can both execute and hide a fraud in cash management.',
     trap: 'Control environment is the foundation — exam items love swapping it with control activities.',
   },
   'Corporate Finance': {
-    note: 'CAPM prices equity capital: k = rf + \u03b2(rm \u2212 rf). With a 4% risk-free rate, beta of 1.25 and a 12% market return: 4% + 1.25 \u00d7 8% = 14%. Beta scales the market risk premium — a beta of exactly 1 earns the market return. Use it to feed WACC alongside after-tax cost of debt.',
+    part: 'Part 2',
+    note: 'CAPM prices equity capital: k = rf + β(rm − rf). With a 4% risk-free rate, beta of 1.25 and a 12% market return: 4% + 1.25 × 8% = 14%. Beta scales the market risk premium — a beta of exactly 1 earns the market return. Use it to feed WACC alongside after-tax cost of debt.',
     trap: 'Multiply beta by the premium, not by the market return itself.',
   },
   'Decision Analysis': {
-    note: 'Relevant costs are future and incremental. In make-or-buy, exclude sunk costs and allocated fixed overhead that continues either way. Breakeven volume = fixed costs \u00f7 unit contribution margin — $120,000 \u00f7 ($60 \u2212 $36) = 5,000 units; add target profit to the numerator for goal-volume calculations.',
+    part: 'Part 2',
+    note: 'Relevant costs are future and incremental. In make-or-buy, exclude sunk costs and allocated fixed overhead that continues either way. Breakeven volume = fixed costs ÷ unit contribution margin — $120,000 ÷ ($60 − $36) = 5,000 units; add target profit to the numerator for goal-volume calculations.',
     trap: 'Sunk costs are never relevant — even when the question begs you to include them.',
   },
   'Enterprise Risk Management': {
+    part: 'Part 2',
     note: 'Risk responses map to four strategies: avoid, reduce (mitigate), share (insurance, hedging), or accept (retain). Purchasing business interruption insurance is risk sharing — the insurer carries the severe-weather loss in exchange for premium.',
     trap: 'Insurance is sharing, not reduction — reduction means making the event less likely or less severe.',
   },
   'Financial Statement Analysis': {
+    part: 'Part 2',
     note: 'The liquidity ladder: the current ratio uses all current assets; the quick (acid-test) ratio strips inventory and prepaids to show ability to pay from near-cash assets; the cash ratio is the strictest. Trend and benchmark these against industry peers, not in isolation.',
     trap: 'The quick ratio excludes inventory — including it is the classic distractor.',
   },
   'Investment Decisions': {
+    part: 'Part 2',
     note: 'NPV discounts incremental cash flows at the required rate. NPV = $0 means the project earns exactly the hurdle rate — IRR equals the cost of capital — so it is acceptable if the hurdle reflects your true required return. Positive NPV adds shareholder value; negative destroys it.',
     trap: 'NPV of exactly zero is not a reject — it earns the required return precisely.',
   },
   'Professional Ethics': {
-    note: 'The IMA Statement of Ethical Professional Practice lists four standards: Competence, Confidentiality, Integrity, and Credibility. Resolution path: follow your employer\u2019s policy, escalate unresolved conflicts (IMA ethics hotline as a last resort), and never disclose confidential information unless legally required.',
-    trap: 'Credibility — fair and complete disclosure — is the fourth standard. \u201cObjectivity\u201d is a distractor.',
+    part: 'Part 2',
+    note: 'The IMA Statement of Ethical Professional Practice lists four standards: Competence, Confidentiality, Integrity, and Credibility. Resolution path: follow your employer’s policy, escalate unresolved conflicts (IMA ethics hotline as a last resort), and never disclose confidential information unless legally required.',
+    trap: 'Credibility — fair and complete disclosure — is the fourth standard. “Objectivity” is a distractor.',
   },
 };
 
@@ -73,7 +87,7 @@ const SECTION_KEYWORDS: Record<string, string[]> = {
   ],
   'Planning, Budgeting, and Forecasting': [
     'budget', 'forecast', 'regression', 'r-squared', 'r squared', 'coefficient',
-    'rolling', 'zero-based', 'zero based', 'variance analysis plan', 'planning',
+    'rolling', 'zero-based', 'zero based', 'planning',
   ],
   'Performance Management': [
     'balanced scorecard', 'scorecard', 'responsibility center', 'investment center',
@@ -111,12 +125,17 @@ const SECTION_KEYWORDS: Record<string, string[]> = {
   ],
 };
 
-type Msg = { role: 'user' | 'ai'; text: string; drill?: BankQ; closest?: boolean };
+const PART_KEYWORDS: Record<Part, string[]> = {
+  'Part 1': Object.values(SECTION_KEYWORDS).slice(0, 5).flat(),
+  'Part 2': Object.values(SECTION_KEYWORDS).slice(5).flat(),
+};
 
-function pickDrill(bank: BankQ[], section: string, excludeId?: string): BankQ | undefined {
-  const pool = bank.filter((q) => q.section === section && q.id !== excludeId);
-  const src = pool.length > 0 ? pool : bank.filter((q) => q.section === section);
-  return src[Math.floor(Math.random() * src.length)];
+type Msg = { role: 'user' | 'ai'; text: string; drill?: PracticeQ; drillLoading?: boolean };
+
+async function pickDrill(part: Part): Promise<PracticeQ | null> {
+  const { data, error } = await supabase.rpc('pick_practice_mcqs', { p_part: part, p_count: 1 });
+  if (error || !Array.isArray(data) || data.length === 0) return null;
+  return (data[0] as PracticeQ) ?? null;
 }
 
 function findSection(text: string): string | null {
@@ -137,36 +156,38 @@ function findSection(text: string): string | null {
   return bestScore >= 2 ? best : null;
 }
 
-function findClosestQuestion(bank: BankQ[], text: string): BankQ | null {
-  const tokens = text.toLowerCase().split(/[^a-z]+/).filter((w) => w.length > 3);
-  if (tokens.length === 0) return null;
-  let best: BankQ | null = null;
-  let bestScore = 0;
-  for (const q of bank) {
-    const hay = (q.question_text + ' ' + q.section).toLowerCase();
-    const score = tokens.reduce((n, w) => n + (hay.includes(w) ? 1 : 0), 0);
-    if (score > bestScore) {
-      bestScore = score;
-      best = q;
-    }
-  }
-  return bestScore >= 2 ? best : null;
+function findPart(text: string): Part {
+  const t = text.toLowerCase();
+  let p1 = 0;
+  let p2 = 0;
+  for (const k of PART_KEYWORDS['Part 1']) if (t.includes(k)) p1++;
+  for (const k of PART_KEYWORDS['Part 2']) if (t.includes(k)) p2++;
+  return p2 > p1 ? 'Part 2' : 'Part 1';
 }
 
-function DrillCard({ q, onResult }: { q: BankQ; onResult: (correct: boolean) => void }) {
+function DrillCard({
+  initial,
+  onResult,
+  onNext,
+}: {
+  initial: PracticeQ;
+  onResult: (correct: boolean) => void;
+  onNext: (part: Part) => Promise<PracticeQ | null>;
+}) {
+  const [q, setQ] = useState(initial);
   const [picked, setPicked] = useState<string | null>(null);
+  const [swapping, setSwapping] = useState(false);
 
-  const opts: [string, string][] = [
-    ['A', q.option_a],
-    ['B', q.option_b],
-    ['C', q.option_c],
-    ['D', q.option_d],
-  ];
+  const opts = (['A', 'B', 'C', 'D'] as const)
+    .filter((l) => q.options?.[l])
+    .map((l) => [l, q.options[l]] as [string, string]);
 
   return (
     <div className="mt-4 rounded-2xl bg-[var(--card)] p-4 t-ink shadow-[inset_0_0_0_1.5px_var(--line)]">
       <p className="text-[0.6rem] font-bold uppercase tracking-[0.2em] t-faint">
-        From your live bank · {q.part} · {q.section}
+        From your live bank · {q.part}
+        {q.topic ? ` · ${q.topic}` : ''}
+        {q.difficulty ? ` · ${q.difficulty}` : ''}
       </p>
       <p className="mt-2 text-sm font-semibold leading-snug">{q.question_text}</p>
       <div className="mt-3 space-y-2">
@@ -181,8 +202,8 @@ function DrillCard({ q, onResult }: { q: BankQ; onResult: (correct: boolean) => 
           }
           return (
             <button
-              key={letter + body}
-              disabled={!!picked}
+              key={letter + body.slice(0, 20)}
+              disabled={!!picked || swapping}
               onClick={() => {
                 setPicked(letter);
                 onResult(isCorrect);
@@ -198,27 +219,48 @@ function DrillCard({ q, onResult }: { q: BankQ; onResult: (correct: boolean) => 
         })}
       </div>
       {picked && (
-        <p className="mt-3 text-[0.7rem] font-bold">
-          {picked === q.correct_answer ? (
-            <span className="text-[#5a7d1f]">Correct — bank answer is {q.correct_answer}.</span>
-          ) : (
-            <span className="text-[#ea4467]">
-              Not quite — the bank marks {q.correct_answer}: {opts.find(([l]) => l === q.correct_answer)?.[1]}
-            </span>
+        <div className="mt-3 space-y-2.5">
+          <p className="text-[0.7rem] font-bold">
+            {picked === q.correct_answer ? (
+              <span className="text-[#5a7d1f]">Correct — bank answer is {q.correct_answer}.</span>
+            ) : (
+              <span className="text-[#ea4467]">
+                Not quite — the bank marks {q.correct_answer}: {q.options[q.correct_answer]}
+              </span>
+            )}
+          </p>
+          {q.explanation && (
+            <p className="rounded-xl bg-[var(--paper)] p-3 text-[0.7rem] leading-relaxed t-muted shadow-[inset_0_0_0_1.5px_var(--line)]">
+              <span className="font-bold t-ink">Bank explanation: </span>
+              {q.explanation}
+            </p>
           )}
-        </p>
+          <button
+            disabled={swapping}
+            onClick={async () => {
+              setSwapping(true);
+              const nq = await onNext(q.part === 'Part 2' ? 'Part 2' : 'Part 1');
+              setSwapping(false);
+              if (nq) {
+                setQ(nq);
+                setPicked(null);
+              }
+            }}
+            className="rounded-full border-[1.5px] b-line px-3.5 py-1.5 text-[0.65rem] font-bold t-muted transition-colors hover:t-ink hover:border-[var(--ink)] disabled:opacity-40"
+          >
+            {swapping ? 'Pulling…' : '↻ Another question from this part'}
+          </button>
+        </div>
       )}
     </div>
   );
 }
 
 export default function AIDeck() {
-  const [bank, setBank] = useState<BankQ[]>([]);
-  const [bankLive, setBankLive] = useState(false);
   const [msgs, setMsgs] = useState<Msg[]>([
     {
       role: 'ai',
-      text: 'Hey — I\u2019m your CMA US mentor. I answer from your live question bank: every explanation is paired with a real banked exam question. Ask about any topic, or tap a drill below.',
+      text: 'Hey — I’m your CMA US mentor. I teach from live syllabus notes and pull a real exam question from your question bank for every topic — 3,600+ active MCQs across Parts 1 and 2. Ask anything, or tap a drill below.',
     },
   ]);
   const [input, setInput] = useState('');
@@ -227,40 +269,6 @@ export default function AIDeck() {
   const timer = useRef<ReturnType<typeof setInterval> | null>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
   const pins = useDeckPins();
-
-  useEffect(() => {
-    let cancelled = false;
-    supabase
-      .from('mcq_questions')
-      .select('id, part, section, question_text, option_a, option_b, option_c, option_d, correct_answer')
-      .then(({ data, error }) => {
-        if (cancelled) return;
-        if (!error && Array.isArray(data) && data.length > 0) {
-          setBank(data as BankQ[]);
-          setBankLive(true);
-        }
-      });
-    return () => {
-      cancelled = true;
-    };
-  }, []);
-
-  const sections = useMemo(() => {
-    const map = new Map<string, number>();
-    for (const q of bank) map.set(q.section, (map.get(q.section) ?? 0) + 1);
-    return [...map.entries()];
-  }, [bank]);
-
-  const chips = useMemo(() => {
-    if (sections.length === 0) return ['Walk me through after-tax cost of debt', 'Explain variance analysis', 'Summarize internal controls'];
-    const pool = [...sections];
-    const out: string[] = [];
-    while (out.length < Math.min(3, pool.length)) {
-      const i = Math.floor(Math.random() * pool.length);
-      out.push(`Drill me: ${pool.splice(i, 1)[0][0]}`);
-    }
-    return out;
-  }, [sections]);
 
   useEffect(
     () => () => {
@@ -273,40 +281,49 @@ export default function AIDeck() {
     scrollRef.current?.scrollTo({ top: scrollRef.current.scrollHeight, behavior: 'smooth' });
   }, [msgs]);
 
-  const answerFor = (text: string): { full: string; drill?: BankQ; closest?: boolean } => {
-    const pinHit = text.toLowerCase().startsWith('summarise my pinned') || text.toLowerCase().startsWith('summarize my pinned');
+  const attachDrill = (idx: number, part: Part) => {
+    setMsgs((m) => {
+      const copy = [...m];
+      if (copy[idx]) copy[idx] = { ...copy[idx], drillLoading: true };
+      return copy;
+    });
+    void pickDrill(part).then((q) => {
+      setMsgs((m) => {
+        const copy = [...m];
+        if (copy[idx]) copy[idx] = { ...copy[idx], drill: q ?? undefined, drillLoading: false };
+        return copy;
+      });
+    });
+  };
+
+  const answerFor = (text: string): { full: string; part?: Part } => {
+    const lower = text.toLowerCase();
+    const pinHit = lower.startsWith('summarise my pinned') || lower.startsWith('summarize my pinned');
     if (pinHit) {
       return {
         full: `Here's your pinned stack, priority-ordered for revision: ${pins
-          .map((p) => `\u201c${p.title}\u201d (${p.kind.toLowerCase()})`)
+          .map((p) => `“${p.title}” (${p.kind.toLowerCase()})`)
           .join(', ')}. Suggested order: hit the formula sheets first while your head is fresh, then the cheatsheets as rapid-fire recall, and close with the study visuals — they're memory anchors, not reading material. Want a drill from the bank to lock one of these in?`,
+        part: findPart(text),
       };
     }
 
     const section = findSection(text);
     if (section) {
-      const note = SECTION_NOTES[section];
-      const drill = bankLive ? pickDrill(bank, section) : undefined;
+      const { note, trap, part } = SECTION_NOTES[section];
+      return { full: `${note}\n\nTrap: ${trap}`, part };
+    }
+
+    if (lower.includes('?') || text.trim().length > 12) {
+      const part = findPart(text);
       return {
-        full: `${note.note}\n\n\u26a0\ufe0e Trap: ${note.trap}`,
-        drill,
+        full: `I don't have a full mentor note on that yet — but your bank has 3,600+ active questions. Here's a live draw from ${part} on the closest theme; answer it and the bank's worked explanation will appear.`,
+        part,
       };
     }
 
-    const closest = bankLive ? findClosestQuestion(bank, text) : null;
-    if (closest) {
-      return {
-        full: `I don't have a full mentor note on that yet, but your live bank has a directly related question — try it and we'll talk through the answer.`,
-        drill: closest,
-        closest: true,
-      };
-    }
-
-    const coverage = sections.length
-      ? sections.map(([s, n]) => `${s} (${n})`).join(' · ')
-      : 'Part 1 and Part 2 syllabus notes';
     return {
-      full: `Good question — that's outside what I can ground tightly right now. Here's what I can coach you on from the live material: ${coverage}. Tap a drill above or name one of those topics and I'll teach it with a real bank question.`,
+      full: "Good question — ask me about any CMA topic: budgeting, variances, COSO controls, CAPM, NPV, breakeven, ethics, ratio analysis… I'll teach it and pull a real bank question to drill.",
     };
   };
 
@@ -317,7 +334,8 @@ export default function AIDeck() {
     setBusy(true);
     setMsgs((m) => [...m, { role: 'user', text }]);
 
-    const { full, drill, closest } = answerFor(text);
+    const { full, part } = answerFor(text);
+    const aiIdx = msgs.length + 1; // index the AI bubble will occupy once appended
 
     let i = 0;
     setMsgs((m) => [...m, { role: 'ai', text: '' }]);
@@ -333,13 +351,20 @@ export default function AIDeck() {
         if (timer.current) clearInterval(timer.current);
         setMsgs((m) => {
           const copy = [...m];
-          copy[copy.length - 1] = { role: 'ai', text: full, drill, closest };
+          copy[copy.length - 1] = { role: 'ai', text: full };
           return copy;
         });
         setBusy(false);
+        if (part) attachDrill(aiIdx, part);
       }
     }, 18);
   };
+
+  const chips = [
+    'Walk me through variance analysis',
+    'Explain the cost of debt and CAPM',
+    'Quiz me on internal controls',
+  ];
 
   return (
     <AppShell eyebrow="Doubt desk · always awake" title="AI Deck">
@@ -353,13 +378,9 @@ export default function AIDeck() {
             </span>
             <div>
               <p className="text-sm font-bold leading-tight t-ink">CoStudy AI Mentor</p>
-              <p className="text-xs t-faint">
-                Grounded in your live bank{bankLive ? ` · mcq_questions` : ' · syllabus notes'}
-              </p>
+              <p className="text-xs t-faint">Grounded in your live bank · question_bank via pick_practice_mcqs</p>
             </div>
-            <span className="ml-auto rounded-full bg-[#e7fec7] px-3 py-1 text-xs font-bold text-[#21221f]">
-              {bankLive ? `${bank.length} questions banked` : 'syllabus notes'}
-            </span>
+            <span className="ml-auto rounded-full bg-[#e7fec7] px-3 py-1 text-xs font-bold text-[#21221f]">3,600+ active MCQs</span>
           </div>
 
           <div ref={scrollRef} className="h-[52vh] space-y-4 overflow-y-auto p-6" data-lenis-prevent>
@@ -373,13 +394,15 @@ export default function AIDeck() {
                   }`}
                 >
                   {m.text}
+                  {m.drillLoading && <p className="mt-3 text-xs t-faint italic">Pulling a question from the bank…</p>}
                   {m.role === 'ai' && m.drill && !busy && (
                     <DrillCard
-                      key={m.drill.id + i}
-                      q={m.drill}
+                      key={m.drill.id}
+                      initial={m.drill}
                       onResult={(ok) =>
                         setDrillStats((s) => ({ asked: s.asked + 1, correct: s.correct + (ok ? 1 : 0) }))
                       }
+                      onNext={pickDrill}
                     />
                   )}
                 </div>
@@ -393,7 +416,7 @@ export default function AIDeck() {
               {chips.map((c) => (
                 <button
                   key={c}
-                  onClick={() => send(c.replace(/^Drill me: /, 'Teach me '))}
+                  onClick={() => send(c)}
                   disabled={busy}
                   className="rounded-full border-[1.5px] b-line px-3.5 py-1.5 text-xs font-semibold t-muted transition-colors hover:t-ink hover:border-[var(--ink)] disabled:opacity-40"
                 >
@@ -436,8 +459,8 @@ export default function AIDeck() {
             <p className="eyebrow opacity-70">Deck building</p>
             <h2 className="slab-display mt-2 text-2xl">Every answer ships with a real exam question.</h2>
             <p className="mt-3 text-sm leading-relaxed opacity-85">
-              The mentor teaches from your live bank — each explanation ends in a banked MCQ you can
-              answer on the spot, with the bank's official answer.
+              The mentor teaches from live syllabus notes, then draws a random MCQ from the bank —
+              answer it and the bank's own worked explanation unlocks.
             </p>
           </div>
           {pins.length > 0 && (
@@ -474,8 +497,8 @@ export default function AIDeck() {
             <p className="eyebrow t-faint">Live from Supabase</p>
             <ul className="mt-4 space-y-3 text-sm">
               {[
-                ['Questions in bank', bankLive ? String(bank.length) : '—'],
-                ['Sections covered', bankLive ? String(sections.length) : '—'],
+                ['Drill source', 'question_bank'],
+                ['Coverage', 'Part 1 · Part 2'],
                 ['Your drill score', drillStats.asked > 0 ? `${drillStats.correct}/${drillStats.asked}` : '—'],
               ].map(([k, v]) => (
                 <li key={k} className="flex items-center justify-between border-b b-line pb-3 last:border-0 last:pb-0">
@@ -484,11 +507,9 @@ export default function AIDeck() {
                 </li>
               ))}
             </ul>
-            {bankLive && (
-              <p className="mt-4 text-[0.65rem] leading-relaxed t-faint">
-                Table: mcq_questions · {sections.length} sections across Parts 1 &amp; 2, refreshed on load.
-              </p>
-            )}
+            <p className="mt-4 text-[0.65rem] leading-relaxed t-faint">
+              Served through the pick_practice_mcqs RPC — active, quality-screened MCQs only.
+            </p>
           </div>
         </aside>
       </div>
