@@ -78,6 +78,13 @@ supabase.from('posts').insert({
 - ⚠️ `user_progress` and `mastery_topics` are referenced by the original app's services but **do not exist** in this project — the original silently swallows those errors. If durable per-topic progress is wanted, both tables need a one-time migration.
 - ⚠️ `mcq_responses` has no `user_id` column (only `id, question_id, is_correct` confirmed) — per-user topic accuracy isn't derivable yet.
 
+## AI Deck contract (verified)
+
+- **Question bank** = `mcq_questions` — full contract: `id, part, section, question_text, option_a, option_b, option_c, option_d, correct_answer, created_at`. Anon-readable; 20 real rows across 11 sections (Part 1 ×5 sections, Part 2 ×6). The mentor fetches the bank on load and grounds every answer in it: topic match → teaching note + an interactive drill card (real question, real options, self-check against the bank's `correct_answer`). Session drill score is tracked client-side.
+- ⚠️ The bank has **no explanation/rationale column** — the mentor's teaching notes live in the page (keyed by section), not in the DB.
+- **`ai_requests`** — this is the *backend API call log* for the original app's Gemini proxy (columns: `id, user_id, endpoint, model, provider, status, prompt_hash, prompt_tokens, completion_tokens, latency_ms, metadata(jsonb), created_at`). There is **no retrievable prompt/answer text** — answers can't be cached or replayed from it from the frontend. It is currently empty.
+- **`ai_question_cache`** — stores AI-generated question *variants* (columns: `id, base_question_id, part, section, topic, difficulty, question_type, question_data(jsonb), quality_score, generation_model, times_shown, is_used, created_at`). Populated by the backend generation pipeline; currently empty. Future hook: surface `is_used` variants as extra drills.
+
 ## Redesign wiring status
 
 | Feature | Status |
@@ -92,6 +99,6 @@ supabase.from('posts').insert({
 | Faculty review queue (approve → `library_items`, reject → delete) | Wired |
 | Study Rooms (`study_rooms` + `room_presence`, realtime, join/leave) | Wired |
 | Mastery Path (`mock_attempts`, `user_exam_targets`, `mcq_questions` coverage, `user_badges`) | Wired |
+| AI Deck (`mcq_questions` bank-grounded mentor + drills) | Wired |
 | Radar+ bookmarks | Local (no bookmark table exists yet — candidate: new `post_bookmarks` table) |
 | Login / role routing / mentor path | Wired |
-| AI Deck data | Local curated data (next phase) |
