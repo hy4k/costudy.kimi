@@ -475,16 +475,26 @@ def norm(s):
     return re.sub(r"\s+", " ", re.sub(r"[^a-z0-9]+", " ", (s or "").lower())).strip()
 
 def active_stems():
+    # exact total first — short/partial pages must be retried, never accepted,
+    # or dedupe silently misses stems
+    req = urllib.request.Request(SB + "/question_bank?select=question_text&is_active=eq.true&limit=1",
+        headers={"apikey": KEY, "Authorization": "Bearer " + KEY, "Prefer": "count=exact"})
+    total = int(urllib.request.urlopen(req, timeout=120).headers["Content-Range"].split("/")[-1])
     stems = set()
     off = 0
-    while True:
-        page = sb_get("/question_bank?select=question_text&is_active=eq.true&limit=1000&offset=%d" % off)
-        if not page:
-            break
+    while off < total:
+        expected = min(1000, total - off)
+        page = None
+        for attempt in range(5):
+            page = sb_get("/question_bank?select=question_text&is_active=eq.true&limit=1000&offset=%d" % off)
+            if len(page) == expected:
+                break
+            print("  stems page at offset %d short (%d/%d), retrying" % (off, len(page), expected), flush=True)
+            time.sleep(2)
+        else:
+            raise RuntimeError("pagination stalled at offset %d of %d" % (off, total))
         stems |= {norm(r["question_text"]) for r in page}
         off += len(page)
-        if len(page) < 1000:
-            break
     return stems
 
 # ---------- matching / row building ----------
