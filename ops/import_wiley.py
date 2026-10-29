@@ -139,15 +139,17 @@ def parse_wiley(text):
             if s.lower() in ("your answer", "answer"):
                 continue
             stem_lines.append(s)
-        # per rationale: option line + explanation
-        opts_raw, expls, cls = [], [], []
+        # per rationale: option line + explanation + raw first char (marker glyph)
+        opts_raw, expls, cls, marks = [], [], [], []
         for b in rationales:
             lines = [ln.strip() for ln in b.split("\n") if ln.strip()]
             if not lines:
                 cls.append("empty")
                 opts_raw.append("")
                 expls.append("")
+                marks.append("")
                 continue
+            marks.append(lines[0][:1])
             opt = OPT_JUNK_RE.sub("", lines[0]).strip()
             expl = re.sub(r"\s+", " ", " ".join(lines[1:])).strip()
             opts_raw.append(opt)
@@ -158,13 +160,22 @@ def parse_wiley(text):
                 cls.append("C")
             else:
                 cls.append("?")
-        # correctness: exactly one C (rest I), or exactly one ? (rest I)
+        # correctness: exactly one C (rest I), or exactly one ? (rest I); fallback
+        # for computational rationales with no verdict sentence: the correct
+        # block is the sole one whose option line is marked @ or h (the wrong
+        # options carry ©/€). Flagged separately so mentors can filter them.
+        qflag = "imported_wiley"
         if cls.count("C") == 1 and cls.count("I") == 3:
             correct_idx = cls.index("C")
         elif cls.count("?") == 1 and cls.count("I") == 3:
             correct_idx = cls.index("?")
         else:
-            continue
+            corr = [k for k, m in enumerate(marks) if re.match(r"[\@h]", m or " ")]
+            if len(corr) == 1:
+                correct_idx = corr[0]
+                qflag = "imported_wiley_marker"
+            else:
+                continue
         # option texts: prefer the clean copy from the stem area when it matches
         consumed = set()
         options = []
@@ -188,7 +199,7 @@ def parse_wiley(text):
         expl = VERDICT_HEAD_RE.sub("", expl).strip()[:800]
         out.append({"num": num, "topic": topic, "difficulty": difficulty,
                     "stem": stem, "options": options, "letter": "ABCD"[correct_idx],
-                    "explanation": expl or None})
+                    "explanation": expl or None, "qflag": qflag})
     return out
 
 # ---------- main ----------
@@ -209,6 +220,8 @@ for path in files:
         print("%s: OCR not finished yet, skipping" % tag)
         continue
     qs = parse_wiley(open(path, encoding="utf-8", errors="ignore").read())
+    for _i, q in enumerate(qs):
+        q["idx"] = _i
     rows = []
     for q in qs:
         stem = re.sub(r"\s+", " ", q["stem"]).strip()
@@ -221,7 +234,7 @@ for path in files:
             continue
         stems.add(n)
         rows.append({
-            "external_id": "wiley-p%s-sec%s-q%d" % (part, sec.lower(), q["num"]),
+            "external_id": "wiley-p%s-sec%s-q%d-i%03d" % (part, sec.lower(), q["num"], q["idx"]),
             "part": "Part " + part,
             "section": "Section " + sec,
             "topic": q.get("topic"),
@@ -234,7 +247,7 @@ for path in files:
             "reference_links": [],
             "tags": ["wiley", "part-%s" % part.lower(), "section-%s" % sec.lower()],
             "is_active": True,
-            "quality_flag": "imported_wiley",
+            "quality_flag": q.get("qflag", "imported_wiley"),
         })
     print("%s: %d parsed -> %d validated" % (tag, len(qs), len(rows)), flush=True)
     if rows:
