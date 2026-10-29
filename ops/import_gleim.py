@@ -486,7 +486,7 @@ def active_stems():
         expected = min(1000, total - off)
         page = None
         for attempt in range(5):
-            page = sb_get("/question_bank?select=question_text&is_active=eq.true&limit=1000&offset=%d" % off)
+            page = sb_get("/question_bank?select=question_text&is_active=eq.true&limit=1000&offset=%d&order=id" % off)
             if len(page) == expected:
                 break
             print("  stems page at offset %d short (%d/%d), retrying" % (off, len(page), expected), flush=True)

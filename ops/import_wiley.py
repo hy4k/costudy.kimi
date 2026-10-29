@@ -71,7 +71,7 @@ def active_stems():
         expected = min(1000, total - off)
         page = None
         for attempt in range(5):
-            page = sb_get("/question_bank?select=question_text&is_active=eq.true&limit=1000&offset=%d" % off)
+            page = sb_get("/question_bank?select=question_text&is_active=eq.true&limit=1000&offset=%d&order=id" % off)
             if len(page) == expected:
                 break
             print("  stems page at offset %d short (%d/%d), retrying" % (off, len(page), expected), flush=True)
@@ -91,10 +91,18 @@ DIFF_RE = re.compile(r"(?m)^Difficulty:\s*(\S+)")
 BLOOM_RE = re.compile(r"(?m)^Bloom Code:")
 INCORRECT_RE = re.compile(r"this is an incorrect answer|this answer is incorrect", re.I)
 CORRECT_RE = re.compile(r"this is (?:the|a) correct answer|this answer is correct", re.I)
-VERDICT_TAIL_RE = re.compile(r"\s*Therefore, this is the correct answer\.?\s*$", re.I)
+VERDICT_TAIL_RE = re.compile(r"\s*Therefore, this is (?:the|an) (?:correct|incorrect) answer\.?\s*$", re.I)
+VERDICT_HEAD_RE = re.compile(r"^(?:Correct|Incorrect)\.\s*", re.I)
+# Wiley 2021 P1 files glue an internal ID + "LOS: x.y.z" learning-objective tag
+# onto the front of every stem, e.g. "1A.1.b tb.fin.inc.010_1805 LOS: 1.A.1.b <stem>"
+LOS_PREFIX_RE = re.compile(r"^\S+\s+\S+\s+LOS:\s*\S+\s+")
 # leading checkbox glyphs / OCR junk before the option text on the rationale's first line
 # (CMA content is $-denominated; €/¥ at line start are checkbox-glyph noise, not currency)
 OPT_JUNK_RE = re.compile(r"^\s*[^0-9A-Za-z$\u00a3(.-]+")
+
+def fix_ocr_symbols(s):
+    """OCR misreads in this corpus: § for $ next to digits (rare elsewhere)."""
+    return re.sub(r"\u00a7(?=\s?\d)", "$", s)
 
 def clean_text(t):
     t = re.sub(r"(?m)^===== PAGE \d+ =====$", " ", t)
@@ -174,7 +182,10 @@ def parse_wiley(text):
         if len(set(o for o in options if o)) != 4 or any(not o for o in options):
             continue
         stem = " ".join(s for k, s in enumerate(stem_lines) if k not in consumed).strip()
-        expl = VERDICT_TAIL_RE.sub("", expls[correct_idx]).strip()[:800]
+        stem = fix_ocr_symbols(LOS_PREFIX_RE.sub("", stem)).strip()
+        options = [fix_ocr_symbols(o) for o in options]
+        expl = VERDICT_TAIL_RE.sub("", expls[correct_idx]).strip()
+        expl = VERDICT_HEAD_RE.sub("", expl).strip()[:800]
         out.append({"num": num, "topic": topic, "difficulty": difficulty,
                     "stem": stem, "options": options, "letter": "ABCD"[correct_idx],
                     "explanation": expl or None})
