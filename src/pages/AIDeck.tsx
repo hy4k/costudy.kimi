@@ -260,7 +260,7 @@ export default function AIDeck() {
   const [msgs, setMsgs] = useState<Msg[]>([
     {
       role: 'ai',
-      text: 'Hey — I’m your CMA US mentor. I teach from live syllabus notes and pull a real exam question from your question bank for every topic — 10,300+ active MCQs across Parts 1 and 2. Ask anything, or tap a drill below.',
+      text: 'Hey — I’m your CMA US mentor. I teach from live syllabus notes and pull a real exam question from your question bank for every topic — 10,500+ active MCQs across Parts 1 and 2. Ask anything, or tap a drill below.',
     },
   ]);
   const [input, setInput] = useState('');
@@ -317,7 +317,7 @@ export default function AIDeck() {
     if (lower.includes('?') || text.trim().length > 12) {
       const part = findPart(text);
       return {
-        full: `I don't have a full mentor note on that yet — but your bank has 10,300+ active questions. Here's a live draw from ${part} on the closest theme; answer it and the bank's worked explanation will appear.`,
+        full: `I don't have a full mentor note on that yet — but your bank has 10,500+ active questions. Here's a live draw from ${part} on the closest theme; answer it and the bank's worked explanation will appear.`,
         part,
       };
     }
@@ -380,7 +380,7 @@ export default function AIDeck() {
               <p className="text-sm font-bold leading-tight t-ink">CoStudy AI Mentor</p>
               <p className="text-xs t-faint">Grounded in your live bank · question_bank via pick_practice_mcqs</p>
             </div>
-            <span className="ml-auto rounded-full bg-[#e7fec7] px-3 py-1 text-xs font-bold text-[#21221f]">10,300+ active MCQs</span>
+            <span className="ml-auto rounded-full bg-[#e7fec7] px-3 py-1 text-xs font-bold text-[#21221f]">10,500+ active MCQs</span>
           </div>
 
           <div ref={scrollRef} className="h-[52vh] space-y-4 overflow-y-auto p-6" data-lenis-prevent>
