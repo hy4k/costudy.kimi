@@ -6,10 +6,13 @@
 -- This replacement keeps the exact signature and return shape the frontend relies
 -- on (setof question_bank, anon-executable, security definer) and removes only
 -- the hardcoded exclusion. Essays stay excluded via the question_kind filter.
+-- p_section / p_count carry defaults so BOTH call shapes resolve through
+-- PostgREST: the frontend's {p_part, p_count} and the drill's {p_part, p_section,
+-- p_count}. Without the defaults a 2-arg call 404s (PGRST202) — verified live.
 --
 -- Run once in: Supabase dashboard -> SQL editor -> New query -> paste -> Run.
 
-create or replace function public.pick_practice_mcqs(p_part text, p_section text, p_count integer)
+create or replace function public.pick_practice_mcqs(p_part text, p_section text default null, p_count integer default 5)
 returns setof public.question_bank
 language sql
 security definer
