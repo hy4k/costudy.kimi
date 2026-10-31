@@ -21,6 +21,35 @@ type QueueItem = {
   created_at: string;
 };
 
+type CbqMine = {
+  id: string;
+  title: string;
+  part: string;
+  section: string | null;
+  status: string;
+  created_at: string;
+};
+
+type CbqItemDraft = {
+  question_text: string;
+  A: string;
+  B: string;
+  C: string;
+  D: string;
+  correct_answer: 'A' | 'B' | 'C' | 'D';
+  explanation: string;
+};
+
+const emptyCbqItem = (): CbqItemDraft => ({
+  question_text: '',
+  A: '',
+  B: '',
+  C: '',
+  D: '',
+  correct_answer: 'A',
+  explanation: '',
+});
+
 const relTime = (iso: string) => {
   const s = Math.max(1, Math.floor((Date.now() - new Date(iso).getTime()) / 1000));
   if (s < 60) return `${s}s ago`;
@@ -40,6 +69,38 @@ export default function Mentor() {
   const [queueLoaded, setQueueLoaded] = useState(false);
   const [reviewMsg, setReviewMsg] = useState<string | null>(null);
   const [reviewing, setReviewing] = useState<string | null>(null);
+  // CBQ intake + review
+  const [cbqPart, setCbqPart] = useState<'Part 1' | 'Part 2'>('Part 1');
+  const [cbqSection, setCbqSection] = useState('');
+  const [cbqTitle, setCbqTitle] = useState('');
+  const [cbqText, setCbqText] = useState('');
+  const [cbqItems, setCbqItems] = useState<CbqItemDraft[]>([emptyCbqItem(), emptyCbqItem(), emptyCbqItem()]);
+  const [cbqBusy, setCbqBusy] = useState(false);
+  const [cbqMsg, setCbqMsg] = useState<string | null>(null);
+  const [cbqMine, setCbqMine] = useState<CbqMine[]>([]);
+  const [cbqPending, setCbqPending] = useState<CbqMine[]>([]);
+
+  const loadCbq = () => {
+    if (!profile) return;
+    supabase
+      .from('cbq_scenarios')
+      .select('id, title, part, section, status, submitted_by, created_at')
+      .order('created_at', { ascending: false })
+      .limit(100)
+      .then(({ data }) => {
+        const all = (data as (CbqMine & { submitted_by: string | null })[]) || [];
+        setCbqMine(
+          all
+            .filter((s) => s.submitted_by === profile.id)
+            .map(({ submitted_by: _sb, ...rest }) => rest),
+        );
+        setCbqPending(
+          all
+            .filter((s) => s.status === 'pending' && s.submitted_by !== profile.id)
+            .map(({ submitted_by: _sb, ...rest }) => rest),
+        );
+      });
+  };
 
   useEffect(() => {
     if (ready && profile && profile.role !== 'TEACHER') navigate('/wall', { replace: true });
@@ -64,6 +125,7 @@ export default function Mentor() {
         setQueue((data as QueueItem[]) || []);
         setQueueLoaded(true);
       });
+    loadCbq();
   }, [profile]);
 
   if (!ready || !profile) {
@@ -145,6 +207,78 @@ export default function Mentor() {
     setReviewMsg(`“${item.name}” was rejected and removed from the queue.`);
   };
 
+  // --- CBQ intake + review -------------------------------------------------
+  const updateCbqItem = (i: number, patch: Partial<CbqItemDraft>) =>
+    setCbqItems((items) => items.map((it, j) => (j === i ? { ...it, ...patch } : it)));
+
+  const submitCbq = async () => {
+    if (cbqBusy) return;
+    const items = cbqItems.filter((it) => it.question_text.trim() && it.A.trim() && it.B.trim());
+    if (!cbqTitle.trim() || !cbqText.trim() || items.length === 0) {
+      setCbqMsg('A case needs a title, the scenario passage, and at least one complete item.');
+      return;
+    }
+    setCbqBusy(true);
+    setCbqMsg(null);
+    const { data: sc, error: scErr } = await supabase
+      .from('cbq_scenarios')
+      .insert([
+        {
+          part: cbqPart,
+          section: cbqSection.trim() || null,
+          title: cbqTitle.trim(),
+          scenario_text: cbqText.trim(),
+          submitted_by: profile!.id,
+        },
+      ])
+      .select('id');
+    if (scErr || !sc || !sc[0]) {
+      setCbqBusy(false);
+      setCbqMsg(`Submit failed: ${scErr?.message || 'no row returned'}`);
+      return;
+    }
+    const scenarioId = sc[0].id as string;
+    const { error: itErr } = await supabase.from('cbq_items').insert(
+      items.map((it, i) => ({
+        scenario_id: scenarioId,
+        question_text: it.question_text.trim(),
+        options: { A: it.A.trim(), B: it.B.trim(), C: it.C.trim(), D: it.D.trim() },
+        correct_answer: it.correct_answer,
+        explanation: it.explanation.trim() || null,
+        sort_order: i + 1,
+      })),
+    );
+    setCbqBusy(false);
+    if (itErr) {
+      setCbqMsg(`Scenario saved, but items failed: ${itErr.message}`);
+      return;
+    }
+    setCbqTitle('');
+    setCbqSection('');
+    setCbqText('');
+    setCbqItems([emptyCbqItem(), emptyCbqItem(), emptyCbqItem()]);
+    setCbqMsg(`“${cbqTitle.trim()}” is in the pending queue — a faculty peer approves it before students see it.`);
+    loadCbq();
+  };
+
+  const reviewCbq = async (s: CbqMine, status: 'approved' | 'rejected') => {
+    if (reviewing) return;
+    setReviewing(s.id);
+    setCbqMsg(null);
+    const { error } = await supabase.from('cbq_scenarios').update({ status }).eq('id', s.id);
+    setReviewing(null);
+    if (error) {
+      setCbqMsg(`Review failed: ${error.message}`);
+      return;
+    }
+    setCbqMsg(
+      status === 'approved'
+        ? `“${s.title}” approved — it's live on the AI Deck CBQ track.`
+        : `“${s.title}” rejected and hidden from the track.`,
+    );
+    loadCbq();
+  };
+
   return (
     <AppShell eyebrow="The faculty room" title={`${profile.name.split(' ')[0]}'s cockpit`}>
       <div className="grid gap-6 xl:grid-cols-[1.6fr_1fr]">
@@ -174,6 +308,183 @@ export default function Mentor() {
               </button>
             </div>
           </section>
+
+          {/* CBQ case intake */}
+          <section className="rounded-[1.6rem] border-[1.5px] b-line bg-[var(--card)] p-6 md:p-8">
+            <div className="flex flex-wrap items-center justify-between gap-3">
+              <div className="flex items-center gap-2">
+                <DoodleNote className="h-5 w-5 t-muted" />
+                <h2 className="slab-display text-2xl t-ink">CBQ case intake</h2>
+              </div>
+              <span className="rounded-full bg-[#e7fec7] px-3 py-1 text-[0.65rem] font-bold tracking-widest text-[#21221f]">
+                {cbqMine.length} MINE · {cbqPending.length} AWAITING REVIEW
+              </span>
+            </div>
+            <p className="mt-2 text-xs leading-relaxed t-faint">
+              Case-based questions land in the AI Deck as scenario + linked items. Submissions stay
+              pending until another faculty member approves them — the same verified-shelf rule as the vault.
+            </p>
+            {cbqMsg && (
+              <p className="mt-4 rounded-xl border-[1.5px] border-dashed b-line px-4 py-3 text-xs font-semibold t-muted">{cbqMsg}</p>
+            )}
+            <div className="mt-4 grid gap-3 sm:grid-cols-[10rem_1fr]">
+              <select
+                value={cbqPart}
+                onChange={(e) => setCbqPart(e.target.value as 'Part 1' | 'Part 2')}
+                className="rounded-xl border-[1.5px] b-line bg-[var(--paper)] px-3 py-2.5 text-sm t-ink focus:border-[var(--ink)] focus:outline-none"
+              >
+                <option>Part 1</option>
+                <option>Part 2</option>
+              </select>
+              <input
+                value={cbqSection}
+                onChange={(e) => setCbqSection(e.target.value)}
+                placeholder="Syllabus area — e.g. Internal Controls, Decision Analysis"
+                className="rounded-xl border-[1.5px] b-line bg-[var(--paper)] px-3 py-2.5 text-sm t-ink placeholder:t-faint focus:border-[var(--ink)] focus:outline-none"
+              />
+            </div>
+            <input
+              value={cbqTitle}
+              onChange={(e) => setCbqTitle(e.target.value)}
+              placeholder="Case title — the hook students see"
+              className="mt-3 w-full rounded-xl border-[1.5px] b-line bg-[var(--paper)] px-3 py-2.5 text-sm font-semibold t-ink placeholder:t-faint focus:border-[var(--ink)] focus:outline-none"
+            />
+            <textarea
+              value={cbqText}
+              onChange={(e) => setCbqText(e.target.value)}
+              rows={4}
+              placeholder="The scenario passage — the company, the numbers, the tension. Everything the items refer back to…"
+              className="mt-3 w-full resize-y rounded-xl border-[1.5px] b-line bg-[var(--paper)] p-3 text-sm leading-relaxed t-ink placeholder:t-faint focus:border-[var(--ink)] focus:outline-none"
+            />
+            <div className="mt-4 space-y-3">
+              {cbqItems.map((it, i) => (
+                <div key={i} className="rounded-xl bg-[var(--paper)] p-4 shadow-[inset_0_0_0_1.5px_var(--line)]">
+                  <div className="flex items-center justify-between">
+                    <p className="text-[0.65rem] font-bold tracking-widest t-faint">ITEM {i + 1}</p>
+                    {cbqItems.length > 1 && (
+                      <button
+                        onClick={() => setCbqItems((items) => items.filter((_, j) => j !== i))}
+                        className="text-xs font-bold t-faint transition-colors hover:text-[#ea4467]"
+                      >
+                        remove
+                      </button>
+                    )}
+                  </div>
+                  <input
+                    value={it.question_text}
+                    onChange={(e) => updateCbqItem(i, { question_text: e.target.value })}
+                    placeholder="Question stem"
+                    className="mt-2 w-full rounded-lg border-[1.5px] b-line bg-[var(--card)] px-3 py-2 text-xs font-medium t-ink placeholder:t-faint focus:border-[var(--ink)] focus:outline-none"
+                  />
+                  <div className="mt-2 grid gap-2 sm:grid-cols-2">
+                    {(['A', 'B', 'C', 'D'] as const).map((l) => (
+                      <input
+                        key={l}
+                        value={it[l]}
+                        onChange={(e) => updateCbqItem(i, { [l]: e.target.value })}
+                        placeholder={`Option ${l}`}
+                        className="rounded-lg border-[1.5px] b-line bg-[var(--card)] px-3 py-2 text-xs t-ink placeholder:t-faint focus:border-[var(--ink)] focus:outline-none"
+                      />
+                    ))}
+                  </div>
+                  <div className="mt-2 flex flex-wrap items-center gap-2">
+                    <select
+                      value={it.correct_answer}
+                      onChange={(e) => updateCbqItem(i, { correct_answer: e.target.value as CbqItemDraft['correct_answer'] })}
+                      className="rounded-lg border-[1.5px] b-line bg-[var(--card)] px-2.5 py-2 text-xs font-bold t-ink focus:border-[var(--ink)] focus:outline-none"
+                    >
+                      {['A', 'B', 'C', 'D'].map((l) => (
+                        <option key={l} value={l}>Answer {l}</option>
+                      ))}
+                    </select>
+                    <input
+                      value={it.explanation}
+                      onChange={(e) => updateCbqItem(i, { explanation: e.target.value })}
+                      placeholder="Worked explanation (unlocks after answering)"
+                      className="min-w-0 flex-1 rounded-lg border-[1.5px] b-line bg-[var(--card)] px-3 py-2 text-xs t-ink placeholder:t-faint focus:border-[var(--ink)] focus:outline-none"
+                    />
+                  </div>
+                </div>
+              ))}
+              <button
+                onClick={() => setCbqItems((items) => [...items, emptyCbqItem()])}
+                className="rounded-full border-[1.5px] border-dashed b-line px-4 py-2 text-xs font-bold t-muted transition-colors hover:t-ink hover:border-[var(--ink)]"
+              >
+                + Add another item
+              </button>
+            </div>
+            <div className="mt-4 flex items-center justify-between gap-3">
+              <p className="text-xs t-faint">Students never see pending cases — approve peers' work to grow the track.</p>
+              <button
+                onClick={submitCbq}
+                disabled={cbqBusy}
+                className="rounded-full bg-[#2b2926] px-5 py-2.5 text-sm font-bold text-[#fcfbfa] transition-opacity disabled:opacity-40"
+              >
+                {cbqBusy ? 'Submitting…' : 'Submit for review'}
+              </button>
+            </div>
+            {cbqMine.length > 0 && (
+              <ul className="mt-5 space-y-2 border-t b-line pt-4">
+                {cbqMine.slice(0, 5).map((s) => (
+                  <li key={s.id} className="flex items-center justify-between gap-3 text-xs">
+                    <span className="min-w-0 flex-1 truncate font-semibold t-ink">{s.title}</span>
+                    <span className="shrink-0 font-bold tracking-widest t-faint">{s.part.toUpperCase()}{s.section ? ` · ${s.section}` : ''}</span>
+                    <span
+                      className={`shrink-0 rounded-full px-2 py-0.5 text-[0.6rem] font-bold ${
+                        s.status === 'approved'
+                          ? 'bg-[#e7fec7] text-[#21221f]'
+                          : s.status === 'rejected'
+                            ? 'bg-[#ea4467]/15 text-[#ea4467]'
+                            : 'b-line t-muted'
+                      }`}
+                    >
+                      {s.status.toUpperCase()}
+                    </span>
+                  </li>
+                ))}
+              </ul>
+            )}
+          </section>
+
+          {/* CBQ review queue */}
+          {cbqPending.length > 0 && (
+            <section className="rounded-[1.6rem] border-[1.5px] b-line bg-[var(--card)] p-6 md:p-8">
+              <div className="flex items-center gap-2">
+                <DoodleBook className="h-5 w-5 t-muted" />
+                <h2 className="slab-display text-2xl t-ink">CBQ review queue</h2>
+              </div>
+              <ul className="mt-5 space-y-3">
+                {cbqPending.map((s) => (
+                  <li key={s.id} className="rounded-xl bg-[var(--paper)] p-4 shadow-[inset_0_0_0_1.5px_var(--line)]">
+                    <div className="flex flex-wrap items-start justify-between gap-3">
+                      <div className="min-w-0 flex-1">
+                        <p className="text-sm font-bold t-ink">{s.title}</p>
+                        <p className="mt-1 text-[0.65rem] font-bold tracking-widest t-faint">
+                          {s.part.toUpperCase()}{s.section ? ` · ${s.section}` : ''} · {relTime(s.created_at)}
+                        </p>
+                      </div>
+                      <div className="flex shrink-0 gap-2">
+                        <button
+                          onClick={() => reviewCbq(s, 'approved')}
+                          disabled={reviewing === s.id}
+                          className="rounded-full bg-[#6f9c3e] px-4 py-2 text-xs font-bold text-white transition-opacity disabled:opacity-40"
+                        >
+                          Approve
+                        </button>
+                        <button
+                          onClick={() => reviewCbq(s, 'rejected')}
+                          disabled={reviewing === s.id}
+                          className="rounded-full border-[1.5px] border-[#ea4467] px-4 py-2 text-xs font-bold text-[#ea4467] transition-opacity disabled:opacity-40"
+                        >
+                          Reject
+                        </button>
+                      </div>
+                    </div>
+                  </li>
+                ))}
+              </ul>
+            </section>
+          )}
 
           {/* vault review queue */}
           <section className="rounded-[1.6rem] border-[1.5px] b-line bg-[var(--card)] p-6 md:p-8">

@@ -21,6 +21,28 @@ type PracticeQ = {
 
 type SectionNote = { note: string; trap: string; part: Part };
 
+// CBQ (case-based) track — rows from cbq_scenarios + cbq_items via pick_cbq_set.
+type CbqScenario = {
+  id: string;
+  part: string;
+  section: string | null;
+  title: string;
+  scenario_text: string;
+  source_kind: string | null;
+};
+
+type CbqItem = {
+  id: string;
+  question_text: string;
+  options: Record<string, string>;
+  correct_answer: string;
+  explanation: string | null;
+  difficulty: string | null;
+  sort_order: number;
+};
+
+type CbqSet = { scenario: CbqScenario; items: CbqItem[] };
+
 // Teaching notes per syllabus area — grounded in CMA exam practice.
 const SECTION_NOTES: Record<string, SectionNote> = {
   'External Financial Reporting': {
@@ -130,12 +152,31 @@ const PART_KEYWORDS: Record<Part, string[]> = {
   'Part 2': Object.values(SECTION_KEYWORDS).slice(5).flat(),
 };
 
-type Msg = { role: 'user' | 'ai'; text: string; drill?: PracticeQ; drillLoading?: boolean };
+type Msg = {
+  role: 'user' | 'ai';
+  text: string;
+  drill?: PracticeQ;
+  drillLoading?: boolean;
+  cbq?: CbqSet;
+  cbqLoading?: boolean;
+  cbqUnavailable?: boolean;
+};
 
 async function pickDrill(part: Part): Promise<PracticeQ | null> {
   const { data, error } = await supabase.rpc('pick_practice_mcqs', { p_part: part, p_count: 1 });
   if (error || !Array.isArray(data) || data.length === 0) return null;
   return (data[0] as PracticeQ) ?? null;
+}
+
+// One approved CBQ case + its items. Returns null when the track is empty OR
+// when the RPC is not live yet (schema not applied) — the UI degrades to a
+// "coming soon" note instead of crashing.
+async function pickCbqSet(part: Part): Promise<CbqSet | null> {
+  const { data, error } = await supabase.rpc('pick_cbq_set', { p_part: part });
+  if (error || !data || typeof data !== 'object' || Array.isArray(data)) return null;
+  const set = data as CbqSet;
+  if (!set.scenario || !Array.isArray(set.items) || set.items.length === 0) return null;
+  return set;
 }
 
 function findSection(text: string): string | null {
@@ -256,6 +297,143 @@ function DrillCard({
   );
 }
 
+function CbqCaseCard({
+  initial,
+  onResult,
+  onNext,
+}: {
+  initial: CbqSet;
+  onResult: (correct: boolean) => void;
+  onNext: (part: Part) => Promise<CbqSet | null>;
+}) {
+  const [set, setSet] = useState(initial);
+  const [idx, setIdx] = useState(0);
+  const [picked, setPicked] = useState<string | null>(null);
+  const [swapping, setSwapping] = useState(false);
+  const [done, setDone] = useState(false);
+  const item = set.items[idx];
+
+  const reset = (s: CbqSet) => {
+    setSet(s);
+    setIdx(0);
+    setPicked(null);
+    setDone(false);
+  };
+
+  const opts = (['A', 'B', 'C', 'D'] as const)
+    .filter((l) => item.options?.[l])
+    .map((l) => [l, item.options[l]] as [string, string]);
+
+  return (
+    <div className="mt-4 overflow-hidden rounded-2xl bg-[var(--card)] shadow-[inset_0_0_0_1.5px_var(--line)]">
+      {/* the case itself — visually distinct from the chat bubble */}
+      <div className="border-l-4 border-[#ea4467] bg-[var(--paper)] p-4">
+        <p className="text-[0.6rem] font-bold uppercase tracking-[0.2em] t-faint">
+          CBQ case · {set.scenario.part}
+          {set.scenario.section ? ` · ${set.scenario.section}` : ''}
+          {set.scenario.source_kind === 'sample' ? ' · sample set' : ''}
+        </p>
+        <p className="slab-display mt-1.5 text-base leading-snug t-ink">{set.scenario.title}</p>
+        <p className="mt-2 text-xs leading-relaxed t-muted">{set.scenario.scenario_text}</p>
+      </div>
+
+      <div className="p-4">
+        {!done ? (
+          <>
+            <p className="text-[0.6rem] font-bold uppercase tracking-[0.2em] t-faint">
+              Question {idx + 1} of {set.items.length}
+              {item.difficulty ? ` · ${item.difficulty}` : ''}
+            </p>
+            <p className="mt-2 text-sm font-semibold leading-snug t-ink">{item.question_text}</p>
+            <div className="mt-3 space-y-2">
+              {opts.map(([letter, body]) => {
+                const isCorrect = letter === item.correct_answer;
+                const isPicked = picked === letter;
+                let cls = 'border-transparent bg-[var(--paper)] shadow-[inset_0_0_0_1.5px_var(--line)] hover:border-[var(--ink)]';
+                if (picked) {
+                  if (isCorrect) cls = 'border-transparent bg-[#e7fec7] text-[#21221f]';
+                  else if (isPicked) cls = 'border-transparent bg-[#ea4467]/15 text-[#ea4467] shadow-[inset_0_0_0_1.5px_#ea4467]';
+                  else cls = 'border-transparent bg-[var(--paper)] opacity-50 shadow-[inset_0_0_0_1.5px_var(--line)]';
+                }
+                return (
+                  <button
+                    key={letter + body.slice(0, 20)}
+                    disabled={!!picked || swapping}
+                    onClick={() => {
+                      setPicked(letter);
+                      onResult(isCorrect);
+                    }}
+                    className={`flex w-full items-start gap-2.5 rounded-xl border-[1.5px] px-3 py-2.5 text-left text-xs font-medium leading-snug transition-all ${cls}`}
+                  >
+                    <span className="mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-[var(--ink)] text-[0.6rem] font-bold text-[var(--paper)]">
+                      {letter}
+                    </span>
+                    <span>{body}</span>
+                  </button>
+                );
+              })}
+            </div>
+            {picked && (
+              <div className="mt-3 space-y-2.5">
+                <p className="text-[0.7rem] font-bold">
+                  {picked === item.correct_answer ? (
+                    <span className="text-[#5a7d1f]">Correct — bank answer is {item.correct_answer}.</span>
+                  ) : (
+                    <span className="text-[#ea4467]">
+                      Not quite — the bank marks {item.correct_answer}: {item.options[item.correct_answer]}
+                    </span>
+                  )}
+                </p>
+                {item.explanation && (
+                  <p className="rounded-xl bg-[var(--paper)] p-3 text-[0.7rem] leading-relaxed t-muted shadow-[inset_0_0_0_1.5px_var(--line)]">
+                    <span className="font-bold t-ink">Bank explanation: </span>
+                    {item.explanation}
+                  </p>
+                )}
+                <button
+                  disabled={swapping}
+                  onClick={() => {
+                    if (idx + 1 < set.items.length) {
+                      setIdx(idx + 1);
+                      setPicked(null);
+                    } else {
+                      setDone(true);
+                    }
+                  }}
+                  className="rounded-full border-[1.5px] b-line px-3.5 py-1.5 text-[0.65rem] font-bold t-muted transition-colors hover:t-ink hover:border-[var(--ink)] disabled:opacity-40"
+                >
+                  {idx + 1 < set.items.length ? 'Next question in this case →' : 'Finish the case'}
+                </button>
+              </div>
+            )}
+          </>
+        ) : (
+          <div className="space-y-2.5">
+            <p className="text-sm font-bold t-ink">Case closed — every item answered.</p>
+            <p className="text-xs leading-relaxed t-muted">
+              Reread the scenario once more: in the exam the same case stem can be re-used with a
+              different angle (a weakness, a COSO component, a relevant cost). That flip is what CBQ
+              rewards.
+            </p>
+            <button
+              disabled={swapping}
+              onClick={async () => {
+                setSwapping(true);
+                const ns = await onNext(set.scenario.part === 'Part 2' ? 'Part 2' : 'Part 1');
+                setSwapping(false);
+                if (ns) reset(ns);
+              }}
+              className="rounded-full border-[1.5px] b-line px-3.5 py-1.5 text-[0.65rem] font-bold t-muted transition-colors hover:t-ink hover:border-[var(--ink)] disabled:opacity-40"
+            >
+              {swapping ? 'Pulling…' : '↻ Another case from this part'}
+            </button>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
 export default function AIDeck() {
   const [msgs, setMsgs] = useState<Msg[]>([
     {
@@ -265,10 +443,20 @@ export default function AIDeck() {
   ]);
   const [input, setInput] = useState('');
   const [busy, setBusy] = useState(false);
+  const [mode, setMode] = useState<'mcq' | 'cbq'>('mcq');
   const [drillStats, setDrillStats] = useState({ asked: 0, correct: 0 });
+  const [cbqCount, setCbqCount] = useState<number | null>(null);
   const timer = useRef<ReturnType<typeof setInterval> | null>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
   const pins = useDeckPins();
+
+  useEffect(() => {
+    supabase
+      .from('cbq_scenarios')
+      .select('id', { count: 'exact', head: true })
+      .eq('status', 'approved')
+      .then(({ count }) => setCbqCount(count));
+  }, []);
 
   useEffect(
     () => () => {
@@ -291,6 +479,27 @@ export default function AIDeck() {
       setMsgs((m) => {
         const copy = [...m];
         if (copy[idx]) copy[idx] = { ...copy[idx], drill: q ?? undefined, drillLoading: false };
+        return copy;
+      });
+    });
+  };
+
+  const attachCase = (idx: number, part: Part) => {
+    setMsgs((m) => {
+      const copy = [...m];
+      if (copy[idx]) copy[idx] = { ...copy[idx], cbqLoading: true };
+      return copy;
+    });
+    void pickCbqSet(part).then((s) => {
+      setMsgs((m) => {
+        const copy = [...m];
+        if (!copy[idx]) return copy;
+        copy[idx] = {
+          ...copy[idx],
+          cbq: s ?? undefined,
+          cbqLoading: false,
+          cbqUnavailable: !s,
+        };
         return copy;
       });
     });
@@ -355,7 +564,7 @@ export default function AIDeck() {
           return copy;
         });
         setBusy(false);
-        if (part) attachDrill(aiIdx, part);
+        if (part) (mode === 'cbq' ? attachCase : attachDrill)(aiIdx, part);
       }
     }, 18);
   };
@@ -378,9 +587,29 @@ export default function AIDeck() {
             </span>
             <div>
               <p className="text-sm font-bold leading-tight t-ink">CoStudy AI Mentor</p>
-              <p className="text-xs t-faint">Grounded in your live bank · question_bank via pick_practice_mcqs</p>
+              <p className="text-xs t-faint">
+                {mode === 'cbq'
+                  ? 'Case mode · cbq_scenarios + cbq_items via pick_cbq_set'
+                  : 'Grounded in your live bank · question_bank via pick_practice_mcqs'}
+              </p>
             </div>
-            <span className="ml-auto rounded-full bg-[#e7fec7] px-3 py-1 text-xs font-bold text-[#21221f]">9,600+ active MCQs</span>
+            <div className="ml-auto flex items-center gap-2">
+              <div className="flex overflow-hidden rounded-full border-[1.5px] b-line text-[0.65rem] font-bold">
+                <button
+                  onClick={() => setMode('mcq')}
+                  className={`px-3 py-1.5 transition-colors ${mode === 'mcq' ? 'bg-[var(--ink)] text-[var(--paper)]' : 't-muted hover:t-ink'}`}
+                >
+                  MCQ drill
+                </button>
+                <button
+                  onClick={() => setMode('cbq')}
+                  className={`px-3 py-1.5 transition-colors ${mode === 'cbq' ? 'bg-[var(--ink)] text-[var(--paper)]' : 't-muted hover:t-ink'}`}
+                >
+                  CBQ case{cbqCount !== null ? ` · ${cbqCount}` : ''}
+                </button>
+              </div>
+              <span className="rounded-full bg-[#e7fec7] px-3 py-1 text-xs font-bold text-[#21221f]">9,600+ active MCQs</span>
+            </div>
           </div>
 
           <div ref={scrollRef} className="h-[52vh] space-y-4 overflow-y-auto p-6" data-lenis-prevent>
@@ -395,6 +624,13 @@ export default function AIDeck() {
                 >
                   {m.text}
                   {m.drillLoading && <p className="mt-3 text-xs t-faint italic">Pulling a question from the bank…</p>}
+                  {m.cbqLoading && <p className="mt-3 text-xs t-faint italic">Pulling a CBQ case from the approved track…</p>}
+                  {m.cbqUnavailable && (
+                    <p className="mt-3 rounded-xl border-[1.5px] border-dashed b-line px-3 py-2.5 text-[0.7rem] leading-relaxed t-muted">
+                      The CBQ track isn't live yet — the case tables are being provisioned on Supabase.
+                      Flip back to <span className="font-bold t-ink">MCQ drill</span> for the full 9,600+ bank meanwhile.
+                    </p>
+                  )}
                   {m.role === 'ai' && m.drill && !busy && (
                     <DrillCard
                       key={m.drill.id}
@@ -403,6 +639,16 @@ export default function AIDeck() {
                         setDrillStats((s) => ({ asked: s.asked + 1, correct: s.correct + (ok ? 1 : 0) }))
                       }
                       onNext={pickDrill}
+                    />
+                  )}
+                  {m.role === 'ai' && m.cbq && !busy && (
+                    <CbqCaseCard
+                      key={m.cbq.scenario.id}
+                      initial={m.cbq}
+                      onResult={(ok) =>
+                        setDrillStats((s) => ({ asked: s.asked + 1, correct: s.correct + (ok ? 1 : 0) }))
+                      }
+                      onNext={pickCbqSet}
                     />
                   )}
                 </div>
@@ -498,6 +744,7 @@ export default function AIDeck() {
             <ul className="mt-4 space-y-3 text-sm">
               {[
                 ['Drill source', 'question_bank'],
+                ['CBQ case track', cbqCount === null ? 'loading…' : cbqCount > 0 ? `${cbqCount} approved set${cbqCount === 1 ? '' : 's'}` : 'coming soon'],
                 ['Coverage', 'Part 1 · Part 2'],
                 ['Your drill score', drillStats.asked > 0 ? `${drillStats.correct}/${drillStats.asked}` : '—'],
               ].map(([k, v]) => (
@@ -508,7 +755,8 @@ export default function AIDeck() {
               ))}
             </ul>
             <p className="mt-4 text-[0.65rem] leading-relaxed t-faint">
-              Served through the pick_practice_mcqs RPC — active, quality-screened MCQs only.
+              MCQs served through the pick_practice_mcqs RPC; CBQ cases through pick_cbq_set —
+              approved, faculty-reviewed sets only.
             </p>
           </div>
         </aside>
