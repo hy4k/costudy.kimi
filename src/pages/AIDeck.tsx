@@ -21,27 +21,45 @@ type PracticeQ = {
 
 type SectionNote = { note: string; trap: string; part: Part };
 
-// CBQ (case-based) track — rows from cbq_scenarios + cbq_items via pick_cbq_set.
-type CbqScenario = {
+// CBQ (case-based) track — rows from the canonical cbq_cases + cbq_tasks via
+// pick_cbq_case. Task types: mcq, multi, num, list, dnd.
+type CbqExhibit = { label: string; caption?: string; columns: string[]; rows: string[][] };
+
+type CbqCase = {
   id: string;
   part: string;
   section: string | null;
   title: string;
-  scenario_text: string;
-  source_kind: string | null;
-};
-
-type CbqItem = {
-  id: string;
-  question_text: string;
-  options: Record<string, string>;
-  correct_answer: string;
-  explanation: string | null;
+  narrative: string;
+  exhibits: CbqExhibit[] | null;
   difficulty: string | null;
-  sort_order: number;
+  source: string | null;
 };
 
-type CbqSet = { scenario: CbqScenario; items: CbqItem[] };
+type CbqTask = {
+  id: string;
+  seq: number;
+  type: string;
+  marks: number | null;
+  prompt: string;
+  hint: string | null;
+  payload: Record<string, unknown> | null;
+  answer: Record<string, unknown> | null;
+  explanation: string | null;
+};
+
+type CbqDraw = { case: CbqCase; tasks: CbqTask[] };
+
+// Case narrative / prompts carry light markup (<b>, <em>) authored by faculty —
+// render as HTML after stripping anything script-like.
+const rich = (text: string) => ({
+  __html: text
+    .replace(/<script[\s\S]*?<\/script>/gi, '')
+    .replace(/\n{2,}/g, '\n')
+    .split('\n')
+    .map((p) => `<p>${p}</p>`)
+    .join(''),
+});
 
 // Teaching notes per syllabus area — grounded in CMA exam practice.
 const SECTION_NOTES: Record<string, SectionNote> = {
@@ -157,7 +175,7 @@ type Msg = {
   text: string;
   drill?: PracticeQ;
   drillLoading?: boolean;
-  cbq?: CbqSet;
+  cbq?: CbqDraw;
   cbqLoading?: boolean;
   cbqUnavailable?: boolean;
 };
@@ -168,15 +186,14 @@ async function pickDrill(part: Part): Promise<PracticeQ | null> {
   return (data[0] as PracticeQ) ?? null;
 }
 
-// One approved CBQ case + its items. Returns null when the track is empty OR
-// when the RPC is not live yet (schema not applied) — the UI degrades to a
-// "coming soon" note instead of crashing.
-async function pickCbqSet(part: Part): Promise<CbqSet | null> {
-  const { data, error } = await supabase.rpc('pick_cbq_set', { p_part: part });
+// One live CBQ case + its tasks. Returns null when the track is empty OR when
+// the RPC is not live yet — the UI degrades to a "coming soon" note.
+async function pickCbqCase(part: Part): Promise<CbqDraw | null> {
+  const { data, error } = await supabase.rpc('pick_cbq_case', { p_part: part });
   if (error || !data || typeof data !== 'object' || Array.isArray(data)) return null;
-  const set = data as CbqSet;
-  if (!set.scenario || !Array.isArray(set.items) || set.items.length === 0) return null;
-  return set;
+  const draw = data as CbqDraw;
+  if (!draw.case || !Array.isArray(draw.tasks) || draw.tasks.length === 0) return null;
+  return draw;
 }
 
 function findSection(text: string): string | null {
@@ -297,139 +314,430 @@ function DrillCard({
   );
 }
 
+// ---- CBQ task widgets -------------------------------------------------------
+
+const parseNum = (s: string): number | null => {
+  const n = parseFloat(s.replace(/[$,%\s,]/g, ''));
+  return Number.isFinite(n) ? n : null;
+};
+
+function TaskWidget({
+  task,
+  onResult,
+}: {
+  task: CbqTask;
+  onResult: (correct: boolean) => void;
+}) {
+  const p = (task.payload || {}) as Record<string, unknown>;
+  const a = (task.answer || {}) as Record<string, unknown>;
+  const [picked, setPicked] = useState<string | null>(null);
+  const [multiPick, setMultiPick] = useState<number[]>([]);
+  const [numIn, setNumIn] = useState('');
+  const [dir, setDir] = useState<'U' | 'F'>('U');
+  const [listVals, setListVals] = useState<Record<number, string>>({});
+  const [place, setPlace] = useState<Record<string, string>>({});
+  const [checked, setChecked] = useState<boolean | null>(null);
+
+  const options = (p.options as string[]) || [];
+  const fields = (p.fields as { label: string; options: string[] }[]) || [];
+  const items = (p.items as { id: string; text: string }[]) || [];
+  const zones = (p.zones as Record<string, string>) || {};
+  const wantDirection = !!p.direction;
+  const tolerance = typeof a.tolerance === 'number' ? a.tolerance : 0.005;
+
+  const mark = (ok: boolean) => {
+    setChecked(ok);
+    onResult(ok);
+  };
+
+  const checkMulti = () => {
+    const want = ((a.values as number[]) || []).slice().sort((x, y) => x - y);
+    const got = multiPick.slice().sort((x, y) => x - y);
+    mark(want.length === got.length && want.every((v, i) => v === got[i]));
+  };
+
+  const checkNum = () => {
+    const got = parseNum(numIn);
+    if (got === null) return;
+    const okVal = Math.abs(got - (a.value as number)) <= tolerance;
+    const okDir = !wantDirection || dir === a.direction;
+    mark(okVal && okDir);
+  };
+
+  const checkList = () => {
+    const want = (a.values as string[]) || [];
+    mark(fields.every((_, i) => listVals[i] === want[i]));
+  };
+
+  const checkDnd = () => {
+    const want = (a.placement as Record<string, string>) || {};
+    mark(Object.keys(want).length > 0 && Object.keys(want).every((k) => place[k] === want[k]));
+  };
+
+  const verdict = (gotLabel: string) => (
+    <div className="mt-3 space-y-2.5">
+      <p className="text-[0.7rem] font-bold">
+        {checked ? (
+          <span className="text-[#5a7d1f]">Correct.</span>
+        ) : (
+          <span className="text-[#ea4467]">Not quite — the bank says: {gotLabel}</span>
+        )}
+      </p>
+      {task.explanation && (
+        <p className="rounded-xl bg-[var(--paper)] p-3 text-[0.7rem] leading-relaxed t-muted shadow-[inset_0_0_0_1.5px_var(--line)]">
+          <span className="font-bold t-ink">Worked explanation: </span>
+          {task.explanation}
+        </p>
+      )}
+    </div>
+  );
+
+  if (task.type === 'mcq') {
+    const correctIdx = 'ABCDEF'.indexOf((a.value as string) || 'A');
+    const correctLabel = options[correctIdx] || '';
+    return (
+      <div className="mt-3 space-y-2">
+        {options.map((body, i) => {
+          const letter = 'ABCDEF'[i];
+          const isCorrect = i === correctIdx;
+          const isPicked = picked === letter;
+          let cls = 'border-transparent bg-[var(--paper)] shadow-[inset_0_0_0_1.5px_var(--line)] hover:border-[var(--ink)]';
+          if (picked) {
+            if (isCorrect) cls = 'border-transparent bg-[#e7fec7] text-[#21221f]';
+            else if (isPicked) cls = 'border-transparent bg-[#ea4467]/15 text-[#ea4467] shadow-[inset_0_0_0_1.5px_#ea4467]';
+            else cls = 'border-transparent bg-[var(--paper)] opacity-50 shadow-[inset_0_0_0_1.5px_var(--line)]';
+          }
+          return (
+            <button
+              key={letter + body.slice(0, 20)}
+              disabled={!!picked}
+              onClick={() => {
+                setPicked(letter);
+                mark(isCorrect);
+              }}
+              className={`flex w-full items-start gap-2.5 rounded-xl border-[1.5px] px-3 py-2.5 text-left text-xs font-medium leading-snug transition-all ${cls}`}
+            >
+              <span className="mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-[var(--ink)] text-[0.6rem] font-bold text-[var(--paper)]">
+                {letter}
+              </span>
+              <span>{body}</span>
+            </button>
+          );
+        })}
+        {picked && verdict(correctLabel)}
+      </div>
+    );
+  }
+
+  if (task.type === 'multi') {
+    const wantIdx = ((a.values as number[]) || []).slice().sort();
+    return (
+      <div className="mt-3 space-y-2">
+        {options.map((body, i) => {
+          const on = multiPick.includes(i);
+          return (
+            <button
+              key={i}
+              disabled={checked !== null}
+              onClick={() => setMultiPick((m) => (on ? m.filter((x) => x !== i) : [...m, i]))}
+              className={`flex w-full items-start gap-2.5 rounded-xl border-[1.5px] px-3 py-2.5 text-left text-xs font-medium leading-snug transition-all ${
+                checked === null
+                  ? on
+                    ? 'border-[var(--ink)] bg-[var(--paper)]'
+                    : 'border-transparent bg-[var(--paper)] opacity-70 shadow-[inset_0_0_0_1.5px_var(--line)] hover:border-[var(--ink)]'
+                  : wantIdx.includes(i)
+                    ? 'border-transparent bg-[#e7fec7] text-[#21221f]'
+                    : on
+                      ? 'border-transparent bg-[#ea4467]/15 text-[#ea4467] shadow-[inset_0_0_0_1.5px_#ea4467]'
+                      : 'border-transparent bg-[var(--paper)] opacity-50 shadow-[inset_0_0_0_1.5px_var(--line)]'
+              }`}
+            >
+              <span className={`mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-full text-[0.6rem] font-bold ${on ? 'bg-[var(--ink)] text-[var(--paper)]' : 'b-line t-muted'}`}>
+                {on ? '✓' : ''}
+              </span>
+              <span>{body}</span>
+            </button>
+          );
+        })}
+        {checked === null ? (
+          <button
+            onClick={checkMulti}
+            disabled={multiPick.length === 0}
+            className="rounded-full border-[1.5px] b-line px-3.5 py-1.5 text-[0.65rem] font-bold t-muted transition-colors hover:t-ink hover:border-[var(--ink)] disabled:opacity-40"
+          >
+            Check answer
+          </button>
+        ) : (
+          verdict(wantIdx.map((i) => options[i]).join(' · '))
+        )}
+      </div>
+    );
+  }
+
+  if (task.type === 'num') {
+    return (
+      <div className="mt-3 space-y-2">
+        <div className="flex flex-wrap items-center gap-2">
+          <input
+            value={numIn}
+            onChange={(e) => setNumIn(e.target.value)}
+            disabled={checked !== null}
+            placeholder={wantDirection ? 'Amount' : 'Your answer'}
+            className="w-40 rounded-xl border-[1.5px] b-line bg-[var(--paper)] px-3 py-2 text-sm t-ink placeholder:t-faint focus:border-[var(--ink)] focus:outline-none disabled:opacity-60"
+          />
+          {wantDirection && (
+            <select
+              value={dir}
+              onChange={(e) => setDir(e.target.value as 'U' | 'F')}
+              disabled={checked !== null}
+              className="rounded-xl border-[1.5px] b-line bg-[var(--paper)] px-2.5 py-2 text-sm font-bold t-ink focus:border-[var(--ink)] focus:outline-none disabled:opacity-60"
+            >
+              <option value="U">Unfavourable / increase</option>
+              <option value="F">Favourable / decrease</option>
+            </select>
+          )}
+          {checked === null && (
+            <button
+              onClick={checkNum}
+              disabled={numIn.trim() === ''}
+              className="rounded-full border-[1.5px] b-line px-3.5 py-1.5 text-[0.65rem] font-bold t-muted transition-colors hover:t-ink hover:border-[var(--ink)] disabled:opacity-40"
+            >
+              Check answer
+            </button>
+          )}
+        </div>
+        {task.hint && checked === null && <p className="text-[0.65rem] t-faint italic">Hint: {task.hint}</p>}
+        {checked !== null &&
+          verdict(`${a.value}${wantDirection ? ` ${a.direction}` : ''}`)}
+      </div>
+    );
+  }
+
+  if (task.type === 'list') {
+    const want = (a.values as string[]) || [];
+    return (
+      <div className="mt-3 space-y-2">
+        {fields.map((f, i) => (
+          <div key={i} className="flex flex-wrap items-center gap-2">
+            <span className="min-w-[40%] text-xs font-medium t-ink">{f.label}</span>
+            <select
+              value={listVals[i] || ''}
+              disabled={checked !== null}
+              onChange={(e) => setListVals((v) => ({ ...v, [i]: e.target.value }))}
+              className={`min-w-0 flex-1 rounded-lg border-[1.5px] px-2.5 py-2 text-xs t-ink focus:border-[var(--ink)] focus:outline-none disabled:opacity-60 ${
+                checked === null
+                  ? 'b-line bg-[var(--paper)]'
+                  : listVals[i] === want[i]
+                    ? 'border-transparent bg-[#e7fec7] text-[#21221f]'
+                    : 'border-transparent bg-[#ea4467]/15 text-[#ea4467]'
+              }`}
+            >
+              <option value="">Select…</option>
+              {f.options.map((o) => (
+                <option key={o} value={o}>
+                  {o}
+                </option>
+              ))}
+            </select>
+          </div>
+        ))}
+        {checked === null ? (
+          <button
+            onClick={checkList}
+            disabled={fields.some((_, i) => !listVals[i])}
+            className="rounded-full border-[1.5px] b-line px-3.5 py-1.5 text-[0.65rem] font-bold t-muted transition-colors hover:t-ink hover:border-[var(--ink)] disabled:opacity-40"
+          >
+            Check answer
+          </button>
+        ) : (
+          verdict(want.join(' · '))
+        )}
+      </div>
+    );
+  }
+
+  if (task.type === 'dnd') {
+    const want = (a.placement as Record<string, string>) || {};
+    const allPlaced = Object.keys(zones).length > 0 && items.every((it) => place[it.id]);
+    return (
+      <div className="mt-3 space-y-2">
+        {items.map((it) => (
+          <div key={it.id} className="flex flex-wrap items-center gap-2">
+            <span className="min-w-[50%] flex-1 text-xs font-medium t-ink">{it.text}</span>
+            <select
+              value={place[it.id] || ''}
+              disabled={checked !== null}
+              onChange={(e) => setPlace((v) => ({ ...v, [it.id]: e.target.value }))}
+              className={`rounded-lg border-[1.5px] px-2.5 py-2 text-xs t-ink focus:border-[var(--ink)] focus:outline-none disabled:opacity-60 ${
+                checked === null
+                  ? 'b-line bg-[var(--paper)]'
+                  : place[it.id] === want[it.id]
+                    ? 'border-transparent bg-[#e7fec7] text-[#21221f]'
+                    : 'border-transparent bg-[#ea4467]/15 text-[#ea4467]'
+              }`}
+            >
+              <option value="">Classify…</option>
+              {Object.entries(zones).map(([k, label]) => (
+                <option key={k} value={k}>
+                  {label}
+                </option>
+              ))}
+            </select>
+          </div>
+        ))}
+        {checked === null ? (
+          <button
+            onClick={checkDnd}
+            disabled={!allPlaced}
+            className="rounded-full border-[1.5px] b-line px-3.5 py-1.5 text-[0.65rem] font-bold t-muted transition-colors hover:t-ink hover:border-[var(--ink)] disabled:opacity-40"
+          >
+            Check answer
+          </button>
+        ) : (
+          verdict(items.map((it) => `${it.text.slice(0, 24)}… → ${zones[want[it.id]] || ''}`).join(' · '))
+        )}
+      </div>
+    );
+  }
+
+  return (
+    <p className="mt-3 text-xs t-faint italic">
+      This task type ({task.type}) isn't renderable in the deck yet — it's served in the exam hall.
+    </p>
+  );
+}
+
 function CbqCaseCard({
   initial,
   onResult,
   onNext,
 }: {
-  initial: CbqSet;
+  initial: CbqDraw;
   onResult: (correct: boolean) => void;
-  onNext: (part: Part) => Promise<CbqSet | null>;
+  onNext: (part: Part) => Promise<CbqDraw | null>;
 }) {
-  const [set, setSet] = useState(initial);
+  const [draw, setDraw] = useState(initial);
   const [idx, setIdx] = useState(0);
-  const [picked, setPicked] = useState<string | null>(null);
+  const [score, setScore] = useState({ asked: 0, correct: 0 });
   const [swapping, setSwapping] = useState(false);
   const [done, setDone] = useState(false);
-  const item = set.items[idx];
+  const [showTasks, setShowTasks] = useState(false);
+  const task = draw.tasks[idx];
 
-  const reset = (s: CbqSet) => {
-    setSet(s);
+  const reset = (d: CbqDraw) => {
+    setDraw(d);
     setIdx(0);
-    setPicked(null);
+    setScore({ asked: 0, correct: 0 });
     setDone(false);
+    setShowTasks(false);
   };
-
-  const opts = (['A', 'B', 'C', 'D'] as const)
-    .filter((l) => item.options?.[l])
-    .map((l) => [l, item.options[l]] as [string, string]);
 
   return (
     <div className="mt-4 overflow-hidden rounded-2xl bg-[var(--card)] shadow-[inset_0_0_0_1.5px_var(--line)]">
       {/* the case itself — visually distinct from the chat bubble */}
       <div className="border-l-4 border-[#ea4467] bg-[var(--paper)] p-4">
         <p className="text-[0.6rem] font-bold uppercase tracking-[0.2em] t-faint">
-          CBQ case · {set.scenario.part}
-          {set.scenario.section ? ` · ${set.scenario.section}` : ''}
-          {set.scenario.source_kind === 'sample' ? ' · sample set' : ''}
+          CBQ case · {draw.case.part}
+          {draw.case.section ? ` · ${draw.case.section}` : ''}
+          {draw.case.difficulty ? ` · ${draw.case.difficulty}` : ''}
         </p>
-        <p className="slab-display mt-1.5 text-base leading-snug t-ink">{set.scenario.title}</p>
-        <p className="mt-2 text-xs leading-relaxed t-muted">{set.scenario.scenario_text}</p>
-      </div>
-
-      <div className="p-4">
-        {!done ? (
-          <>
-            <p className="text-[0.6rem] font-bold uppercase tracking-[0.2em] t-faint">
-              Question {idx + 1} of {set.items.length}
-              {item.difficulty ? ` · ${item.difficulty}` : ''}
-            </p>
-            <p className="mt-2 text-sm font-semibold leading-snug t-ink">{item.question_text}</p>
-            <div className="mt-3 space-y-2">
-              {opts.map(([letter, body]) => {
-                const isCorrect = letter === item.correct_answer;
-                const isPicked = picked === letter;
-                let cls = 'border-transparent bg-[var(--paper)] shadow-[inset_0_0_0_1.5px_var(--line)] hover:border-[var(--ink)]';
-                if (picked) {
-                  if (isCorrect) cls = 'border-transparent bg-[#e7fec7] text-[#21221f]';
-                  else if (isPicked) cls = 'border-transparent bg-[#ea4467]/15 text-[#ea4467] shadow-[inset_0_0_0_1.5px_#ea4467]';
-                  else cls = 'border-transparent bg-[var(--paper)] opacity-50 shadow-[inset_0_0_0_1.5px_var(--line)]';
-                }
-                return (
-                  <button
-                    key={letter + body.slice(0, 20)}
-                    disabled={!!picked || swapping}
-                    onClick={() => {
-                      setPicked(letter);
-                      onResult(isCorrect);
-                    }}
-                    className={`flex w-full items-start gap-2.5 rounded-xl border-[1.5px] px-3 py-2.5 text-left text-xs font-medium leading-snug transition-all ${cls}`}
-                  >
-                    <span className="mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-[var(--ink)] text-[0.6rem] font-bold text-[var(--paper)]">
-                      {letter}
-                    </span>
-                    <span>{body}</span>
-                  </button>
-                );
-              })}
-            </div>
-            {picked && (
-              <div className="mt-3 space-y-2.5">
-                <p className="text-[0.7rem] font-bold">
-                  {picked === item.correct_answer ? (
-                    <span className="text-[#5a7d1f]">Correct — bank answer is {item.correct_answer}.</span>
-                  ) : (
-                    <span className="text-[#ea4467]">
-                      Not quite — the bank marks {item.correct_answer}: {item.options[item.correct_answer]}
-                    </span>
-                  )}
-                </p>
-                {item.explanation && (
-                  <p className="rounded-xl bg-[var(--paper)] p-3 text-[0.7rem] leading-relaxed t-muted shadow-[inset_0_0_0_1.5px_var(--line)]">
-                    <span className="font-bold t-ink">Bank explanation: </span>
-                    {item.explanation}
-                  </p>
-                )}
-                <button
-                  disabled={swapping}
-                  onClick={() => {
-                    if (idx + 1 < set.items.length) {
-                      setIdx(idx + 1);
-                      setPicked(null);
-                    } else {
-                      setDone(true);
-                    }
-                  }}
-                  className="rounded-full border-[1.5px] b-line px-3.5 py-1.5 text-[0.65rem] font-bold t-muted transition-colors hover:t-ink hover:border-[var(--ink)] disabled:opacity-40"
-                >
-                  {idx + 1 < set.items.length ? 'Next question in this case →' : 'Finish the case'}
-                </button>
-              </div>
-            )}
-          </>
-        ) : (
-          <div className="space-y-2.5">
-            <p className="text-sm font-bold t-ink">Case closed — every item answered.</p>
-            <p className="text-xs leading-relaxed t-muted">
-              Reread the scenario once more: in the exam the same case stem can be re-used with a
-              different angle (a weakness, a COSO component, a relevant cost). That flip is what CBQ
-              rewards.
-            </p>
-            <button
-              disabled={swapping}
-              onClick={async () => {
-                setSwapping(true);
-                const ns = await onNext(set.scenario.part === 'Part 2' ? 'Part 2' : 'Part 1');
-                setSwapping(false);
-                if (ns) reset(ns);
-              }}
-              className="rounded-full border-[1.5px] b-line px-3.5 py-1.5 text-[0.65rem] font-bold t-muted transition-colors hover:t-ink hover:border-[var(--ink)] disabled:opacity-40"
-            >
-              {swapping ? 'Pulling…' : '↻ Another case from this part'}
-            </button>
+        <p className="slab-display mt-1.5 text-base leading-snug t-ink">{draw.case.title}</p>
+        <div className="rich mt-2 text-xs leading-relaxed t-muted" dangerouslySetInnerHTML={rich(draw.case.narrative)} />
+        {(draw.case.exhibits || []).map((ex, i) => (
+          <div key={i} className="mt-3 rounded-xl bg-[var(--card)] p-3 shadow-[inset_0_0_0_1.5px_var(--line)]">
+            <p className="text-[0.65rem] font-bold tracking-widest t-ink">{ex.label}</p>
+            {ex.caption && <p className="text-[0.6rem] t-faint">{ex.caption}</p>}
+            <table className="mt-2 w-full text-[0.68rem]">
+              <thead>
+                <tr>
+                  {ex.columns.map((c, j) => (
+                    <th key={j} className="border-b b-line pb-1 text-left font-bold t-ink">
+                      {c}
+                    </th>
+                  ))}
+                </tr>
+              </thead>
+              <tbody>
+                {ex.rows.map((r, j) => (
+                  <tr key={j}>
+                    {r.map((cell, k) => (
+                      <td key={k} className="border-b border-[var(--line)]/50 py-1 t-muted">
+                        {cell || '—'}
+                      </td>
+                    ))}
+                  </tr>
+                ))}
+              </tbody>
+            </table>
           </div>
+        ))}
+        {!showTasks && !done && (
+          <button
+            onClick={() => setShowTasks(true)}
+            className="mt-4 w-full rounded-full bg-[var(--ink)] py-2.5 text-xs font-bold text-[var(--paper)] transition-opacity hover:opacity-85"
+          >
+            Start the {draw.tasks.length} tasks →
+          </button>
         )}
       </div>
+
+      {(showTasks || done) && (
+        <div className="p-4">
+          {!done ? (
+            <>
+              <p className="text-[0.6rem] font-bold uppercase tracking-[0.2em] t-faint">
+                Task {idx + 1} of {draw.tasks.length}
+                {task.marks ? ` · ${task.marks} marks` : ''} · {task.type.toUpperCase()}
+              </p>
+              <div className="rich mt-2 text-sm font-semibold leading-snug t-ink" dangerouslySetInnerHTML={rich(task.prompt)} />
+              <TaskWidget
+                key={task.id}
+                task={task}
+                onResult={(ok) => {
+                  setScore((s) => ({ asked: s.asked + 1, correct: s.correct + (ok ? 1 : 0) }));
+                  onResult(ok);
+                }}
+              />
+              <button
+                disabled={swapping}
+                onClick={() => {
+                  if (idx + 1 < draw.tasks.length) {
+                    setIdx(idx + 1);
+                  } else {
+                    setDone(true);
+                  }
+                }}
+                className="mt-3 rounded-full border-[1.5px] b-line px-3.5 py-1.5 text-[0.65rem] font-bold t-muted transition-colors hover:t-ink hover:border-[var(--ink)] disabled:opacity-40"
+              >
+                {idx + 1 < draw.tasks.length ? 'Next task →' : 'Finish the case'}
+              </button>
+            </>
+          ) : (
+            <div className="space-y-2.5">
+              <p className="text-sm font-bold t-ink">
+                Case closed — {score.correct}/{score.asked || draw.tasks.length} tasks correct.
+              </p>
+              <p className="text-xs leading-relaxed t-muted">
+                Reread the narrative once more: in the exam the same case stem is re-used from a
+                different angle (a weakness, a classification, a relevant cost). That flip is what
+                CBQ rewards.
+              </p>
+              <button
+                disabled={swapping}
+                onClick={async () => {
+                  setSwapping(true);
+                  const nd = await onNext(draw.case.part === 'Part 2' ? 'Part 2' : 'Part 1');
+                  setSwapping(false);
+                  if (nd) reset(nd);
+                }}
+                className="rounded-full border-[1.5px] b-line px-3.5 py-1.5 text-[0.65rem] font-bold t-muted transition-colors hover:t-ink hover:border-[var(--ink)] disabled:opacity-40"
+              >
+                {swapping ? 'Pulling…' : '↻ Another case from this part'}
+              </button>
+            </div>
+          )}
+        </div>
+      )}
     </div>
   );
 }
@@ -452,9 +760,9 @@ export default function AIDeck() {
 
   useEffect(() => {
     supabase
-      .from('cbq_scenarios')
+      .from('cbq_cases')
       .select('id', { count: 'exact', head: true })
-      .eq('status', 'approved')
+      .eq('verified', true)
       .then(({ count }) => setCbqCount(count));
   }, []);
 
@@ -490,7 +798,7 @@ export default function AIDeck() {
       if (copy[idx]) copy[idx] = { ...copy[idx], cbqLoading: true };
       return copy;
     });
-    void pickCbqSet(part).then((s) => {
+    void pickCbqCase(part).then((s) => {
       setMsgs((m) => {
         const copy = [...m];
         if (!copy[idx]) return copy;
@@ -589,7 +897,7 @@ export default function AIDeck() {
               <p className="text-sm font-bold leading-tight t-ink">CoStudy AI Mentor</p>
               <p className="text-xs t-faint">
                 {mode === 'cbq'
-                  ? 'Case mode · cbq_scenarios + cbq_items via pick_cbq_set'
+                  ? 'Case mode · cbq_cases + cbq_tasks via pick_cbq_case'
                   : 'Grounded in your live bank · question_bank via pick_practice_mcqs'}
               </p>
             </div>
@@ -643,12 +951,12 @@ export default function AIDeck() {
                   )}
                   {m.role === 'ai' && m.cbq && !busy && (
                     <CbqCaseCard
-                      key={m.cbq.scenario.id}
+                      key={m.cbq.case.id}
                       initial={m.cbq}
                       onResult={(ok) =>
                         setDrillStats((s) => ({ asked: s.asked + 1, correct: s.correct + (ok ? 1 : 0) }))
                       }
-                      onNext={pickCbqSet}
+                      onNext={pickCbqCase}
                     />
                   )}
                 </div>
@@ -744,7 +1052,7 @@ export default function AIDeck() {
             <ul className="mt-4 space-y-3 text-sm">
               {[
                 ['Drill source', 'question_bank'],
-                ['CBQ case track', cbqCount === null ? 'loading…' : cbqCount > 0 ? `${cbqCount} approved set${cbqCount === 1 ? '' : 's'}` : 'coming soon'],
+                ['CBQ case track', cbqCount === null ? 'loading…' : cbqCount > 0 ? `${cbqCount} verified case${cbqCount === 1 ? '' : 's'}` : 'coming soon'],
                 ['Coverage', 'Part 1 · Part 2'],
                 ['Your drill score', drillStats.asked > 0 ? `${drillStats.correct}/${drillStats.asked}` : '—'],
               ].map(([k, v]) => (
@@ -755,7 +1063,7 @@ export default function AIDeck() {
               ))}
             </ul>
             <p className="mt-4 text-[0.65rem] leading-relaxed t-faint">
-              MCQs served through the pick_practice_mcqs RPC; CBQ cases through pick_cbq_set —
+              MCQs served through the pick_practice_mcqs RPC; CBQ cases through pick_cbq_case —
               approved, faculty-reviewed sets only.
             </p>
           </div>

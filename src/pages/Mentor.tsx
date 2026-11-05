@@ -26,27 +26,22 @@ type CbqMine = {
   title: string;
   part: string;
   section: string | null;
-  status: string;
+  verified: boolean;
+  active: boolean;
   created_at: string;
 };
 
 type CbqItemDraft = {
-  question_text: string;
-  A: string;
-  B: string;
-  C: string;
-  D: string;
-  correct_answer: 'A' | 'B' | 'C' | 'D';
+  prompt: string;
+  options: string[];
+  correct: number;
   explanation: string;
 };
 
 const emptyCbqItem = (): CbqItemDraft => ({
-  question_text: '',
-  A: '',
-  B: '',
-  C: '',
-  D: '',
-  correct_answer: 'A',
+  prompt: '',
+  options: ['', '', '', ''],
+  correct: 0,
   explanation: '',
 });
 
@@ -83,22 +78,14 @@ export default function Mentor() {
   const loadCbq = () => {
     if (!profile) return;
     supabase
-      .from('cbq_scenarios')
-      .select('id, title, part, section, status, submitted_by, created_at')
+      .from('cbq_cases')
+      .select('id, title, part, section, verified, active, created_at')
       .order('created_at', { ascending: false })
       .limit(100)
       .then(({ data }) => {
-        const all = (data as (CbqMine & { submitted_by: string | null })[]) || [];
-        setCbqMine(
-          all
-            .filter((s) => s.submitted_by === profile.id)
-            .map(({ submitted_by: _sb, ...rest }) => rest),
-        );
-        setCbqPending(
-          all
-            .filter((s) => s.status === 'pending' && s.submitted_by !== profile.id)
-            .map(({ submitted_by: _sb, ...rest }) => rest),
-        );
+        const all = (data as CbqMine[]) || [];
+        setCbqMine(all.filter((s) => s.verified && s.active).slice(0, 5));
+        setCbqPending(all.filter((s) => !s.verified && s.active));
       });
   };
 
@@ -213,22 +200,24 @@ export default function Mentor() {
 
   const submitCbq = async () => {
     if (cbqBusy) return;
-    const items = cbqItems.filter((it) => it.question_text.trim() && it.A.trim() && it.B.trim());
+    const items = cbqItems.filter((it) => it.prompt.trim() && it.options[0].trim() && it.options[1].trim());
     if (!cbqTitle.trim() || !cbqText.trim() || items.length === 0) {
-      setCbqMsg('A case needs a title, the scenario passage, and at least one complete item.');
+      setCbqMsg('A case needs a title, the narrative, and at least one complete task.');
       return;
     }
     setCbqBusy(true);
     setCbqMsg(null);
     const { data: sc, error: scErr } = await supabase
-      .from('cbq_scenarios')
+      .from('cbq_cases')
       .insert([
         {
           part: cbqPart,
           section: cbqSection.trim() || null,
           title: cbqTitle.trim(),
-          scenario_text: cbqText.trim(),
-          submitted_by: profile!.id,
+          narrative: cbqText.trim(),
+          exhibits: [],
+          difficulty: 'Medium',
+          source: 'mentor',
         },
       ])
       .select('id');
@@ -237,43 +226,47 @@ export default function Mentor() {
       setCbqMsg(`Submit failed: ${scErr?.message || 'no row returned'}`);
       return;
     }
-    const scenarioId = sc[0].id as string;
-    const { error: itErr } = await supabase.from('cbq_items').insert(
+    const caseId = sc[0].id as string;
+    const { error: itErr } = await supabase.from('cbq_tasks').insert(
       items.map((it, i) => ({
-        scenario_id: scenarioId,
-        question_text: it.question_text.trim(),
-        options: { A: it.A.trim(), B: it.B.trim(), C: it.C.trim(), D: it.D.trim() },
-        correct_answer: it.correct_answer,
+        case_id: caseId,
+        seq: i + 1,
+        type: 'mcq',
+        marks: 10,
+        prompt: it.prompt.trim(),
+        hint: null,
+        payload: { options: it.options.map((o) => o.trim()) },
+        answer: { value: 'ABCDEF'[it.correct] },
         explanation: it.explanation.trim() || null,
-        sort_order: i + 1,
       })),
     );
     setCbqBusy(false);
     if (itErr) {
-      setCbqMsg(`Scenario saved, but items failed: ${itErr.message}`);
+      setCbqMsg(`Case saved, but tasks failed: ${itErr.message}`);
       return;
     }
     setCbqTitle('');
     setCbqSection('');
     setCbqText('');
     setCbqItems([emptyCbqItem(), emptyCbqItem(), emptyCbqItem()]);
-    setCbqMsg(`“${cbqTitle.trim()}” is in the pending queue — a faculty peer approves it before students see it.`);
+    setCbqMsg(`“${cbqTitle.trim()}” is in the pending queue — a faculty peer verifies it before students see it.`);
     loadCbq();
   };
 
-  const reviewCbq = async (s: CbqMine, status: 'approved' | 'rejected') => {
+  const reviewCbq = async (s: CbqMine, action: 'approve' | 'reject') => {
     if (reviewing) return;
     setReviewing(s.id);
     setCbqMsg(null);
-    const { error } = await supabase.from('cbq_scenarios').update({ status }).eq('id', s.id);
+    const patch = action === 'approve' ? { verified: true } : { active: false };
+    const { error } = await supabase.from('cbq_cases').update(patch).eq('id', s.id);
     setReviewing(null);
     if (error) {
       setCbqMsg(`Review failed: ${error.message}`);
       return;
     }
     setCbqMsg(
-      status === 'approved'
-        ? `“${s.title}” approved — it's live on the AI Deck CBQ track.`
+      action === 'approve'
+        ? `“${s.title}” verified — it's live on the AI Deck CBQ track.`
         : `“${s.title}” rejected and hidden from the track.`,
     );
     loadCbq();
@@ -317,7 +310,7 @@ export default function Mentor() {
                 <h2 className="slab-display text-2xl t-ink">CBQ case intake</h2>
               </div>
               <span className="rounded-full bg-[#e7fec7] px-3 py-1 text-[0.65rem] font-bold tracking-widest text-[#21221f]">
-                {cbqMine.length} MINE · {cbqPending.length} AWAITING REVIEW
+                {cbqMine.length} LIVE · {cbqPending.length} AWAITING REVIEW
               </span>
             </div>
             <p className="mt-2 text-xs leading-relaxed t-faint">
@@ -371,30 +364,36 @@ export default function Mentor() {
                     )}
                   </div>
                   <input
-                    value={it.question_text}
-                    onChange={(e) => updateCbqItem(i, { question_text: e.target.value })}
-                    placeholder="Question stem"
+                    value={it.prompt}
+                    onChange={(e) => updateCbqItem(i, { prompt: e.target.value })}
+                    placeholder="Task prompt"
                     className="mt-2 w-full rounded-lg border-[1.5px] b-line bg-[var(--card)] px-3 py-2 text-xs font-medium t-ink placeholder:t-faint focus:border-[var(--ink)] focus:outline-none"
                   />
                   <div className="mt-2 grid gap-2 sm:grid-cols-2">
-                    {(['A', 'B', 'C', 'D'] as const).map((l) => (
+                    {it.options.map((opt, oi) => (
                       <input
-                        key={l}
-                        value={it[l]}
-                        onChange={(e) => updateCbqItem(i, { [l]: e.target.value })}
-                        placeholder={`Option ${l}`}
+                        key={oi}
+                        value={opt}
+                        onChange={(e) =>
+                          updateCbqItem(i, {
+                            options: it.options.map((x, j) => (j === oi ? e.target.value : x)),
+                          })
+                        }
+                        placeholder={`Option ${'ABCDEF'[oi]}`}
                         className="rounded-lg border-[1.5px] b-line bg-[var(--card)] px-3 py-2 text-xs t-ink placeholder:t-faint focus:border-[var(--ink)] focus:outline-none"
                       />
                     ))}
                   </div>
                   <div className="mt-2 flex flex-wrap items-center gap-2">
                     <select
-                      value={it.correct_answer}
-                      onChange={(e) => updateCbqItem(i, { correct_answer: e.target.value as CbqItemDraft['correct_answer'] })}
+                      value={it.correct}
+                      onChange={(e) => updateCbqItem(i, { correct: Number(e.target.value) })}
                       className="rounded-lg border-[1.5px] b-line bg-[var(--card)] px-2.5 py-2 text-xs font-bold t-ink focus:border-[var(--ink)] focus:outline-none"
                     >
-                      {['A', 'B', 'C', 'D'].map((l) => (
-                        <option key={l} value={l}>Answer {l}</option>
+                      {it.options.map((_, oi) => (
+                        <option key={oi} value={oi}>
+                          Answer {'ABCDEF'[oi]}
+                        </option>
                       ))}
                     </select>
                     <input
@@ -429,16 +428,8 @@ export default function Mentor() {
                   <li key={s.id} className="flex items-center justify-between gap-3 text-xs">
                     <span className="min-w-0 flex-1 truncate font-semibold t-ink">{s.title}</span>
                     <span className="shrink-0 font-bold tracking-widest t-faint">{s.part.toUpperCase()}{s.section ? ` · ${s.section}` : ''}</span>
-                    <span
-                      className={`shrink-0 rounded-full px-2 py-0.5 text-[0.6rem] font-bold ${
-                        s.status === 'approved'
-                          ? 'bg-[#e7fec7] text-[#21221f]'
-                          : s.status === 'rejected'
-                            ? 'bg-[#ea4467]/15 text-[#ea4467]'
-                            : 'b-line t-muted'
-                      }`}
-                    >
-                      {s.status.toUpperCase()}
+                    <span className="shrink-0 rounded-full bg-[#e7fec7] px-2 py-0.5 text-[0.6rem] font-bold text-[#21221f]">
+                      LIVE
                     </span>
                   </li>
                 ))}
@@ -465,14 +456,14 @@ export default function Mentor() {
                       </div>
                       <div className="flex shrink-0 gap-2">
                         <button
-                          onClick={() => reviewCbq(s, 'approved')}
+                          onClick={() => reviewCbq(s, 'approve')}
                           disabled={reviewing === s.id}
                           className="rounded-full bg-[#6f9c3e] px-4 py-2 text-xs font-bold text-white transition-opacity disabled:opacity-40"
                         >
                           Approve
                         </button>
                         <button
-                          onClick={() => reviewCbq(s, 'rejected')}
+                          onClick={() => reviewCbq(s, 'reject')}
                           disabled={reviewing === s.id}
                           className="rounded-full border-[1.5px] border-[#ea4467] px-4 py-2 text-xs font-bold text-[#ea4467] transition-opacity disabled:opacity-40"
                         >
