@@ -308,8 +308,11 @@ export default function Wall() {
     setCommentDrafts((d) => ({ ...d, [postId]: '' }));
   };
 
+  const hour = new Date().getHours();
+  const daypart = hour < 5 ? 'Night owl hours' : hour < 12 ? 'Good morning' : hour < 17 ? 'Good afternoon' : 'Good evening';
+
   return (
-    <AppShell eyebrow="The commons, out loud" title="Study Wall">
+    <AppShell eyebrow={profile ? `${daypart}, ${profile.name.split(' ')[0]}` : 'The commons, out loud'} title="Study Wall">
       {/* composer — deliberately set apart from the three columns */}
       {profile ? (
         <section className="relative mb-8 overflow-hidden rounded-[1.6rem] bg-[#2b2926] p-6 text-[#fcfbfa] md:p-8">

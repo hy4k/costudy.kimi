@@ -1,4 +1,5 @@
 import { useEffect } from 'react';
+import { Navigate } from 'react-router';
 import Lenis from 'lenis';
 import { gsap, ScrollTrigger, reducedMotion } from '@/lib/anim';
 import Header from '@/components/Header';
@@ -8,8 +9,11 @@ import Bento from '@/sections/Bento';
 import Pricing from '@/sections/Pricing';
 import Method from '@/sections/Method';
 import Outro from '@/sections/Outro';
+import { useAuth } from '@/lib/authStore';
 
 export default function Home() {
+  const { profile, ready } = useAuth();
+
   useEffect(() => {
     if (reducedMotion()) return;
 
@@ -28,6 +32,9 @@ export default function Home() {
       lenis.destroy();
     };
   }, []);
+
+  // signed-in students land on the note, not the marketing page
+  if (ready && profile) return <Navigate to="/wall" replace />;
 
   return (
     <>

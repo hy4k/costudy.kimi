@@ -36,6 +36,16 @@ type RawMini = {
 const journey = [
   {
     no: '1',
+    to: '/wall',
+    label: 'Study Wall',
+    role: 'Home',
+    hint: "Open the note — the campus feed, like coming home.",
+    Doodle: DoodleBubble,
+    bg: '#2b2926',
+    ink: '#fcfbfa',
+  },
+  {
+    no: '2',
     to: '/path',
     label: 'Mastery Path',
     role: 'Start here',
@@ -45,7 +55,7 @@ const journey = [
     ink: '#ffffff',
   },
   {
-    no: '2',
+    no: '3',
     to: '/contracts',
     label: 'Study Partners',
     role: 'Contract',
@@ -55,7 +65,7 @@ const journey = [
     ink: '#21221f',
   },
   {
-    no: '3',
+    no: '4',
     to: '/rooms',
     label: 'Study Rooms',
     role: 'Study',
@@ -65,7 +75,7 @@ const journey = [
     ink: '#21221f',
   },
   {
-    no: '4',
+    no: '5',
     to: '/ai',
     label: 'AI Deck',
     role: 'Practice',
@@ -75,7 +85,7 @@ const journey = [
     ink: '#21221f',
   },
   {
-    no: '5',
+    no: '6',
     to: '/vault',
     label: 'Library Vault',
     role: 'Go deeper',
@@ -83,16 +93,6 @@ const journey = [
     Doodle: DoodleBook,
     bg: '#c6b3a2',
     ink: '#21221f',
-  },
-  {
-    no: '6',
-    to: '/wall',
-    label: 'Study Wall',
-    role: 'Wrap up',
-    hint: "Share the day's win, ask what's stuck.",
-    Doodle: DoodleBubble,
-    bg: '#2b2926',
-    ink: '#fcfbfa',
   },
 ];
 
