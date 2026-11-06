@@ -4,12 +4,6 @@ import { useTheme } from '@/hooks/useTheme';
 import { useAuth } from '@/lib/authStore';
 import { DoodleMoon, DoodleSun } from '@/components/Doodles';
 
-const links = [
-  { label: 'Rooms', to: '/rooms' },
-  { label: 'Wall', to: '/wall' },
-  { label: 'AI Deck', to: '/ai' },
-];
-
 export function ThemeToggle({ className = '' }: { className?: string }) {
   const { dark, toggle } = useTheme();
   return (
@@ -55,27 +49,12 @@ export default function Header() {
           </span>
         </Link>
 
-        {/* app menus only appear once you're inside */}
-        {signedIn && (
-          <nav className="hidden items-center gap-8 md:flex" aria-label="Primary">
-            {links.map((l) => (
-              <Link
-                key={l.label}
-                to={l.to}
-                className="link-underline text-sm font-medium t-muted transition-colors hover:t-ink"
-              >
-                {l.label}
-              </Link>
-            ))}
-          </nav>
-        )}
-
         <div className="flex items-center gap-3">
           {signedIn && profile ? (
             <>
-              <span className="hidden text-sm font-semibold t-muted sm:block">
+              <Link to="/profile" className="link-underline hidden text-sm font-semibold t-muted transition-colors hover:t-ink sm:block">
                 Hey, {profile.name.split(' ')[0]}
-              </span>
+              </Link>
               <Link to={profile.role === 'TEACHER' ? '/mentor' : '/wall'} className="pill-btn !px-5 !py-2.5 text-sm">
                 Open your desk
               </Link>

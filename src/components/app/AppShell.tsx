@@ -71,7 +71,10 @@ export default function AppShell({
 
         <div className="mt-auto space-y-4 border-t b-line p-4">
           {profile ? (
-            <div className="flex items-center gap-3 rounded-xl bg-[var(--card)] p-3 shadow-[inset_0_0_0_1.5px_var(--line)]">
+            <Link
+              to="/profile"
+              className="flex items-center gap-3 rounded-xl bg-[var(--card)] p-3 shadow-[inset_0_0_0_1.5px_var(--line)] transition-shadow hover:shadow-[inset_0_0_0_1.5px_var(--ink)]"
+            >
               <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-[#ea4467] font-slab text-sm font-bold text-white">
                 {initials}
               </span>
@@ -81,7 +84,7 @@ export default function AppShell({
                   {profile.role === 'TEACHER' ? 'Faculty' : profile.level} · {profile.examFocus}
                 </span>
               </span>
-            </div>
+            </Link>
           ) : (
             <Link
               to="/login"

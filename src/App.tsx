@@ -7,6 +7,7 @@ import AIDeck from './pages/AIDeck'
 import Path from './pages/Path'
 import Login from './pages/Login'
 import Mentor from './pages/Mentor'
+import Profile from './pages/Profile'
 
 export default function App() {
   return (
@@ -19,6 +20,7 @@ export default function App() {
       <Route path="/ai" element={<AIDeck />} />
       <Route path="/path" element={<Path />} />
       <Route path="/mentor" element={<Mentor />} />
+      <Route path="/profile" element={<Profile />} />
     </Routes>
   )
 }

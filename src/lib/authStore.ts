@@ -77,6 +77,7 @@ export type AuthState = {
 
 /** Live auth state — loads the Supabase session, mirrors user_profiles, follows auth events. */
 export function useAuth(): AuthState & {
+  refresh: () => Promise<void>;
   signIn: (email: string, pass: string) => Promise<Profile>;
   signUp: (name: string, email: string, pass: string, role: Role) => Promise<Profile>;
   signOut: () => Promise<void>;
@@ -114,6 +115,16 @@ export function useAuth(): AuthState & {
   return {
     ready,
     profile,
+    refresh: async () => {
+      const { data } = await supabase.auth.getSession();
+      const user = data.session?.user ?? null;
+      if (!user) {
+        setProfile(null);
+        return;
+      }
+      const p = await fetchProfile(user.id);
+      if (p) setProfile(p);
+    },
     signIn: async (email, pass) => {
       const { data, error } = await supabase.auth.signInWithPassword({ email, password: pass });
       if (error) throw new Error(error.message);
