@@ -13,14 +13,14 @@ import {
 } from '@/components/Doodles';
 
 const nav = [
-  { to: '/rooms', label: 'Study Rooms', short: 'Rooms', Doodle: DoodlePeople, hint: 'Live clusters' },
-  { to: '/wall', label: 'Study Wall', short: 'Wall', Doodle: DoodleBubble, hint: 'The commons' },
-  { to: '/vault', label: 'Library Vault', short: 'Vault', Doodle: DoodleBook, hint: 'Knowledge vault' },
-  { to: '/ai', label: 'AI Deck', short: 'AI', Doodle: DoodleBulb, hint: 'Doubt desk' },
-  { to: '/path', label: 'Mastery Path', short: 'Path', Doodle: DoodleNote, hint: 'The cockpit' },
+  { to: '/path', label: 'Mastery Path', short: 'Path', step: '1', Doodle: DoodleNote, hint: 'Start · your plan' },
+  { to: '/rooms', label: 'Study Rooms', short: 'Rooms', step: '2', Doodle: DoodlePeople, hint: 'Study · focus together' },
+  { to: '/ai', label: 'AI Deck', short: 'AI', step: '3', Doodle: DoodleBulb, hint: 'Practice · un-stuck fast' },
+  { to: '/vault', label: 'Library Vault', short: 'Vault', step: '4', Doodle: DoodleBook, hint: 'Go deeper · materials' },
+  { to: '/wall', label: 'Study Wall', short: 'Wall', step: '5', Doodle: DoodleBubble, hint: 'Wrap up · share the day' },
 ];
 
-const facultyNav = { to: '/mentor', label: 'Faculty Room', short: 'Faculty', Doodle: DoodleSpark, hint: 'Mentor cockpit' };
+const facultyNav = { to: '/mentor', label: 'Faculty Room', short: 'Faculty', step: '★', Doodle: DoodleSpark, hint: 'Mentor cockpit' };
 
 export default function AppShell({
   title,
@@ -40,7 +40,7 @@ export default function AppShell({
   return (
     <div className="min-h-screen bg-paper">
       <aside className="fixed inset-y-0 left-0 z-40 hidden w-64 flex-col border-r b-line bg-paper lg:flex">
-        <Link to="/" className="flex h-16 items-center gap-3 border-b b-line px-6">
+        <Link to="/desk" className="flex h-16 items-center gap-3 border-b b-line px-6">
           <span className="font-slab text-xl font-bold t-ink">
             Co<span className="text-[#ea4467]">Study</span>
           </span>
@@ -61,8 +61,13 @@ export default function AppShell({
               }
             >
               <n.Doodle className="h-6 w-6 shrink-0 t-ink opacity-80 transition-transform duration-500 group-hover:-rotate-6" />
-              <span className="min-w-0">
-                <span className="block text-sm font-semibold leading-tight t-ink">{n.label}</span>
+              <span className="min-w-0 flex-1">
+                <span className="flex items-center gap-2">
+                  <span className="flex h-5 w-5 items-center justify-center rounded-full bg-[var(--line)] text-[0.6rem] font-bold t-muted">
+                    {n.step}
+                  </span>
+                  <span className="block text-sm font-semibold leading-tight t-ink">{n.label}</span>
+                </span>
                 <span className="block text-xs t-faint">{n.hint}</span>
               </span>
             </NavLink>
@@ -106,7 +111,7 @@ export default function AppShell({
       <div className="lg:pl-64">
         {/* mobile top bar */}
         <div className="sticky top-0 z-40 flex h-14 items-center justify-between border-b b-line bg-glass px-4 backdrop-blur-md lg:hidden">
-          <Link to="/" className="font-slab text-lg font-bold t-ink">
+          <Link to="/desk" className="font-slab text-lg font-bold t-ink">
             Co<span className="text-[#ea4467]">Study</span>
           </Link>
           <div className="flex items-center gap-2">

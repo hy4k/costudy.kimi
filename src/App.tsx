@@ -8,12 +8,14 @@ import Path from './pages/Path'
 import Login from './pages/Login'
 import Mentor from './pages/Mentor'
 import Profile from './pages/Profile'
+import Desk from './pages/Desk'
 
 export default function App() {
   return (
     <Routes>
       <Route path="/" element={<Home />} />
       <Route path="/login" element={<Login />} />
+      <Route path="/desk" element={<Desk />} />
       <Route path="/rooms" element={<Rooms />} />
       <Route path="/wall" element={<Wall />} />
       <Route path="/vault" element={<Vault />} />

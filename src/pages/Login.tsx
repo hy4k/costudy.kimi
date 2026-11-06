@@ -45,7 +45,7 @@ export default function Login() {
     setBusy(true);
     try {
       const profile = mode === 'signin' ? await signIn(email, pass) : await signUp(name, email, pass, role);
-      navigate(profile.role === 'TEACHER' ? '/mentor' : '/wall', { replace: true });
+      navigate(profile.role === 'TEACHER' ? '/mentor' : '/desk', { replace: true });
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Something went wrong — try again.');
     } finally {

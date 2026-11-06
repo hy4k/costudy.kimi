@@ -55,7 +55,7 @@ export default function Header() {
               <Link to="/profile" className="link-underline hidden text-sm font-semibold t-muted transition-colors hover:t-ink sm:block">
                 Hey, {profile.name.split(' ')[0]}
               </Link>
-              <Link to={profile.role === 'TEACHER' ? '/mentor' : '/wall'} className="pill-btn !px-5 !py-2.5 text-sm">
+              <Link to="/desk" className="pill-btn !px-5 !py-2.5 text-sm">
                 Open your desk
               </Link>
             </>
