@@ -46,12 +46,32 @@ const inputCls =
   'mt-2 w-full rounded-xl border-[1.5px] b-line bg-[var(--card)] p-4 text-sm t-ink placeholder:t-faint focus:border-[var(--ink)] focus:outline-none';
 const labelCls = 'eyebrow t-faint';
 
+type MockRow = {
+  id: string;
+  label: string;
+  when: string;
+  detail: string;
+  score: string;
+  passed: boolean | null;
+};
+
+type PostRow = {
+  id: string;
+  topic: string | null;
+  content: string;
+  vouches: number | null;
+  replies: number | null;
+  when: string;
+};
+
 export default function Profile() {
   const navigate = useNavigate();
   const { profile, ready, refresh, signOut } = useAuth();
   const isTeacher = profile?.role === 'TEACHER';
 
   const [raw, setRaw] = useState<RawProfile | null>(null);
+  const [mocks, setMocks] = useState<MockRow[]>([]);
+  const [posts, setPosts] = useState<PostRow[]>([]);
   const [editing, setEditing] = useState(false);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -81,7 +101,7 @@ export default function Profile() {
       .select('*')
       .eq('id', profile.id)
       .maybeSingle()
-      .then(({ data }) => {
+      .then(async ({ data }) => {
         if (!data) return;
         const r = data as RawProfile;
         setRaw(r);
@@ -96,6 +116,63 @@ export default function Profile() {
           years_experience: r.years_experience?.toString() || '',
           hourly_rate: r.hourly_rate?.toString() || '',
         });
+
+        // study activity: mock history + wall posts
+        const [attemptsRes, legacyRes, postsRes] = await Promise.all([
+          supabase
+            .from('mock_attempts')
+            .select('id, section, completed_at, started_at, total_score, scaled_score, mcq_correct, mcq_total, passed')
+            .eq('user_id', profile.id)
+            .order('completed_at', { ascending: false })
+            .limit(5),
+          supabase
+            .from('mock_test_results')
+            .select('id, test_name, score, scaled_score, passed, created_at')
+            .eq('user_id', profile.id)
+            .order('created_at', { ascending: false })
+            .limit(5),
+          supabase
+            .from('wall_posts')
+            .select('id, topic, content, vouches, replies_count, created_at')
+            .eq('author_id', profile.id)
+            .order('created_at', { ascending: false })
+            .limit(5),
+        ]);
+
+        const attemptRows: MockRow[] = (attemptsRes.data || []).map((a) => ({
+          id: a.id,
+          label: a.section || 'Mock exam',
+          when: a.completed_at || a.started_at || '',
+          detail:
+            typeof a.mcq_correct === 'number' && typeof a.mcq_total === 'number'
+              ? `${a.mcq_correct}/${a.mcq_total} MCQs correct`
+              : '',
+          score: a.scaled_score != null ? `${a.scaled_score}/500` : a.total_score != null ? `${a.total_score}%` : '—',
+          passed: a.passed ?? null,
+        }));
+        const legacyRows: MockRow[] = (legacyRes.data || []).map((t) => ({
+          id: t.id,
+          label: t.test_name || 'Mock test',
+          when: t.created_at || '',
+          detail: t.score != null ? `raw ${t.score}` : '',
+          score: t.scaled_score != null ? `${t.scaled_score}/500` : '—',
+          passed: t.passed ?? null,
+        }));
+        setMocks(
+          [...attemptRows, ...legacyRows]
+            .sort((x, y) => new Date(y.when).getTime() - new Date(x.when).getTime())
+            .slice(0, 5),
+        );
+        setPosts(
+          (postsRes.data || []).map((p) => ({
+            id: p.id,
+            topic: p.topic,
+            content: p.content,
+            vouches: p.vouches,
+            replies: p.replies_count,
+            when: p.created_at,
+          })),
+        );
       });
   }, [ready, profile, navigate]);
 
@@ -289,6 +366,86 @@ export default function Profile() {
             <p className="eyebrow mt-1 t-faint">{s.label}</p>
           </div>
         ))}
+      </section>
+
+      {/* study activity */}
+      <section className="mt-6 grid gap-6 lg:grid-cols-2">
+        <div className="rounded-[1.8rem] border-[1.5px] b-line bg-[var(--card)] p-7 md:p-9">
+          <div className="mb-6 flex items-center justify-between">
+            <h3 className="slab-display text-2xl t-ink">Mock history</h3>
+            <Link to="/path" className="link-underline text-xs font-bold uppercase tracking-widest t-muted hover:t-ink">
+              Mastery Path →
+            </Link>
+          </div>
+          {mocks.length === 0 ? (
+            <p className="rounded-[1.2rem] bg-[var(--line)]/40 p-6 text-sm t-muted">
+              No mocks yet — your finished attempts land here with scores and pass marks.
+            </p>
+          ) : (
+            <ul className="space-y-3">
+              {mocks.map((m) => (
+                <li
+                  key={m.id}
+                  className="flex items-center justify-between gap-4 rounded-[1.2rem] border-[1.5px] b-line p-4"
+                >
+                  <div className="min-w-0">
+                    <p className="truncate text-sm font-bold t-ink">{m.label}</p>
+                    <p className="text-xs t-faint">
+                      {m.when ? new Date(m.when).toLocaleDateString() : '—'}
+                      {m.detail && <> · {m.detail}</>}
+                    </p>
+                  </div>
+                  <div className="flex shrink-0 items-center gap-3">
+                    <span className="slab-display text-xl t-ink">{m.score}</span>
+                    {m.passed === true && (
+                      <span className="rounded-full bg-[#e7fec7] px-2.5 py-1 text-[0.6rem] font-bold uppercase tracking-widest text-[#4a7a2e]">
+                        Pass
+                      </span>
+                    )}
+                    {m.passed === false && (
+                      <span className="rounded-full bg-[#ea4467]/10 px-2.5 py-1 text-[0.6rem] font-bold uppercase tracking-widest text-[#ea4467]">
+                        Retry
+                      </span>
+                    )}
+                  </div>
+                </li>
+              ))}
+            </ul>
+          )}
+        </div>
+
+        <div className="rounded-[1.8rem] border-[1.5px] b-line bg-[var(--card)] p-7 md:p-9">
+          <div className="mb-6 flex items-center justify-between">
+            <h3 className="slab-display text-2xl t-ink">On the Wall</h3>
+            <Link to="/wall" className="link-underline text-xs font-bold uppercase tracking-widest t-muted hover:t-ink">
+              Study Wall →
+            </Link>
+          </div>
+          {posts.length === 0 ? (
+            <p className="rounded-[1.2rem] bg-[var(--line)]/40 p-6 text-sm t-muted">
+              Nothing posted yet — share a note or a win and it shows up here.
+            </p>
+          ) : (
+            <ul className="space-y-3">
+              {posts.map((p) => (
+                <li key={p.id} className="rounded-[1.2rem] border-[1.5px] b-line p-4">
+                  <div className="flex items-center justify-between gap-3">
+                    <p className="truncate text-sm font-bold t-ink">
+                      {p.topic ? `#${p.topic} · ` : ''}
+                      {p.content}
+                    </p>
+                    <span className="shrink-0 text-xs t-faint">
+                      {p.when ? new Date(p.when).toLocaleDateString() : ''}
+                    </span>
+                  </div>
+                  <p className="mt-1.5 text-xs t-muted">
+                    {p.vouches ?? 0} vouches · {p.replies ?? 0} replies
+                  </p>
+                </li>
+              ))}
+            </ul>
+          )}
+        </div>
       </section>
 
       {/* edit form */}
