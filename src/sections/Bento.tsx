@@ -11,7 +11,8 @@ import {
 } from '@/components/Doodles';
 
 type Card = {
-  eyebrow: string;
+  no: string;
+  tag: string;
   title: string;
   copy: string;
   bg: string;
@@ -24,9 +25,10 @@ type Card = {
 
 const cards: Card[] = [
   {
-    eyebrow: 'Presence',
+    no: '01',
+    tag: 'Must-have',
     title: 'Live Study Rooms',
-    copy: 'Drop into a room, switch your camera on or off, and let the quiet company of others hold your focus. Timers, sprints and gentle accountability built in.',
+    copy: 'Sit at a virtual desk with other CMA US candidates — same part, same hour. Cameras optional, a shared timer keeps everyone in the same focused sprint.',
     bg: '#ea4467',
     ink: '#ffffff',
     span: 'md:col-span-7',
@@ -34,49 +36,54 @@ const cards: Card[] = [
     doodleTint: '#ffffff',
   },
   {
-    eyebrow: 'Social',
-    title: 'The Feed',
-    copy: 'Notes, wins and questions — a feed designed for learners, not lurkers. Share what clicked for you today.',
-    bg: '#c6b3a2',
-    ink: '#21221f',
-    span: 'md:col-span-5',
-    Doodle: DoodleBubble,
-    doodleTint: '#21221f',
-  },
-  {
-    eyebrow: 'Support',
-    title: 'AI Study Buddy',
-    copy: 'Stuck at 1 AM? Ask the buddy. Instant, patient answers that point you to sources — never just the answer.',
+    no: '02',
+    tag: 'Must-have',
+    title: 'The Question Bank',
+    copy: '9,700+ CMA US practice questions with worked explanations — quality-checked, section-mapped to the official syllabus, and growing weekly.',
     bg: '#e7fec7',
-    ink: '#21221f',
-    span: 'md:col-span-5',
-    Doodle: DoodleBulb,
-    doodleTint: '#21221f',
-  },
-  {
-    eyebrow: 'Humans',
-    title: 'Expert Tutors',
-    copy: 'For the subjects that need a person. Verified tutors, transparent rates, and sessions that fit around your timetable.',
-    bg: '#d9e6f3',
-    ink: '#21221f',
-    span: 'md:col-span-7',
-    Doodle: DoodlePencil,
-    doodleTint: '#21221f',
-  },
-  {
-    eyebrow: 'Materials',
-    title: 'Resource Library',
-    copy: 'Past papers, notes and decks shared by students — quality-checked and searchable by subject and exam board.',
-    bg: '#f3f1ee',
     ink: '#21221f',
     span: 'md:col-span-5',
     Doodle: DoodleBook,
     doodleTint: '#21221f',
   },
   {
-    eyebrow: 'Belonging',
-    title: 'Community',
-    copy: 'Discussion threads, study circles and exam-season moral support from a global dorm of people who get it.',
+    no: '03',
+    tag: 'New format',
+    title: 'CBQ Case Practice',
+    copy: 'The exam’s newest question type, done right — short business cases with drag-and-drop, numeric and multi-select tasks, just like the real CMA US exam.',
+    bg: '#d9e6f3',
+    ink: '#21221f',
+    span: 'md:col-span-5',
+    Doodle: DoodleBulb,
+    doodleTint: '#21221f',
+  },
+  {
+    no: '04',
+    tag: 'Must-have',
+    title: 'AI Study Buddy',
+    copy: 'Stuck at 1 AM before your exam? Ask the buddy. Patient answers with sources, drawn from the same bank you practice on — never just a guess.',
+    bg: '#c6b3a2',
+    ink: '#21221f',
+    span: 'md:col-span-7',
+    Doodle: DoodlePencil,
+    doodleTint: '#21221f',
+  },
+  {
+    no: '05',
+    tag: 'Verified',
+    title: 'Mentors & Mock Tests',
+    copy: 'Verified CMA US mentors for the topics that need a human, plus full mock exams that feel like the real Prometric screen — including CBQ scoring.',
+    bg: '#f3f1ee',
+    ink: '#21221f',
+    span: 'md:col-span-5',
+    Doodle: DoodleBubble,
+    doodleTint: '#21221f',
+  },
+  {
+    no: '06',
+    tag: 'Community',
+    title: 'The Study Wall',
+    copy: 'Notes, wins and questions from candidates on the same road. Share what finally clicked, and cheer strangers through exam week.',
     bg: '#2b2926',
     ink: '#fcfbfa',
     span: 'md:col-span-7',
@@ -101,17 +108,17 @@ export default function Bento() {
     <section id="toolkit" ref={ref} className="mx-auto max-w-7xl px-5 py-24 sm:px-8 md:py-36">
       <div className="mb-14 grid items-end gap-8 md:grid-cols-[1.4fr_1fr]">
         <div>
-          <p className="eyebrow mb-5 text-[#ea4467]">The toolkit</p>
+          <p className="eyebrow mb-5 text-[#ea4467]">The CMA US toolkit</p>
           <h2
             data-bento-title
             className="slab-display max-w-xl text-[clamp(2.2rem,5vw,3.8rem)] t-ink"
           >
-            Everything you need to excel.
+            Everything a CMA US candidate needs.
           </h2>
         </div>
         <p className="max-w-sm t-muted md:justify-self-end">
-          Six tools, one roof. Each one exists because students told us exactly
-          where studying breaks down.
+          Six tools, one roof — each one built for a moment in CMA US prep
+          where candidates usually get stuck, distracted, or discouraged.
         </p>
       </div>
 
@@ -124,7 +131,12 @@ export default function Bento() {
             style={{ backgroundColor: c.bg, color: c.ink }}
           >
             <div className="relative z-10">
-              <p className="eyebrow mb-4 opacity-70">{c.eyebrow}</p>
+              <div className="mb-4 flex items-center gap-3">
+                <span className="slab-display text-lg opacity-50">{c.no}</span>
+                <span className="rounded-full border border-current px-2.5 py-0.5 text-[0.6rem] font-bold uppercase tracking-[0.14em] opacity-70">
+                  {c.tag}
+                </span>
+              </div>
               <h3 className="slab-display text-2xl md:text-3xl">{c.title}</h3>
               <p className="mt-3 max-w-md text-[0.95rem] leading-relaxed opacity-80">
                 {c.copy}

@@ -2,6 +2,7 @@ import { useLayoutEffect, useRef } from 'react';
 import type { ComponentType } from 'react';
 import { Link } from 'react-router';
 import { gsap, revealSplit, reducedMotion } from '@/lib/anim';
+import { ThemeToggle } from '@/components/Header';
 import {
   DoodleBook,
   DoodleBubble,
@@ -141,7 +142,7 @@ export default function Hero() {
 
       <div className="relative z-10 mx-auto max-w-5xl px-6 text-center">
         <p data-hero-fade className="eyebrow mb-6 text-[#ea4467]">
-          Drop in · Study together
+          The CMA US prep commons
         </p>
         <h1
           data-split
@@ -149,18 +150,26 @@ export default function Hero() {
         >
           CoStudy.
         </h1>
+        <p data-hero-fade className="mt-5 flex items-center justify-center gap-2 text-sm font-bold tracking-[0.18em] t-muted uppercase">
+          <span className="rounded-full bg-[#ea4467]/10 px-3 py-1 text-[#ea4467]">CMA US</span>
+          Part 1 &amp; Part 2
+        </p>
         <p data-hero-fade className="mx-auto mt-7 max-w-xl text-lg leading-relaxed t-muted md:text-xl">
-          The commons where students meet to learn — live rooms, a social feed,
-          verified tutors and an AI buddy, all in one warm place.
+          One warm place with everything a CMA US candidate needs — live study
+          rooms, 9,700+ practice questions, the new interactive case questions,
+          an AI study buddy, and real mentors.
         </p>
         <div data-hero-fade className="mt-10 flex flex-wrap items-center justify-center gap-4">
-          <Link to="/rooms" className="pill-btn">
-            Claim your desk
+          <Link to="/login?mode=signup" className="pill-btn">
+            Start studying — free
             <span aria-hidden="true">→</span>
           </Link>
-          <a href="#campus" className="pill-btn pill-btn--ghost">
-            Wander the campus
+          <a href="#plans" className="pill-btn pill-btn--ghost">
+            See the plans
           </a>
+        </div>
+        <div data-hero-fade className="mt-8 flex justify-center">
+          <ThemeToggle />
         </div>
       </div>
 

@@ -5,8 +5,7 @@ import Header from '@/components/Header';
 import Hero from '@/sections/Hero';
 import Manifesto from '@/sections/Manifesto';
 import Bento from '@/sections/Bento';
-import Chapters from '@/sections/Chapters';
-import Quiz from '@/sections/Quiz';
+import Pricing from '@/sections/Pricing';
 import Method from '@/sections/Method';
 import Outro from '@/sections/Outro';
 
@@ -43,8 +42,7 @@ export default function Home() {
         <Hero />
         <Manifesto />
         <Bento />
-        <Chapters />
-        <Quiz />
+        <Pricing />
         <Method />
         <Outro />
       </main>

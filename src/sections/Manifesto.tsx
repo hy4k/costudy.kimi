@@ -35,23 +35,23 @@ export default function Manifesto() {
         data-manifesto-fade
         className="slab-display text-center text-[clamp(2.1rem,5.4vw,4rem)] leading-[1.12] t-ink"
       >
-        Studying alone
+        The CMA US is hard
         <InlineDoodle tint="text-[#c6b3a2]">
           <DoodleCoffee className="h-full w-full" />
         </InlineDoodle>
-        burns willpower. Studying together
+        to study alone. It&rsquo;s easier
         <InlineDoodle tint="text-[#ea4467]">
           <DoodlePeople className="h-full w-full" />
         </InlineDoodle>
-        compounds it.
+        together.
       </h2>
       <p
         data-manifesto-fade
         className="mx-auto mt-10 max-w-2xl text-center text-lg leading-relaxed t-muted"
       >
-        CoStudy turns isolation into company. Not another app that watches you —
-        a commons full of people walking the same road, at the same hour,
-        with the same stubborn hope.
+        CoStudy is one place where CMA US candidates sit side by side, even from
+        different cities. Practice together, ask questions, share what worked —
+        and keep going until you pass.
       </p>
     </section>
   );

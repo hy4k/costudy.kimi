@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Link, useNavigate } from 'react-router';
+import { Link, useNavigate, useSearchParams } from 'react-router';
 import Header from '@/components/Header';
 import { DoodleBulb, DoodleNote, DoodlePeople } from '@/components/Doodles';
 import { useAuth, type Role } from '@/lib/authStore';
@@ -29,9 +29,10 @@ const roles: {
 
 export default function Login() {
   const navigate = useNavigate();
+  const [params] = useSearchParams();
   const { signIn, signUp } = useAuth();
   const [role, setRole] = useState<Role>('STUDENT');
-  const [mode, setMode] = useState<'signin' | 'signup'>('signin');
+  const [mode, setMode] = useState<'signin' | 'signup'>(params.get('mode') === 'signup' ? 'signup' : 'signin');
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
   const [pass, setPass] = useState('');

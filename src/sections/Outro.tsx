@@ -41,12 +41,12 @@ export default function Outro() {
           Your desk is waiting.
         </h2>
         <p data-outro-fade className="mx-auto mt-6 max-w-md text-lg t-muted">
-          Free to join. Bring your syllabus, your stubbornness, and maybe a
-          friend.
+          Free to join. Built for CMA US candidates — bring your syllabus,
+          your stubbornness, and maybe a friend.
         </p>
         <div data-outro-fade className="mt-10">
-          <Link to="/rooms" className="pill-btn !px-9 !py-4 text-base">
-            Claim your desk — it&rsquo;s free
+          <Link to="/login?mode=signup" className="pill-btn !px-9 !py-4 text-base">
+            Grab your seat — it&rsquo;s free
             <span aria-hidden="true">→</span>
           </Link>
         </div>
@@ -61,8 +61,9 @@ export default function Outro() {
               <span className="ml-0.5 align-super text-[0.6em] font-medium t-muted">.in</span>
             </a>
             <p className="mt-4 max-w-xs text-sm leading-relaxed t-muted">
-              The commons for collaborative learning. Made for students
-              everywhere who refuse to study alone.
+              The commons for CMA US candidates. Study rooms, a 9,700+ question
+              bank, interactive CBQ cases — made for everyone who refuses to
+              study alone.
             </p>
           </div>
           {footerCols.map((col) => (

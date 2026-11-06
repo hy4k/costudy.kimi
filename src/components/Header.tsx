@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { Link } from 'react-router';
 import { useTheme } from '@/hooks/useTheme';
+import { useAuth } from '@/lib/authStore';
 import { DoodleMoon, DoodleSun } from '@/components/Doodles';
 
 const links = [
@@ -27,6 +28,8 @@ export function ThemeToggle({ className = '' }: { className?: string }) {
 
 export default function Header() {
   const [scrolled, setScrolled] = useState(false);
+  const { ready, profile } = useAuth();
+  const signedIn = ready && !!profile;
 
   useEffect(() => {
     const onScroll = () => setScrolled(window.scrollY > 32);
@@ -47,28 +50,47 @@ export default function Header() {
         <Link to="/" className="font-slab text-xl font-bold tracking-tight t-ink">
           Co<span className="text-[#ea4467]">Study</span>
           <span className="ml-0.5 align-super text-[0.6em] font-medium t-muted">.in</span>
+          <span className="ml-2 hidden rounded-full bg-[#ea4467]/10 px-2.5 py-1 align-middle text-[0.55em] font-bold tracking-widest text-[#ea4467] sm:inline-block">
+            CMA US
+          </span>
         </Link>
 
-        <nav className="hidden items-center gap-8 md:flex" aria-label="Primary">
-          {links.map((l) => (
-            <Link
-              key={l.label}
-              to={l.to}
-              className="link-underline text-sm font-medium t-muted transition-colors hover:t-ink"
-            >
-              {l.label}
-            </Link>
-          ))}
-        </nav>
+        {/* app menus only appear once you're inside */}
+        {signedIn && (
+          <nav className="hidden items-center gap-8 md:flex" aria-label="Primary">
+            {links.map((l) => (
+              <Link
+                key={l.label}
+                to={l.to}
+                className="link-underline text-sm font-medium t-muted transition-colors hover:t-ink"
+              >
+                {l.label}
+              </Link>
+            ))}
+          </nav>
+        )}
 
         <div className="flex items-center gap-3">
-          <ThemeToggle />
-          <Link to="/login" className="link-underline hidden text-sm font-semibold t-muted transition-colors hover:t-ink sm:block">
-            Log in
-          </Link>
-          <Link to="/rooms" className="pill-btn !px-5 !py-2.5 text-sm">
-            Claim your desk
-          </Link>
+          {signedIn && profile ? (
+            <>
+              <span className="hidden text-sm font-semibold t-muted sm:block">
+                Hey, {profile.name.split(' ')[0]}
+              </span>
+              <Link to={profile.role === 'TEACHER' ? '/mentor' : '/wall'} className="pill-btn !px-5 !py-2.5 text-sm">
+                Open your desk
+              </Link>
+            </>
+          ) : (
+            <>
+              <Link to="/login" className="link-underline hidden text-sm font-semibold t-muted transition-colors hover:t-ink sm:block">
+                Log in
+              </Link>
+              <Link to="/login?mode=signup" className="pill-btn !px-5 !py-2.5 text-sm">
+                Grab your seat
+                <span aria-hidden="true">→</span>
+              </Link>
+            </>
+          )}
         </div>
       </div>
     </header>
