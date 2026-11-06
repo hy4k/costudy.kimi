@@ -72,6 +72,7 @@ export default function Profile() {
   const [raw, setRaw] = useState<RawProfile | null>(null);
   const [mocks, setMocks] = useState<MockRow[]>([]);
   const [posts, setPosts] = useState<PostRow[]>([]);
+  const [partnerCount, setPartnerCount] = useState(0);
   const [editing, setEditing] = useState(false);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -117,8 +118,8 @@ export default function Profile() {
           hourly_rate: r.hourly_rate?.toString() || '',
         });
 
-        // study activity: mock history + wall posts
-        const [attemptsRes, legacyRes, postsRes] = await Promise.all([
+        // study activity: mock history + wall posts + contracts
+        const [attemptsRes, legacyRes, postsRes, partnersRes] = await Promise.all([
           supabase
             .from('mock_attempts')
             .select('id, section, completed_at, started_at, total_score, scaled_score, mcq_correct, mcq_total, passed')
@@ -137,6 +138,11 @@ export default function Profile() {
             .eq('author_id', profile.id)
             .order('created_at', { ascending: false })
             .limit(5),
+          supabase
+            .from('alignments')
+            .select('id', { count: 'exact', head: true })
+            .eq('user_id', profile.id)
+            .eq('status', 'ACTIVE'),
         ]);
 
         const attemptRows: MockRow[] = (attemptsRes.data || []).map((a) => ({
@@ -173,6 +179,7 @@ export default function Profile() {
             when: p.created_at,
           })),
         );
+        setPartnerCount(partnersRes.count ?? 0);
       });
   }, [ready, profile, navigate]);
 
@@ -248,6 +255,7 @@ export default function Profile() {
     { label: 'Day streak', value: raw?.streak_days ?? 0 },
     { label: 'Mocks taken', value: raw?.total_mocks ?? 0 },
     { label: 'Essays written', value: raw?.total_essays ?? 0 },
+    { label: 'Study partners', value: partnerCount },
   ];
 
   return (
@@ -356,15 +364,23 @@ export default function Profile() {
       </section>
 
       {/* stats */}
-      <section className="mt-6 grid grid-cols-3 gap-4">
+      <section className="mt-6 grid grid-cols-2 gap-4 sm:grid-cols-4">
         {stats.map((s) => (
-          <div
+          <Link
             key={s.label}
-            className="rounded-[1.4rem] border-[1.5px] b-line bg-[var(--card)] p-5 text-center"
+            to={s.label === 'Study partners' ? '/contracts' : '/profile'}
+            className={`block rounded-[1.4rem] border-[1.5px] b-line p-5 text-center transition-transform hover:-translate-y-0.5 ${
+              s.label === 'Study partners' ? 'bg-[#e9c46a]/25' : 'bg-[var(--card)]'
+            }`}
           >
             <p className="slab-display text-3xl t-ink md:text-4xl">{s.value}</p>
             <p className="eyebrow mt-1 t-faint">{s.label}</p>
-          </div>
+            {s.label === 'Study partners' && (
+              <p className="eyebrow mt-2 text-[10px] normal-case tracking-normal t-faint">
+                Manage contracts →
+              </p>
+            )}
+          </Link>
         ))}
       </section>
 

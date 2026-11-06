@@ -5,6 +5,7 @@ import {
   DoodleBook,
   DoodleBubble,
   DoodleBulb,
+  DoodleClock,
   DoodleNote,
   DoodlePeople,
   DoodleSpark,
@@ -45,6 +46,16 @@ const journey = [
   },
   {
     no: '2',
+    to: '/contracts',
+    label: 'Study Partners',
+    role: 'Contract',
+    hint: 'Pair with a student on your schedule — for a fixed, safe window.',
+    Doodle: DoodleClock,
+    bg: '#e9c46a',
+    ink: '#21221f',
+  },
+  {
+    no: '3',
     to: '/rooms',
     label: 'Study Rooms',
     role: 'Study',
@@ -54,7 +65,7 @@ const journey = [
     ink: '#21221f',
   },
   {
-    no: '3',
+    no: '4',
     to: '/ai',
     label: 'AI Deck',
     role: 'Practice',
@@ -64,7 +75,7 @@ const journey = [
     ink: '#21221f',
   },
   {
-    no: '4',
+    no: '5',
     to: '/vault',
     label: 'Library Vault',
     role: 'Go deeper',
@@ -74,7 +85,7 @@ const journey = [
     ink: '#21221f',
   },
   {
-    no: '5',
+    no: '6',
     to: '/wall',
     label: 'Study Wall',
     role: 'Wrap up',
@@ -98,6 +109,7 @@ export default function Desk() {
   const [raw, setRaw] = useState<RawMini | null>(null);
   const [rooms, setRooms] = useState<RoomRow[]>([]);
   const [roomCount, setRoomCount] = useState(0);
+  const [partnerCount, setPartnerCount] = useState(0);
   const [lastMock, setLastMock] = useState<string | null>(null);
 
   useEffect(() => {
@@ -119,6 +131,13 @@ export default function Desk() {
         setRooms((data as RoomRow[]) || []);
         setRoomCount(count ?? 0);
       });
+
+    supabase
+      .from('alignments')
+      .select('id', { count: 'exact', head: true })
+      .eq('user_id', profile.id)
+      .eq('status', 'ACTIVE')
+      .then(({ count }) => setPartnerCount(count ?? 0));
 
     supabase
       .from('mock_attempts')
@@ -169,11 +188,12 @@ export default function Desk() {
             </span>
           </div>
 
-          <div className="mt-6 grid grid-cols-3 gap-4">
+          <div className="mt-6 grid grid-cols-2 gap-4 sm:grid-cols-4">
             {[
               { label: 'Mocks taken', value: raw?.total_mocks ?? 0 },
               { label: 'Essays written', value: raw?.total_essays ?? 0 },
               { label: 'Rooms created', value: roomCount },
+              { label: 'Study partners', value: partnerCount },
             ].map((s) => (
               <div key={s.label} className="rounded-[1.2rem] bg-[var(--line)]/40 p-4 text-center">
                 <p className="slab-display text-3xl t-ink">{s.value}</p>
@@ -256,7 +276,7 @@ export default function Desk() {
           </p>
         </div>
 
-        <ol className="grid gap-4 md:grid-cols-5">
+        <ol className="grid gap-4 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-6">
           {journey.map((j) => (
             <li key={j.no}>
               <Link

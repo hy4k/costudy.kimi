@@ -9,6 +9,7 @@ import Login from './pages/Login'
 import Mentor from './pages/Mentor'
 import Profile from './pages/Profile'
 import Desk from './pages/Desk'
+import Contracts from './pages/Contracts'
 
 export default function App() {
   return (
@@ -16,6 +17,7 @@ export default function App() {
       <Route path="/" element={<Home />} />
       <Route path="/login" element={<Login />} />
       <Route path="/desk" element={<Desk />} />
+      <Route path="/contracts" element={<Contracts />} />
       <Route path="/rooms" element={<Rooms />} />
       <Route path="/wall" element={<Wall />} />
       <Route path="/vault" element={<Vault />} />

@@ -14,10 +14,11 @@ import {
 
 const nav = [
   { to: '/path', label: 'Mastery Path', short: 'Path', step: '1', Doodle: DoodleNote, hint: 'Start · your plan' },
-  { to: '/rooms', label: 'Study Rooms', short: 'Rooms', step: '2', Doodle: DoodlePeople, hint: 'Study · focus together' },
-  { to: '/ai', label: 'AI Deck', short: 'AI', step: '3', Doodle: DoodleBulb, hint: 'Practice · un-stuck fast' },
-  { to: '/vault', label: 'Library Vault', short: 'Vault', step: '4', Doodle: DoodleBook, hint: 'Go deeper · materials' },
-  { to: '/wall', label: 'Study Wall', short: 'Wall', step: '5', Doodle: DoodleBubble, hint: 'Wrap up · share the day' },
+  { to: '/contracts', label: 'Study Partners', short: 'Partners', step: '2', Doodle: DoodleClock, hint: 'Contract · find your pair' },
+  { to: '/rooms', label: 'Study Rooms', short: 'Rooms', step: '3', Doodle: DoodlePeople, hint: 'Study · focus together' },
+  { to: '/ai', label: 'AI Deck', short: 'AI', step: '4', Doodle: DoodleBulb, hint: 'Practice · un-stuck fast' },
+  { to: '/vault', label: 'Library Vault', short: 'Vault', step: '5', Doodle: DoodleBook, hint: 'Go deeper · materials' },
+  { to: '/wall', label: 'Study Wall', short: 'Wall', step: '6', Doodle: DoodleBubble, hint: 'Wrap up · share the day' },
 ];
 
 const facultyNav = { to: '/mentor', label: 'Faculty Room', short: 'Faculty', step: '★', Doodle: DoodleSpark, hint: 'Mentor cockpit' };
