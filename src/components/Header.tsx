@@ -10,7 +10,7 @@ export function ThemeToggle({ className = '' }: { className?: string }) {
     <button
       onClick={toggle}
       aria-label={dark ? 'Switch back to daylight' : 'Switch to the night desk'}
-      className={`group flex items-center gap-2 rounded-full border-[1.5px] b-line px-4 py-2 text-xs font-bold tracking-wide t-ink transition-all duration-500 hover:border-[var(--ink)] ${className}`}
+      className={`group flex items-center gap-2 rounded-full border-[1.5px] b-line bg-[var(--card)] px-4 py-2 text-xs font-bold tracking-wide t-ink transition-all duration-500 hover:border-[var(--ink)] ${className}`}
     >
       <span className="transition-transform duration-500 group-hover:-rotate-12">
         {dark ? <DoodleSun className="h-4 w-4" /> : <DoodleMoon className="h-4 w-4" />}

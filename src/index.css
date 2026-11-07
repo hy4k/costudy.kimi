@@ -90,18 +90,19 @@
     font-family: var(--font-slab);
   }
 
-  /* ---- the night desk ---- */
+  /* ---- the night desk (CoStudy universe palette) ---- */
   .dark {
-    --paper: #171310;
-    --ink: #f1e8d8;
-    --ink-2: rgba(241, 232, 216, 0.62);
-    --ink-3: rgba(241, 232, 216, 0.42);
-    --card: #221b15;
-    --line: rgba(241, 232, 216, 0.14);
-    --dotgrid: rgba(241, 232, 216, 0.09);
-    --glass: rgba(23, 19, 16, 0.85);
-    --charcoal: #f1e8d8;
-    --cloud: #221b15;
+    --paper: #0a0f16;
+    --ink: #f2f5f9;
+    --ink-2: rgba(242, 245, 249, 0.62);
+    --ink-3: rgba(242, 245, 249, 0.4);
+    --card: #131a26;
+    --line: rgba(242, 245, 249, 0.12);
+    --dotgrid: rgba(242, 245, 249, 0.07);
+    --glass: rgba(10, 15, 22, 0.85);
+    --charcoal: #f2f5f9;
+    --cloud: #131a26;
+    --coral: #ff3d3d;
   }
 }
 
