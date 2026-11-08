@@ -746,7 +746,7 @@ export default function AIDeck() {
   const [msgs, setMsgs] = useState<Msg[]>([
     {
       role: 'ai',
-      text: 'Hey — I’m your CMA US mentor. I teach from live syllabus notes and pull a real exam question from your question bank for every topic — 9,600+ active MCQs across Parts 1 and 2. Ask anything, or tap a drill below.',
+      text: 'Hey — I’m your CMA US mentor. I teach from live syllabus notes and pull a real exam question from the reviewed question bank for every topic — thousands of them across Parts 1 and 2. Ask anything, or tap a drill below.',
     },
   ]);
   const [input, setInput] = useState('');
@@ -754,6 +754,7 @@ export default function AIDeck() {
   const [mode, setMode] = useState<'mcq' | 'cbq'>('mcq');
   const [drillStats, setDrillStats] = useState({ asked: 0, correct: 0 });
   const [cbqCount, setCbqCount] = useState<number | null>(null);
+  const [mcqCount, setMcqCount] = useState<number | null>(null);
   const timer = useRef<ReturnType<typeof setInterval> | null>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
   const pins = useDeckPins();
@@ -764,6 +765,12 @@ export default function AIDeck() {
       .select('id', { count: 'exact', head: true })
       .eq('verified', true)
       .then(({ count }) => setCbqCount(count));
+    supabase
+      .from('question_bank')
+      .select('id', { count: 'exact', head: true })
+      .eq('is_active', true)
+      .ilike('question_kind', 'MCQ')
+      .then(({ count }) => setMcqCount(count));
   }, []);
 
   useEffect(
@@ -834,7 +841,7 @@ export default function AIDeck() {
     if (lower.includes('?') || text.trim().length > 12) {
       const part = findPart(text);
       return {
-        full: `I don't have a full mentor note on that yet — but your bank has 9,600+ active questions. Here's a live draw from ${part} on the closest theme; answer it and the bank's worked explanation will appear.`,
+        full: `I don't have a full mentor note on that yet — but your bank has thousands of reviewed questions. Here's a live draw from ${part} on the closest theme; answer it and the worked explanation will appear.`,
         part,
       };
     }
@@ -897,8 +904,8 @@ export default function AIDeck() {
               <p className="text-sm font-bold leading-tight t-ink">CoStudy AI Mentor</p>
               <p className="text-xs t-faint">
                 {mode === 'cbq'
-                  ? 'Case mode · cbq_cases + cbq_tasks via pick_cbq_case'
-                  : 'Grounded in your live bank · question_bank via pick_practice_mcqs'}
+                  ? 'Case practice · faculty-reviewed exam scenarios'
+                  : 'Every answer drawn from the reviewed CMA US question bank'}
               </p>
             </div>
             <div className="ml-auto flex items-center gap-2">
@@ -916,7 +923,9 @@ export default function AIDeck() {
                   CBQ case{cbqCount !== null ? ` · ${cbqCount}` : ''}
                 </button>
               </div>
-              <span className="rounded-full bg-[#e7fec7] px-3 py-1 text-xs font-bold text-[#21221f]">9,600+ active MCQs</span>
+              <span className="rounded-full bg-[#e7fec7] px-3 py-1 text-xs font-bold text-[#21221f]">
+                {mcqCount !== null ? `${mcqCount.toLocaleString()} exam questions ready` : 'Full CMA US bank'}
+              </span>
             </div>
           </div>
 
@@ -935,8 +944,8 @@ export default function AIDeck() {
                   {m.cbqLoading && <p className="mt-3 text-xs t-faint italic">Pulling a CBQ case from the approved track…</p>}
                   {m.cbqUnavailable && (
                     <p className="mt-3 rounded-xl border-[1.5px] border-dashed b-line px-3 py-2.5 text-[0.7rem] leading-relaxed t-muted">
-                      The CBQ track isn't live yet — the case tables are being provisioned on Supabase.
-                      Flip back to <span className="font-bold t-ink">MCQ drill</span> for the full 9,600+ bank meanwhile.
+                      The CBQ case track is being stocked with new scenarios — flip back to{' '}
+                      <span className="font-bold t-ink">MCQ drill</span> for the full question bank meanwhile.
                     </p>
                   )}
                   {m.role === 'ai' && m.drill && !busy && (
@@ -1048,11 +1057,11 @@ export default function AIDeck() {
             </div>
           )}
           <div className="rounded-[1.6rem] border-[1.5px] b-line bg-[var(--card)] p-6">
-            <p className="eyebrow t-faint">Live from Supabase</p>
+            <p className="eyebrow t-faint">Today on the deck</p>
             <ul className="mt-4 space-y-3 text-sm">
               {[
-                ['Drill source', 'question_bank'],
-                ['CBQ case track', cbqCount === null ? 'loading…' : cbqCount > 0 ? `${cbqCount} verified case${cbqCount === 1 ? '' : 's'}` : 'coming soon'],
+                ['Exam questions ready', mcqCount !== null ? mcqCount.toLocaleString() : '—'],
+                ['CBQ cases', cbqCount === null ? 'loading…' : cbqCount > 0 ? `${cbqCount} reviewed` : 'coming soon'],
                 ['Coverage', 'Part 1 · Part 2'],
                 ['Your drill score', drillStats.asked > 0 ? `${drillStats.correct}/${drillStats.asked}` : '—'],
               ].map(([k, v]) => (
@@ -1063,8 +1072,7 @@ export default function AIDeck() {
               ))}
             </ul>
             <p className="mt-4 text-[0.65rem] leading-relaxed t-faint">
-              MCQs served through the pick_practice_mcqs RPC; CBQ cases through pick_cbq_case —
-              approved, faculty-reviewed sets only.
+              Every question is reviewed and approved before it reaches your deck — nothing random from the internet.
             </p>
           </div>
         </aside>
