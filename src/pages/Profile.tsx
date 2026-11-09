@@ -57,9 +57,9 @@ type MockRow = {
 
 type PostRow = {
   id: string;
-  topic: string | null;
+  type: string | null;
   content: string;
-  vouches: number | null;
+  likes: number | null;
   replies: number | null;
   when: string;
 };
@@ -133,8 +133,8 @@ export default function Profile() {
             .order('created_at', { ascending: false })
             .limit(5),
           supabase
-            .from('wall_posts')
-            .select('id, topic, content, vouches, replies_count, created_at')
+            .from('posts')
+            .select('id, type, content, likes, created_at, comments(count)')
             .eq('author_id', profile.id)
             .order('created_at', { ascending: false })
             .limit(5),
@@ -172,10 +172,10 @@ export default function Profile() {
         setPosts(
           (postsRes.data || []).map((p) => ({
             id: p.id,
-            topic: p.topic,
+            type: p.type,
             content: p.content,
-            vouches: p.vouches,
-            replies: p.replies_count,
+            likes: p.likes,
+            replies: Array.isArray(p.comments) && p.comments.length > 0 ? p.comments[0].count : 0,
             when: p.created_at,
           })),
         );
@@ -447,7 +447,7 @@ export default function Profile() {
                 <li key={p.id} className="rounded-[1.2rem] border-[1.5px] b-line p-4">
                   <div className="flex items-center justify-between gap-3">
                     <p className="truncate text-sm font-bold t-ink">
-                      {p.topic ? `#${p.topic} · ` : ''}
+                      {p.type ? `${p.type} · ` : ''}
                       {p.content}
                     </p>
                     <span className="shrink-0 text-xs t-faint">
@@ -455,7 +455,7 @@ export default function Profile() {
                     </span>
                   </div>
                   <p className="mt-1.5 text-xs t-muted">
-                    {p.vouches ?? 0} vouches · {p.replies ?? 0} replies
+                    ▲ {p.likes ?? 0} · {p.replies ?? 0} replies
                   </p>
                 </li>
               ))}

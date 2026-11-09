@@ -266,7 +266,7 @@ export default function Contracts() {
   const outgoing = requests.filter((r) => r.direction === 'outgoing');
 
   return (
-    <AppShell title="Study Partners" eyebrow="Step 2 · Study contracts">
+    <AppShell title="Study Partners" eyebrow="Step 3 · Study contracts">
       {/* why contracts */}
       <section className="mb-8 flex flex-wrap items-center justify-between gap-4 rounded-[1.8rem] border-[1.5px] b-line bg-[var(--card)] p-7 md:p-9">
         <div className="max-w-2xl">
