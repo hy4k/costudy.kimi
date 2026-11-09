@@ -50,7 +50,7 @@ type DbPost = {
   likes?: number | null;
   created_at?: string;
   author_id?: string;
-  author?: { name?: string; role?: string; level?: string } | null;
+  author?: { name?: string; role?: string } | null;
   comments?: { count: number }[];
 };
 
@@ -88,10 +88,6 @@ const relTime = (iso?: string) => {
   return `${Math.floor(s / 86400)}d ago`;
 };
 
-const levelMap: Record<string, Post['level']> = {
-  STARTER: 'LEARNER', LEARNER: 'LEARNER', SCHOLAR: 'SCHOLAR', EXPERT: 'EXPERT', MENTOR: 'EXPERT',
-};
-
 const mapDbPost = (row: DbPost): Post => {
   const type = (Object.keys(typeMeta) as string[]).includes(row.type || '') ? (row.type as PostType) : 'DISCUSS';
   const name = row.author?.name || 'CMA Aspirant';
@@ -100,7 +96,7 @@ const mapDbPost = (row: DbPost): Post => {
     type,
     author: name,
     initials: initialsOf(name),
-    level: levelMap[(row.author?.level || '').toUpperCase()] || 'LEARNER',
+    level: (row.author?.role || '').toUpperCase() === 'TEACHER' ? 'EXPERT' : 'LEARNER',
     role: (row.author?.role || '').toUpperCase() === 'TEACHER' ? 'TEACHER' : 'STUDENT',
     time: relTime(row.created_at),
     body: row.content || '',
@@ -172,7 +168,7 @@ export default function Wall() {
     let cancelled = false;
     supabase
       .from('posts')
-      .select('*, author:user_profiles(name, role, level), comments(count)')
+      .select('*, author:user_profiles(name, role), comments(count)')
       .order('created_at', { ascending: false })
       .limit(50)
       .then(({ data }) => {
@@ -193,7 +189,7 @@ export default function Wall() {
         const row = payload.new as DbPost;
         supabase
           .from('posts')
-          .select('*, author:user_profiles(name, role, level), comments(count)')
+          .select('*, author:user_profiles(name, role), comments(count)')
           .eq('id', row.id)
           .maybeSingle()
           .then(({ data }) => {
@@ -263,7 +259,7 @@ export default function Wall() {
     const { data, error } = await supabase
       .from('posts')
       .insert([{ author_id: profile.id, content: text, type: draftType, tags: ['#fresh'], likes: 0 }])
-      .select('*, author:user_profiles(name, role, level)');
+      .select('*, author:user_profiles(name, role)');
     setPublishing(false);
     if (error || !data) {
       setPubError(error?.message || 'Broadcast failed — try again.');
@@ -370,7 +366,7 @@ export default function Wall() {
         <div>
           {usingSeeds && loaded && (
             <p className="mb-4 rounded-xl border-[1.5px] border-dashed b-line px-4 py-3 text-xs font-semibold t-muted">
-              Showing starter posts to set the tone — log in and broadcast the first real one.
+              Showing starter posts to set the tone — the first real broadcast pushes them aside.
             </p>
           )}
           <div className="space-y-4">
