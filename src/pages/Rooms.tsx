@@ -2,6 +2,8 @@ import { useEffect, useMemo, useState } from 'react';
 import { Link } from 'react-router';
 import AppShell from '@/components/app/AppShell';
 import { DoodleHeadphones } from '@/components/Doodles';
+import RoomInterior from '@/components/rooms/RoomInterior';
+import CreateRoomModal from '@/components/rooms/CreateRoomModal';
 import { useAuth } from '@/lib/authStore';
 import { supabase } from '@/lib/supabase';
 
@@ -48,7 +50,9 @@ type Room = {
   live?: boolean;
 };
 
-type PresenceRow = { name: string; isYou: boolean; fresh: boolean };
+type PresenceRow = { name: string; userId: string; isYou: boolean; fresh: boolean };
+
+type Membership = { status: string; role: string };
 
 const palette: [string, string][] = [
   ['#ea4467', '#ffffff'],
@@ -93,6 +97,44 @@ export default function Rooms() {
   const [seconds, setSeconds] = useState(SPRINT_SECONDS);
   const [running, setRunning] = useState(false);
   const [log, setLog] = useState<string[]>(['Sprint room joined — cameras optional.']);
+  const [openId, setOpenId] = useState<string | null>(null);
+  const [showCreate, setShowCreate] = useState(false);
+  const [memberships, setMemberships] = useState<Record<string, Membership>>({});
+
+  const loadMemberships = async () => {
+    if (!profile) {
+      setMemberships({});
+      return;
+    }
+    const { data } = await supabase
+      .from('study_room_members')
+      .select('room_id, status, role')
+      .eq('user_id', profile.id);
+    const map: Record<string, Membership> = {};
+    for (const row of (data as { room_id: string; status: string; role: string }[]) || []) {
+      map[row.room_id] = { status: row.status, role: row.role };
+    }
+    setMemberships(map);
+  };
+
+  // join (or refresh) membership whenever my presence changes rooms
+  const joinMembership = async (roomId: string) => {
+    if (!profile) return;
+    const existing = await supabase
+      .from('study_room_members')
+      .select('id')
+      .eq('room_id', roomId)
+      .eq('user_id', profile.id)
+      .maybeSingle();
+    const role = memberships[roomId]?.role === 'ADMIN' ? 'ADMIN' : 'MEMBER';
+    const payload = { role, status: 'ACTIVE', is_online: true, last_active_at: new Date().toISOString() };
+    if (existing.data) {
+      await supabase.from('study_room_members').update(payload).eq('id', (existing.data as { id: string }).id);
+    } else {
+      await supabase.from('study_room_members').insert({ room_id: roomId, user_id: profile.id, joined_at: new Date().toISOString(), ...payload });
+    }
+    await loadMemberships();
+  };
 
   const loadPresence = async (roomIds: string[]) => {
     if (roomIds.length === 0) {
@@ -110,6 +152,7 @@ export default function Rooms() {
         !!row.last_seen && Date.now() - new Date(row.last_seen).getTime() < FRESH_MINUTES * 60000;
       (map[row.room_id] ||= []).push({
         name: row.display_name || 'Scholar',
+        userId: row.user_id,
         isYou: !!profile && row.user_id === profile.id,
         fresh,
       });
@@ -147,6 +190,7 @@ export default function Rooms() {
           }),
         );
         await loadPresence(rows.map((r) => r.id));
+        await loadMemberships();
         setLoaded(true);
       });
     return () => {
@@ -231,6 +275,68 @@ export default function Rooms() {
 
   const joinedLiveRoom = profile ? liveRooms.find((r) => (presence[r.id] || []).some((p) => p.isYou)) : undefined;
   const myRoomPresence = joinedLiveRoom ? presence[joinedLiveRoom.id] || [] : [];
+  const openRoom = openId ? liveRooms.find((r) => r.id === openId) : undefined;
+  const openRoomPresence = openRoom ? presence[openRoom.id] || [] : [];
+
+  const acceptInvite = async (room: Room) => {
+    if (!profile) return;
+    setBusyRoom(room.id);
+    const { error } = await supabase
+      .from('study_room_members')
+      .update({ status: 'ACTIVE', last_active_at: new Date().toISOString() })
+      .eq('room_id', room.id)
+      .eq('user_id', profile.id);
+    setBusyRoom(null);
+    if (error) {
+      setRoomError(error.message);
+      return;
+    }
+    await loadMemberships();
+    setLog((l) => [`Accepted the invite to “${room.name}” — take a desk when you’re ready.`, ...l].slice(0, 4));
+  };
+
+  const enterRoom = async (room: Room) => {
+    const inRoom = (presence[room.id] || []).some((p) => p.isYou);
+    if (!inRoom) await toggleJoin(room);
+    setOpenId(room.id);
+  };
+
+  const leaveRoom = async () => {
+    if (openRoom) await toggleJoin(openRoom);
+    setOpenId(null);
+  };
+
+  const handleCreated = async (roomId: string) => {
+    setShowCreate(false);
+    const { data } = await supabase.from('study_rooms').select('*').eq('id', roomId).single();
+    if (data) {
+      const row = data as DbRoom;
+      setLiveRooms((cur) =>
+        cur.some((r) => r.id === row.id)
+          ? cur
+          : [
+              {
+                id: row.id,
+                name: row.name,
+                topic: row.topic || row.category || 'Open cluster',
+                category: row.category,
+                tags: row.tags || [],
+                tone: (row.color_theme || '').startsWith('#') ? (row.color_theme as string) : '#ea4467',
+                ink: row.color_theme === '#2b2926' ? '#fcfbfa' : '#21221f',
+                maxMembers: row.max_members || 8,
+                isLive: row.is_live ?? true,
+                streak: row.cluster_streak,
+                live: true,
+              },
+              ...cur,
+            ],
+      );
+    }
+    await loadMemberships();
+    await loadPresence(liveRooms.map((r) => r.id).concat(roomId));
+    setOpenId(roomId);
+    setLog((l) => [`You opened a new room — you’re the lead.`, ...l].slice(0, 4));
+  };
 
   const toggleJoin = async (room: Room) => {
     setRoomError(null);
@@ -247,11 +353,17 @@ export default function Rooms() {
         .delete()
         .eq('room_id', room.id)
         .eq('user_id', profile.id);
+      await supabase
+        .from('study_room_members')
+        .update({ is_online: false, last_active_at: new Date().toISOString() })
+        .eq('room_id', room.id)
+        .eq('user_id', profile.id);
       setBusyRoom(null);
       if (error) {
         setRoomError(error.message);
         return;
       }
+      if (openId === room.id) setOpenId(null);
       setLog((l) => [`Left “${room.name}”.`, ...l].slice(0, 4));
     } else {
       const existing = await supabase
@@ -274,6 +386,7 @@ export default function Rooms() {
         setRoomError(error.message);
         return;
       }
+      await joinMembership(room.id);
       setLog((l) => [`Took a desk in “${room.name}”.`, ...l].slice(0, 4));
     }
     await loadPresence(liveRooms.map((r) => r.id));
@@ -285,6 +398,15 @@ export default function Rooms() {
 
   return (
     <AppShell eyebrow="Live clusters" title="Study Rooms">
+      {openRoom && profile ? (
+        <RoomInterior
+          room={openRoom}
+          profile={profile}
+          presence={openRoomPresence}
+          onLeft={leaveRoom}
+        />
+      ) : (
+        <>
       {/* my desk — sprint stays local; the faces are real presence */}
       <section className="mb-10 grid gap-6 rounded-[1.8rem] bg-[#e7fec7] p-7 text-[#21221f] md:grid-cols-[1.2fr_1fr] md:p-10" aria-label="Your desk">
         <div>
@@ -367,6 +489,14 @@ export default function Rooms() {
           placeholder="Search active study clusters or topics…"
           className="w-full max-w-sm rounded-full border-[1.5px] b-line bg-[var(--card)] px-5 py-2.5 text-sm t-ink placeholder:t-faint focus:border-[var(--ink)] focus:outline-none"
         />
+        {profile && (
+          <button
+            onClick={() => setShowCreate(true)}
+            className="pill-btn pill-btn--ghost text-xs"
+          >
+            + Open a new room
+          </button>
+        )}
         <div className="flex flex-wrap gap-2">
           {categories.map((c) => (
             <button
@@ -387,6 +517,8 @@ export default function Rooms() {
         {filtered.map((r) => {
           const rows = presence[r.id] || [];
           const isIn = rows.some((p) => p.isYou);
+          const membership = memberships[r.id];
+          const isInvited = membership?.status === 'INVITED';
           const count = r.live ? rows.filter((p) => p.fresh || p.isYou).length : 0;
           const cap = r.maxMembers;
           const full = count >= cap;
@@ -403,7 +535,13 @@ export default function Rooms() {
                     {r.isLive ? 'LIVE' : 'QUIET'}
                   </span>
                 </div>
-                <h3 className="slab-display mt-3 text-xl leading-snug">{r.name}</h3>
+                <h3
+                  className="slab-display mt-3 cursor-pointer text-xl leading-snug transition-opacity hover:opacity-70"
+                  onClick={() => profile && enterRoom(r)}
+                  title={profile ? 'Enter room' : undefined}
+                >
+                  {r.name}
+                </h3>
                 {r.live && rows.length > 0 && (
                   <div className="mt-3 flex items-center gap-1.5">
                     {rows.slice(0, 5).map((p, i) => (
@@ -442,26 +580,30 @@ export default function Rooms() {
                 </div>
                 {profile ? (
                   <button
-                    onClick={() => toggleJoin(r)}
-                    disabled={busyRoom === r.id || (!isIn && full && r.live)}
+                    onClick={() =>
+                      isInvited ? acceptInvite(r) : isIn ? enterRoom(r) : toggleJoin(r)
+                    }
+                    disabled={busyRoom === r.id || (!isIn && !isInvited && full && r.live)}
                     className={`mt-4 w-full rounded-full py-2.5 text-sm font-bold transition-all duration-300 ${
-                      isIn ? '' : full && r.live ? 'opacity-30' : 'hover:opacity-80'
+                      isIn || isInvited ? '' : full && r.live ? 'opacity-30' : 'hover:opacity-80'
                     }`}
                     style={
-                      isIn
+                      isIn || isInvited
                         ? { backgroundColor: r.ink, color: r.tone }
                         : { boxShadow: 'inset 0 0 0 1.5px currentColor' }
                     }
                   >
                     {busyRoom === r.id
                       ? 'Syncing…'
-                      : isIn
-                        ? 'Leave room'
-                        : full && r.live
-                          ? 'Room full'
-                          : r.live
-                            ? 'Take a desk'
-                            : 'Starter room'}
+                      : isInvited
+                        ? 'Accept invite'
+                        : isIn
+                          ? 'Enter room'
+                          : full && r.live
+                            ? 'Room full'
+                            : r.live
+                              ? 'Take a desk'
+                              : 'Starter room'}
                   </button>
                 ) : (
                   <Link
@@ -482,6 +624,15 @@ export default function Rooms() {
           </p>
         )}
       </div>
+        </>
+      )}
+      {showCreate && profile && (
+        <CreateRoomModal
+          profile={profile}
+          onCreated={handleCreated}
+          onClose={() => setShowCreate(false)}
+        />
+      )}
     </AppShell>
   );
 }

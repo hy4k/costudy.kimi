@@ -87,7 +87,7 @@ export default function Outro() {
         </div>
         <div className="border-t b-line">
           <div className="mx-auto flex max-w-7xl flex-wrap items-center justify-between gap-3 px-5 py-6 text-xs t-faint sm:px-8">
-            <p>© 2026 CoStudy.in — a redesign concept.</p>
+            <p>© 2026 CoStudy.in — the commons for CMA US candidates.</p>
             <p>Built for learners, with warmth.</p>
           </div>
         </div>
