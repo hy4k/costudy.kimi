@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
-import { DoodleBubble, DoodleClock, DoodleNote, DoodlePeople, DoodleSpark } from '@/components/Doodles';
+import { DoodleClock, DoodleNote, DoodlePeople, DoodleSpark } from '@/components/Doodles';
+import RoomWhiteboard from '@/components/rooms/RoomWhiteboard';
 import type { Profile } from '@/lib/authStore';
 import { supabase } from '@/lib/supabase';
 
@@ -16,6 +17,7 @@ type Msg = {
   id: string;
   author: string;
   isYou: boolean;
+  isAi: boolean;
   body: string;
   time: string;
 };
@@ -72,6 +74,8 @@ export default function RoomInterior({
   const [note, setNote] = useState<string | null>(null);
   const [seconds, setSeconds] = useState(SPRINT_SECONDS);
   const [running, setRunning] = useState(false);
+  const [panel, setPanel] = useState<'chat' | 'board'>('chat');
+  const [scribing, setScribing] = useState(false);
   const scrollRef = useRef<HTMLDivElement>(null);
 
   const roomId = room.id;
@@ -88,10 +92,11 @@ export default function RoomInterior({
       .then(({ data }) => {
         if (cancelled) return;
         setMsgs(
-          ((data as ({ id: string; content?: string; created_at?: string; author_id?: string; author?: { name?: string } | null })[]) || []).map((m) => ({
+          ((data as ({ id: string; content?: string; is_ai?: boolean; created_at?: string; author_id?: string; author?: { name?: string } | null })[]) || []).map((m) => ({
             id: m.id,
-            author: m.author?.name || 'Scholar',
-            isYou: m.author_id === profile.id,
+            author: m.is_ai ? 'AI Scribe' : m.author?.name || 'Scholar',
+            isYou: m.author_id === profile.id && !m.is_ai,
+            isAi: !!m.is_ai,
             body: m.content || '',
             time: relTime(m.created_at),
           })),
@@ -103,7 +108,7 @@ export default function RoomInterior({
         'postgres_changes',
         { event: 'INSERT', schema: 'public', table: 'room_messages', filter: `room_id=eq.${roomId}` },
         (payload) => {
-          const m = payload.new as { id: string; content?: string; created_at?: string; author_id?: string; author?: { name?: string } | null };
+          const m = payload.new as { id: string; content?: string; is_ai?: boolean; created_at?: string; author_id?: string; author?: { name?: string } | null };
           if (m.author_id === profile.id) return; // already added optimistically
           setMsgs((cur) =>
             cur.some((x) => x.id === m.id)
@@ -112,8 +117,9 @@ export default function RoomInterior({
                   ...cur,
                   {
                     id: m.id,
-                    author: (m.author as { name?: string } | null)?.name || 'Scholar',
+                    author: m.is_ai ? 'AI Scribe' : (m.author as { name?: string } | null)?.name || 'Scholar',
                     isYou: false,
+                    isAi: !!m.is_ai,
                     body: m.content || '',
                     time: relTime(m.created_at),
                   },
@@ -193,10 +199,59 @@ export default function RoomInterior({
         id: (data as { id: string } | null)?.id || crypto.randomUUID(),
         author: profile.name,
         isYou: true,
+        isAi: false,
         body: text,
         time: 'just now',
       },
     ]);
+  };
+
+  // AI study scribe — digests the room's thread and pulls one live question
+  // from the canonical bank as a next step, then posts it as an AI chat note.
+  const scribe = async () => {
+    setScribing(true);
+    try {
+      const part = /part\s*2/i.test(room.topic) ? 'Part 2' : 'Part 1';
+      const { data } = await supabase.rpc('pick_practice_mcqs', { p_part: part, p_count: 1 });
+      const q = (Array.isArray(data) ? data[0] : null) as {
+        question_text?: string;
+        section?: string | null;
+        options?: Record<string, string>;
+        correct_answer?: string;
+        explanation?: string | null;
+      } | null;
+
+      const recent = msgs
+        .filter((m) => !m.isAi)
+        .slice(-3)
+        .map((m) => `· “${m.body.slice(0, 90)}${m.body.length > 90 ? '…' : ''}” — ${m.author}`);
+
+      let body = `✦ Scribe note · ${room.name}\n`;
+      body += recent.length
+        ? `What this room chewed on just now:\n${recent.join('\n')}`
+        : 'The room is just warming up — quiet thread, loud potential.';
+
+      if (q?.question_text) {
+        const ans = String(q.correct_answer || '').toUpperCase();
+        body += `\n\nFrom the live bank (${part}${q.section ? ` · ${q.section}` : ''}) — one to try next:\n${q.question_text}`;
+        if (ans) body += `\nAnswer: ${ans}${q.options?.[ans] ? `. ${q.options[ans]}` : ''}`;
+        if (q.explanation) {
+          body += `\nWhy: ${q.explanation.slice(0, 220)}${q.explanation.length > 220 ? '…' : ''}`;
+        }
+      }
+
+      const { error } = await supabase
+        .from('room_messages')
+        .insert({ room_id: roomId, author_id: profile.id, content: body, is_ai: true });
+      if (!error) {
+        setMsgs((cur) => [
+          ...cur,
+          { id: crypto.randomUUID(), author: 'AI Scribe', isYou: false, isAi: true, body, time: 'just now' },
+        ]);
+      }
+    } finally {
+      setScribing(false);
+    }
   };
 
   const invite = async () => {
@@ -268,20 +323,57 @@ export default function RoomInterior({
       </div>
 
       <div className="grid gap-0 lg:grid-cols-[1.6fr_1fr]">
-        {/* chat */}
+        {/* chat + whiteboard */}
         <div className="flex flex-col border-b b-line lg:border-b-0 lg:border-r">
-          <div className="flex items-center gap-2 border-b b-line px-6 py-4">
-            <DoodleBubble className="h-5 w-5 text-[var(--coral)]" />
-            <p className="eyebrow t-faint">Room chat</p>
-            <span className="ml-auto text-xs t-faint">{msgs.length} messages</span>
+          <div className="flex items-center gap-2 border-b b-line px-6 py-3">
+            <div className="flex rounded-full border-[1.5px] b-line p-1">
+              {(['chat', 'board'] as const).map((t) => (
+                <button
+                  key={t}
+                  onClick={() => setPanel(t)}
+                  className={`rounded-full px-4 py-1.5 text-xs font-bold tracking-wide transition-colors ${
+                    panel === t ? 'bg-[var(--coral)] text-white' : 't-muted hover:t-ink'
+                  }`}
+                >
+                  {t === 'chat' ? 'Chat' : 'Whiteboard'}
+                </button>
+              ))}
+            </div>
+            {panel === 'chat' ? (
+              <>
+                <span className="text-xs t-faint">{msgs.length} messages</span>
+                <button
+                  onClick={scribe}
+                  disabled={scribing}
+                  className="ml-auto flex items-center gap-1.5 rounded-full border-[1.5px] border-[var(--coral)] px-4 py-1.5 text-xs font-bold text-[var(--coral)] transition-colors hover:bg-[var(--coral)] hover:text-white disabled:opacity-50"
+                >
+                  <DoodleSpark className="h-3.5 w-3.5" />
+                  {scribing ? 'Scribing…' : 'Scribe note'}
+                </button>
+              </>
+            ) : (
+              <span className="ml-auto text-xs t-faint">shared canvas</span>
+            )}
           </div>
+          {panel === 'board' ? (
+            <RoomWhiteboard roomId={roomId} />
+          ) : (
+            <>
           <div ref={scrollRef} className="h-[46vh] space-y-4 overflow-y-auto p-6" data-lenis-prevent>
             {msgs.length === 0 && (
               <p className="rounded-xl border-[1.5px] border-dashed b-line px-4 py-6 text-center text-xs font-semibold t-muted">
                 Quiet for now — say what you’re working on and set the tone.
               </p>
             )}
-            {msgs.map((m) => (
+            {msgs.map((m) =>
+              m.isAi ? (
+                <div key={m.id} className="rounded-2xl border-[1.5px] border-dashed border-[var(--coral)]/50 bg-[var(--coral)]/5 p-5">
+                  <p className="mb-2 flex items-center gap-1.5 text-[0.65rem] font-bold tracking-widest text-[var(--coral)]">
+                    <DoodleSpark className="h-3.5 w-3.5" /> AI SCRIBE · {m.time}
+                  </p>
+                  <p className="whitespace-pre-line text-sm leading-relaxed t-ink">{m.body}</p>
+                </div>
+              ) : (
               <div key={m.id} className={`flex ${m.isYou ? 'justify-end' : 'justify-start'}`}>
                 <div className={`max-w-[85%] ${m.isYou ? 'text-right' : ''}`}>
                   {!m.isYou && (
@@ -300,7 +392,8 @@ export default function RoomInterior({
                   </p>
                 </div>
               </div>
-            ))}
+              ),
+            )}
           </div>
           <div className="border-t b-line p-4">
             <div className="flex gap-2">
@@ -320,6 +413,8 @@ export default function RoomInterior({
               </button>
             </div>
           </div>
+            </>
+          )}
         </div>
 
         {/* side rail */}
