@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { DoodleClock, DoodleNote, DoodlePeople, DoodleSpark } from '@/components/Doodles';
 import RoomWhiteboard from '@/components/rooms/RoomWhiteboard';
+import RoomPlan from '@/components/rooms/RoomPlan';
 import type { Profile } from '@/lib/authStore';
 import { supabase } from '@/lib/supabase';
 
@@ -74,7 +75,7 @@ export default function RoomInterior({
   const [note, setNote] = useState<string | null>(null);
   const [seconds, setSeconds] = useState(SPRINT_SECONDS);
   const [running, setRunning] = useState(false);
-  const [panel, setPanel] = useState<'chat' | 'board'>('chat');
+  const [panel, setPanel] = useState<'chat' | 'board' | 'plan'>('chat');
   const [scribing, setScribing] = useState(false);
   const scrollRef = useRef<HTMLDivElement>(null);
 
@@ -327,7 +328,7 @@ export default function RoomInterior({
         <div className="flex flex-col border-b b-line lg:border-b-0 lg:border-r">
           <div className="flex items-center gap-2 border-b b-line px-6 py-3">
             <div className="flex rounded-full border-[1.5px] b-line p-1">
-              {(['chat', 'board'] as const).map((t) => (
+              {(['chat', 'board', 'plan'] as const).map((t) => (
                 <button
                   key={t}
                   onClick={() => setPanel(t)}
@@ -335,7 +336,7 @@ export default function RoomInterior({
                     panel === t ? 'bg-[var(--coral)] text-white' : 't-muted hover:t-ink'
                   }`}
                 >
-                  {t === 'chat' ? 'Chat' : 'Whiteboard'}
+                  {t === 'chat' ? 'Chat' : t === 'board' ? 'Whiteboard' : 'Plan'}
                 </button>
               ))}
             </div>
@@ -352,11 +353,13 @@ export default function RoomInterior({
                 </button>
               </>
             ) : (
-              <span className="ml-auto text-xs t-faint">shared canvas</span>
+              <span className="ml-auto text-xs t-faint">{panel === 'board' ? 'shared canvas' : 'what the room chases'}</span>
             )}
           </div>
           {panel === 'board' ? (
             <RoomWhiteboard roomId={roomId} />
+          ) : panel === 'plan' ? (
+            <RoomPlan roomId={roomId} meId={profile.id} />
           ) : (
             <>
           <div ref={scrollRef} className="h-[46vh] space-y-4 overflow-y-auto p-6" data-lenis-prevent>
