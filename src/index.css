@@ -120,7 +120,7 @@
     --glass: rgba(243, 237, 227, 0.88);
     --charcoal: #1b1710;
     --cloud: #ece4d4;
-    --coral: #e01e1e;
+    --coral: #e34234;
     --mint: #dcf5b0;
     --sky: #d9e6f3;
   }
@@ -136,8 +136,9 @@
     --glass: rgba(11, 15, 25, 0.88);
     --charcoal: #eef2f8;
     --cloud: #121826;
-    --coral: #ff3d3d;
+    --coral: #eb6b57;
     --mint: #1d2a17;
+    --sky: #232f3e;
   }
 }
 

@@ -67,12 +67,12 @@ const mapDbComment = (row: DbComment): WallComment => {
 
 const typeMeta: Record<PostType, { label: string; tone: string; ink: string }> = {
   QUESTION: { label: 'QUESTION', tone: 'var(--coral)', ink: '#ffffff' },
-  RESOURCE: { label: 'RESOURCE', tone: '#c6b3a2', ink: 'var(--ink)' },
-  MCQ: { label: 'MCQ SHARE', tone: '#d9e6f3', ink: 'var(--ink)' },
+  RESOURCE: { label: 'RESOURCE', tone: 'var(--cloud)', ink: 'var(--ink)' },
+  MCQ: { label: 'MCQ SHARE', tone: 'var(--sky)', ink: 'var(--ink)' },
   AUDIT: { label: 'PEER AUDIT', tone: 'var(--mint)', ink: 'var(--ink)' },
-  BOUNTY: { label: 'BOUNTY', tone: '#2b2926', ink: '#fcfbfa' },
+  BOUNTY: { label: 'BOUNTY', tone: 'var(--charcoal)', ink: 'var(--paper)' },
   DISCUSS: { label: 'DISCUSSION', tone: 'var(--coral)', ink: '#ffffff' },
-  EVENT: { label: 'EVENT', tone: '#f3f1ee', ink: 'var(--ink)' },
+  EVENT: { label: 'EVENT', tone: 'var(--cloud)', ink: 'var(--ink)' },
   GOAL: { label: 'GOAL', tone: 'var(--mint)', ink: 'var(--ink)' },
 };
 
@@ -311,7 +311,7 @@ export default function Wall() {
     <AppShell eyebrow={profile ? `${daypart}, ${profile.name.split(' ')[0]}` : 'The commons, out loud'} title="Study Wall">
       {/* composer — deliberately set apart from the three columns */}
       {profile ? (
-        <section className="relative mb-8 overflow-hidden rounded-[1.6rem] bg-[#2b2926] p-6 text-[#fcfbfa] md:p-8">
+        <section className="relative mb-8 overflow-hidden rounded-[1.6rem] bg-[#1b1710] p-6 text-[#f3ede3] shadow-[0_22px_50px_-24px_rgba(23,19,14,0.55)] md:p-8">
           <DoodleSpark className="pointer-events-none absolute -right-6 -top-6 h-28 w-28 text-[var(--mint)]/15" />
           <div className="flex items-center gap-2">
             <DoodleSpark className="h-5 w-5 text-[var(--mint)]" />
@@ -374,11 +374,12 @@ export default function Wall() {
               const meta = typeMeta[p.type];
               const picked = mcqPicked[p.id];
               return (
-                <article key={p.id} className="rounded-[1.6rem] border-[1.5px] b-line bg-[var(--card)] p-6">
+                <article key={p.id} className="rounded-[1.4rem] border-[1.5px] b-line bg-[var(--card)] p-6 transition-shadow duration-300 hover:shadow-[0_18px_44px_-26px_rgba(23,19,14,0.35)]">
                   <div className="flex items-start gap-3">
                     <span
-                      className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full font-slab text-sm font-bold text-white"
-                      style={{ backgroundColor: p.role === 'TEACHER' ? '#2b2926' : 'var(--coral)' }}
+                      className={`flex h-11 w-11 shrink-0 items-center justify-center rounded-full font-slab text-sm font-bold ${
+                        p.role === 'TEACHER' ? 'bg-[var(--ink)] text-[var(--paper)]' : 'bg-[var(--coral)] text-white'
+                      }`}
                     >
                       {p.initials}
                     </span>
@@ -392,13 +393,11 @@ export default function Wall() {
                           {meta.label}
                         </span>
                         {p.role === 'TEACHER' && (
-                          <span className="rounded-full bg-[#2b2926] px-2 py-0.5 text-[0.6rem] font-bold tracking-widest text-[#fcfbfa]">
+                          <span className="rounded-full bg-[var(--ink)] px-2 py-0.5 text-[0.6rem] font-bold tracking-widest text-[var(--paper)]">
                             FACULTY
                           </span>
                         )}
-                        <span className="text-xs t-faint">
-                          · {p.level} · {p.time}
-                        </span>
+                        <span className="ml-auto text-xs t-faint">{p.time}</span>
                       </div>
                       <p className="mt-3 text-sm leading-relaxed t-ink">{p.body}</p>
 
@@ -440,46 +439,52 @@ export default function Wall() {
                         </div>
                       )}
 
-                      {/* tags + actions */}
+                      {/* tags */}
                       <div className="mt-4 flex flex-wrap items-center gap-2">
                         {p.tags.map((t) => (
                           <span key={t} className="text-xs font-semibold text-[var(--coral)]">
                             {t}
                           </span>
                         ))}
-                        <span className="ml-auto flex items-center gap-1">
+                      </div>
+
+                      {/* actions — the old dashboard pair */}
+                      <div className="mt-4 flex flex-wrap items-center gap-2 border-t b-line pt-4">
+                        <button
+                          onClick={() => toggleLike(p)}
+                          className={`flex items-center gap-1.5 rounded-full border-[1.5px] px-3.5 py-1.5 text-xs font-bold transition-all duration-300 ${
+                            p.liked ? 'border-[var(--coral)] bg-[var(--coral)] text-white' : 'b-line t-muted hover:t-ink'
+                          }`}
+                          aria-pressed={p.liked}
+                        >
+                          ▲ Helpful ({p.likes})
+                        </button>
+                        {p.live ? (
                           <button
-                            onClick={() => toggleLike(p)}
-                            className={`flex items-center gap-1.5 rounded-full border-[1.5px] px-3 py-1.5 text-xs font-bold transition-all duration-300 ${
-                              p.liked ? 'border-[var(--coral)] bg-[var(--coral)] text-white' : 'b-line t-muted hover:t-ink'
+                            onClick={() => toggleThread(p.id)}
+                            aria-expanded={openThread === p.id}
+                            className={`flex items-center gap-1.5 rounded-full border-[1.5px] px-3.5 py-1.5 text-xs font-bold transition-all duration-300 ${
+                              openThread === p.id ? 'b-line t-ink' : 'b-line t-muted hover:t-ink'
                             }`}
-                            aria-pressed={p.liked}
                           >
-                            ▲ {p.likes}
+                            💬 Discussion ({p.comments}) {openThread === p.id ? '▴' : '▾'}
                           </button>
-                          <button
-                            onClick={() => toggleRadar(p)}
-                            className={`flex items-center gap-1.5 rounded-full border-[1.5px] px-3 py-1.5 text-xs font-bold transition-all duration-300 ${
-                              p.saved ? 'border-[var(--ink)] bg-[var(--ink)] text-[var(--paper)]' : 'b-line t-muted hover:t-ink'
-                            }`}
-                            aria-pressed={p.saved}
-                          >
-                            Radar {p.saved ? '✓' : '+'}
-                          </button>
-                          {p.live ? (
-                            <button
-                              onClick={() => toggleThread(p.id)}
-                              aria-expanded={openThread === p.id}
-                              className={`ml-1 rounded-full border-[1.5px] px-3 py-1.5 text-xs font-bold transition-all duration-300 ${
-                                openThread === p.id ? 'b-line t-ink' : 'border-transparent t-faint hover:t-ink'
-                              }`}
-                            >
-                              {p.comments} {p.comments === 1 ? 'reply' : 'replies'} {openThread === p.id ? '▴' : '▾'}
-                            </button>
-                          ) : (
-                            p.comments > 0 && <span className="ml-1 text-xs t-faint">{p.comments} replies</span>
-                          )}
-                        </span>
+                        ) : (
+                          p.comments > 0 && (
+                            <span className="flex items-center gap-1.5 rounded-full border-[1.5px] b-line px-3.5 py-1.5 text-xs font-bold t-muted">
+                              💬 Discussion ({p.comments})
+                            </span>
+                          )
+                        )}
+                        <button
+                          onClick={() => toggleRadar(p)}
+                          className={`ml-auto flex items-center gap-1.5 rounded-full border-[1.5px] px-3.5 py-1.5 text-xs font-bold transition-all duration-300 ${
+                            p.saved ? 'border-[var(--ink)] bg-[var(--ink)] text-[var(--paper)]' : 'b-line t-muted hover:t-ink'
+                          }`}
+                          aria-pressed={p.saved}
+                        >
+                          Radar {p.saved ? '✓' : '+'}
+                        </button>
                       </div>
 
                       {/* thread */}
@@ -493,7 +498,7 @@ export default function Wall() {
                             <ul className="space-y-3">
                               {threads[p.id].items.map((c) => (
                                 <li key={c.id} className="flex items-start gap-2.5">
-                                  <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-[#c6b3a2] font-slab text-[0.65rem] font-bold text-[var(--ink)]">
+                                  <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-[var(--cloud)] font-slab text-[0.65rem] font-bold text-[var(--ink)]">
                                     {c.initials}
                                   </span>
                                   <div className="min-w-0">

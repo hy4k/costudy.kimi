@@ -90,7 +90,7 @@ export default function AppShell({
       <aside className="fixed inset-y-0 left-0 z-40 hidden w-64 flex-col bg-[#1a1510] text-[#f3ede3] dark:bg-[#0a0e17] lg:flex">
         <Link to={isTeacher ? '/mentor' : '/wall'} className="flex h-16 items-center gap-3 border-b border-white/10 px-6">
           <span className="font-slab text-xl font-bold tracking-tight">
-            Co<span className="text-[#ff4d4d]">Study</span>
+            Co<span className="text-[#eb6b57]">Study</span>
           </span>
           <span className="rounded-full bg-white/10 px-2.5 py-1 text-[0.55rem] font-black tracking-[0.18em] text-[#f3ede3]/70">
             {isTeacher ? 'FACULTY' : 'CAMPUS'}
@@ -105,7 +105,7 @@ export default function AppShell({
               className={({ isActive }) =>
                 `group flex items-center gap-3 rounded-full px-3.5 py-2.5 transition-all duration-300 ${
                   isActive
-                    ? 'bg-[#e01e1e] text-white shadow-lg shadow-red-950/40'
+                    ? 'bg-[#eb6b57] text-white shadow-lg shadow-red-950/40'
                     : 'hover:bg-white/10'
                 }`
               }
@@ -121,7 +121,7 @@ export default function AppShell({
               to="/profile"
               className="flex items-center gap-3 rounded-2xl bg-white/5 p-3 transition-colors hover:bg-white/10"
             >
-              <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-[#e01e1e] font-slab text-sm font-bold text-white">
+              <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-[#eb6b57] font-slab text-sm font-bold text-white">
                 {initials}
               </span>
               <span className="min-w-0 flex-1">
@@ -134,7 +134,7 @@ export default function AppShell({
           ) : (
             <Link
               to="/login"
-              className="flex items-center justify-center gap-2 rounded-full bg-[#e01e1e] px-4 py-3 text-sm font-bold text-white transition-opacity hover:opacity-90"
+              className="flex items-center justify-center gap-2 rounded-full bg-[#eb6b57] px-4 py-3 text-sm font-bold text-white transition-opacity hover:opacity-90"
             >
               Log in
             </Link>
@@ -159,7 +159,7 @@ export default function AppShell({
         {/* mobile top bar */}
         <div className="sticky top-0 z-40 flex h-14 items-center justify-between gap-2 overflow-x-auto border-b b-line bg-glass px-4 backdrop-blur-md lg:hidden">
           <Link to={isTeacher ? '/mentor' : '/wall'} className="shrink-0 font-slab text-lg font-bold t-ink">
-            Co<span className="text-[#e01e1e]">Study</span>
+            Co<span className="text-[var(--coral)]">Study</span>
           </Link>
           <nav className="flex gap-1.5" aria-label="App modules">
             {items.map((n) => (
@@ -168,7 +168,7 @@ export default function AppShell({
                 to={n.to}
                 className={({ isActive }) =>
                   `whitespace-nowrap rounded-full px-3 py-1.5 text-xs font-bold transition-colors ${
-                    isActive ? 'bg-[#e01e1e] text-white' : 't-muted'
+                    isActive ? 'bg-[#eb6b57] text-white' : 't-muted'
                   }`
                 }
               >
@@ -181,7 +181,7 @@ export default function AppShell({
         <main className="mx-auto max-w-6xl px-5 pb-24 pt-10 sm:px-8 lg:pt-16">
           <header className="mb-10 flex flex-wrap items-end justify-between gap-6">
             <div>
-              <p className="eyebrow mb-3 text-[#e01e1e]">{eyebrow}</p>
+              <p className="eyebrow mb-3 text-[var(--coral)]">{eyebrow}</p>
               <h1 className="slab-display text-4xl t-ink md:text-5xl">{title}</h1>
             </div>
             <div className="hidden items-center gap-2 rounded-full border-[1.5px] b-line px-4 py-2 text-xs font-semibold t-muted md:flex">

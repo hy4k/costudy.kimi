@@ -16,7 +16,7 @@ const roles: {
     title: 'Aspirant',
     copy: 'Take a desk on the wall, bank goals, raid the vault, sit mocks.',
     cta: 'Enter as a student',
-    accent: '#e01e1e',
+    accent: '#eb6b57',
     Doodle: DoodleNote,
   },
   {
@@ -63,13 +63,13 @@ export default function Login() {
   return (
     <div className="relative flex min-h-screen w-full items-center justify-center overflow-hidden bg-[#0b0f19] p-4 font-sans sm:p-6">
       {/* ambient glow */}
-      <div className="pointer-events-none absolute -right-40 -top-40 h-[560px] w-[560px] animate-pulse rounded-full bg-[#e01e1e]/15 blur-[140px]" />
+      <div className="pointer-events-none absolute -right-40 -top-40 h-[560px] w-[560px] animate-pulse rounded-full bg-[#eb6b57]/15 blur-[140px]" />
       <div className="pointer-events-none absolute -bottom-48 -left-40 h-[480px] w-[480px] rounded-full bg-emerald-500/10 blur-[140px]" />
 
       {/* top bar */}
       <div className="absolute inset-x-0 top-0 z-20 flex items-center justify-between px-6 py-5 sm:px-10">
         <span className="font-slab text-lg font-bold tracking-tight text-white">
-          Co<span className="text-[#ff4d4d]">Study</span>
+          Co<span className="text-[#eb6b57]">Study</span>
           <span className="ml-2 rounded-full border border-white/15 px-2 py-0.5 align-middle text-[0.55rem] font-black tracking-[0.2em] text-white/60">
             CMA US
           </span>
@@ -87,13 +87,13 @@ export default function Login() {
         {/* brand side */}
         <div className="relative hidden flex-col justify-between border-r border-white/5 bg-gradient-to-br from-white/[0.04] to-transparent p-12 lg:flex">
           <div>
-            <p className="eyebrow text-[#ff4d4d]">Official CMA US study protocol</p>
+            <p className="eyebrow text-[#eb6b57]">Official CMA US study protocol</p>
             <h1 className="slab-display mt-6 text-6xl font-bold uppercase leading-[0.9] tracking-tight text-white">
               Master
               <br />
               CMA
               <br />
-              <span className="text-[#ff4d4d]">together.</span>
+              <span className="text-[#eb6b57]">together.</span>
             </h1>
             <p className="mt-6 max-w-sm text-base italic leading-relaxed text-white/50">
               Beyond a platform — your strategy for the CMA US. Live rooms, a 10,000+ question bank,
@@ -108,7 +108,7 @@ export default function Login() {
             ].map((f, i) => (
               <li key={i} className="flex items-center gap-3 text-sm font-semibold text-white/70">
                 <span className="flex h-8 w-8 items-center justify-center rounded-full bg-white/10">
-                  <f.icon className="h-4 w-4 text-[#ff6b6b]" />
+                  <f.icon className="h-4 w-4 text-[#eb6b57]" />
                 </span>
                 {f.text}
               </li>
@@ -180,7 +180,7 @@ export default function Login() {
             />
 
             {error && (
-              <p className="rounded-2xl border border-[#ff4d4d]/40 bg-[#e01e1e]/15 px-5 py-3 text-sm font-semibold text-red-200">
+              <p className="rounded-2xl border border-[#eb6b57]/40 bg-[#eb6b57]/15 px-5 py-3 text-sm font-semibold text-red-200">
                 {error}
               </p>
             )}
