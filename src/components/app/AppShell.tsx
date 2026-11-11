@@ -7,6 +7,7 @@ import {
   DoodleBubble,
   DoodleBulb,
   DoodleClock,
+  DoodleCoffee,
   DoodleNote,
   DoodlePeople,
   DoodleSpark,
@@ -19,6 +20,7 @@ const nav = [
   { to: '/rooms', label: 'Study Rooms', short: 'Rooms', step: '4', Doodle: DoodlePeople, hint: 'Study · focus together' },
   { to: '/ai', label: 'AI Deck', short: 'AI', step: '5', Doodle: DoodleBulb, hint: 'Practice · un-stuck fast' },
   { to: '/vault', label: 'Library Vault', short: 'Vault', step: '6', Doodle: DoodleBook, hint: 'Go deeper · materials' },
+  { to: '/mentors', label: 'Mentors', short: 'Mentors', step: '7', Doodle: DoodleCoffee, hint: 'Hire · learn from faculty' },
 ];
 
 const facultyNav = { to: '/mentor', label: 'Faculty Room', short: 'Faculty', step: '★', Doodle: DoodleSpark, hint: 'Mentor cockpit' };

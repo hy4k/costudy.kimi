@@ -10,6 +10,7 @@ import Mentor from './pages/Mentor'
 import Profile from './pages/Profile'
 import Desk from './pages/Desk'
 import Contracts from './pages/Contracts'
+import Mentors from './pages/Mentors'
 
 export default function App() {
   return (
@@ -24,6 +25,7 @@ export default function App() {
       <Route path="/ai" element={<AIDeck />} />
       <Route path="/path" element={<Path />} />
       <Route path="/mentor" element={<Mentor />} />
+      <Route path="/mentors" element={<Mentors />} />
       <Route path="/profile" element={<Profile />} />
     </Routes>
   )
