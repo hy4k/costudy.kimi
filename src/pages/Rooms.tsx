@@ -408,7 +408,7 @@ export default function Rooms() {
       ) : (
         <>
       {/* my desk — sprint stays local; the faces are real presence */}
-      <section className="mb-10 grid gap-6 rounded-[1.8rem] bg-[var(--mint)] p-7 text-[var(--ink)] md:grid-cols-[1.2fr_1fr] md:p-10" aria-label="Your desk">
+      <section className="mb-10 grid gap-6 rounded-[1.8rem] bg-[var(--mint)] p-7 text-[var(--ink)] shadow-[0_18px_44px_-26px_rgba(23,19,14,0.35)] md:grid-cols-[1.2fr_1fr] md:p-10" aria-label="Your desk">
         <div>
           <p className="eyebrow opacity-70">Your desk</p>
           <h2 className="slab-display mt-2 text-2xl md:text-3xl">
@@ -525,56 +525,75 @@ export default function Rooms() {
           return (
             <article
               key={r.id}
-              className="flex min-h-[220px] flex-col justify-between rounded-[1.4rem] p-6 transition-transform duration-500 ease-out-soft hover:-translate-y-1"
-              style={{ backgroundColor: r.tone, color: r.ink }}
+              className="flex min-h-[210px] flex-col justify-between rounded-[1.4rem] border-[1.5px] b-line bg-[var(--card)] p-6 transition-shadow duration-300 hover:shadow-[0_18px_44px_-26px_rgba(23,19,14,0.35)]"
             >
               <div>
-                <div className="flex items-center justify-between gap-2">
-                  <p className="eyebrow opacity-70">{r.topic}</p>
-                  <span className="rounded-full border border-current px-2.5 py-1 text-[0.6rem] font-bold tracking-widest opacity-80">
+                <div className="flex items-center gap-2">
+                  <span className="h-2.5 w-2.5 shrink-0 rounded-full" style={{ backgroundColor: r.tone }} aria-hidden />
+                  <p className="eyebrow min-w-0 truncate t-faint">{r.topic}</p>
+                  <span
+                    className={`ml-auto shrink-0 rounded-full px-2.5 py-0.5 text-[0.6rem] font-bold tracking-widest ${
+                      r.isLive ? 'bg-[var(--coral)] text-white' : 'b-line t-faint'
+                    }`}
+                  >
                     {r.isLive ? 'LIVE' : 'QUIET'}
                   </span>
                 </div>
                 <h3
-                  className="slab-display mt-3 cursor-pointer text-xl leading-snug transition-opacity hover:opacity-70"
+                  className="slab-display mt-3 cursor-pointer text-xl leading-snug t-ink transition-opacity hover:opacity-70"
                   onClick={() => profile && enterRoom(r)}
                   title={profile ? 'Enter room' : undefined}
                 >
                   {r.name}
                 </h3>
+                {r.tags.length > 0 && (
+                  <div className="mt-2 flex flex-wrap gap-x-2">
+                    {r.tags.map((t) => (
+                      <span key={t} className="text-xs font-semibold text-[var(--coral)]">
+                        {t}
+                      </span>
+                    ))}
+                  </div>
+                )}
                 {r.live && rows.length > 0 && (
                   <div className="mt-3 flex items-center gap-1.5">
                     {rows.slice(0, 5).map((p, i) => (
                       <span
                         key={`${p.name}-${i}`}
                         title={`${p.name} · seen ${p.fresh ? 'just now' : 'recently'}`}
-                        className={`flex h-7 w-7 items-center justify-center rounded-full font-slab text-[0.6rem] font-bold ${
-                          p.fresh ? 'bg-current' : 'border border-current opacity-50'
+                        className={`flex h-7 w-7 items-center justify-center rounded-full border-2 border-[var(--card)] font-slab text-[0.6rem] font-bold ${
+                          p.isYou
+                            ? 'bg-[var(--coral)] text-white'
+                            : p.fresh
+                              ? 'bg-[var(--coal)] text-[#f3ede3]'
+                              : 'b-line t-faint'
                         }`}
-                        style={p.fresh ? { color: r.tone } : undefined}
+                        style={{ marginLeft: i ? -8 : 0 }}
                       >
                         {initialsOf(p.name)}
                       </span>
                     ))}
                     {rows.length > 5 && (
-                      <span className="text-[0.65rem] font-bold opacity-70">+{rows.length - 5} more</span>
+                      <span className="text-[0.65rem] font-bold t-faint">+{rows.length - 5} more</span>
                     )}
                   </div>
                 )}
                 {r.live && r.streak != null && r.streak > 0 && (
-                  <p className="mt-2 text-[0.65rem] font-bold tracking-widest opacity-60">
+                  <p className="mt-2 text-[0.65rem] font-bold tracking-widest text-[var(--coral)]">
                     CLUSTER STREAK · {r.streak} DAYS
                   </p>
                 )}
               </div>
-              <div className="mt-6">
-                <div className="mb-2 flex justify-between text-xs font-semibold opacity-75">
+              <div className="mt-5">
+                <div className="mb-2 flex justify-between text-xs font-semibold t-muted">
                   <span>{count} / {cap} desks</span>
-                  <span>{full ? 'FULL' : r.isLive ? 'LIVE' : 'QUIET'}</span>
+                  <span className={full ? 'font-bold text-[var(--coral)]' : ''}>
+                    {full ? 'FULL' : r.isLive ? 'LIVE' : 'QUIET'}
+                  </span>
                 </div>
-                <div className="h-1.5 overflow-hidden rounded-full bg-current opacity-20">
+                <div className="h-1.5 overflow-hidden rounded-full bg-[var(--line)]">
                   <div
-                    className="h-full rounded-full bg-current transition-[width] duration-700"
+                    className="h-full rounded-full bg-[var(--coral)] transition-[width] duration-700"
                     style={{ width: `${Math.min(100, (count / cap) * 100)}%` }}
                   />
                 </div>
@@ -585,13 +604,12 @@ export default function Rooms() {
                     }
                     disabled={busyRoom === r.id || (!isIn && !isInvited && full && r.live)}
                     className={`mt-4 w-full rounded-full py-2.5 text-sm font-bold transition-all duration-300 ${
-                      isIn || isInvited ? '' : full && r.live ? 'opacity-30' : 'hover:opacity-80'
-                    }`}
-                    style={
                       isIn || isInvited
-                        ? { backgroundColor: r.ink, color: r.tone }
-                        : { boxShadow: 'inset 0 0 0 1.5px currentColor' }
-                    }
+                        ? 'bg-[var(--coal)] text-[#f3ede3] hover:opacity-85'
+                        : full && r.live
+                          ? 'b-line t-faint opacity-60'
+                          : 'border-[1.5px] b-line t-ink hover:border-[var(--coral)] hover:text-[var(--coral)]'
+                    }`}
                   >
                     {busyRoom === r.id
                       ? 'Syncing…'
@@ -608,8 +626,7 @@ export default function Rooms() {
                 ) : (
                   <Link
                     to="/login"
-                    className="mt-4 block w-full rounded-full py-2.5 text-center text-sm font-bold transition-all duration-300 hover:opacity-80"
-                    style={{ boxShadow: 'inset 0 0 0 1.5px currentColor' }}
+                    className="mt-4 block w-full rounded-full border-[1.5px] b-line py-2.5 text-center text-sm font-bold t-ink transition-all duration-300 hover:border-[var(--coral)] hover:text-[var(--coral)]"
                   >
                     Log in to take a desk
                   </Link>
