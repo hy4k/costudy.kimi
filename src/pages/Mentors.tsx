@@ -211,7 +211,7 @@ export default function Mentors() {
                       <h3 className="slab-display mt-2 text-xl leading-snug">{c.title}</h3>
                       {c.description && <p className="mt-2 text-sm leading-relaxed opacity-75">{c.description}</p>}
                       {c.schedule_text && (
-                        <p className="mt-3 inline-block rounded-full bg-[var(--ink)] px-3 py-1 text-[0.65rem] font-bold tracking-wide text-[var(--mint)]">
+                        <p className="mt-3 inline-block rounded-full bg-[var(--coal)] px-3 py-1 text-[0.65rem] font-bold tracking-wide text-[#f3ede3]">
                           {c.schedule_text}
                         </p>
                       )}
@@ -221,7 +221,7 @@ export default function Mentors() {
                       <button
                         onClick={() => enroll(c)}
                         disabled={busy || profile.role === 'TEACHER'}
-                        className="rounded-full bg-[var(--ink)] px-5 py-2.5 text-xs font-bold text-[var(--mint)] transition-opacity hover:opacity-85 disabled:opacity-40"
+                        className="rounded-full bg-[var(--coal)] px-5 py-2.5 text-xs font-bold text-[#f3ede3] transition-opacity hover:opacity-85 disabled:opacity-40"
                       >
                         Enroll
                       </button>
@@ -238,7 +238,7 @@ export default function Mentors() {
               value={query}
               onChange={(e) => setQuery(e.target.value)}
               placeholder="Search mentors, subjects, specialties…"
-              className="w-full max-w-sm rounded-full border-[1.5px] b-line bg-[var(--card)] px-5 py-2.5 text-sm t-ink placeholder:t-faint focus:border-[var(--ink)] focus:outline-none"
+              className="w-full max-w-sm rounded-full border-[1.5px] b-line bg-[var(--card)] px-5 py-2.5 text-sm t-ink placeholder:t-faint focus:border-[var(--coral)] focus:outline-none"
             />
             {(['ALL', 'Part 1', 'Part 2'] as const).map((p) => (
               <button
@@ -263,7 +263,7 @@ export default function Mentors() {
               <article key={m.id} className="flex min-h-[220px] flex-col justify-between rounded-[1.4rem] border-[1.5px] b-line bg-[var(--card)] p-6">
                 <div>
                   <div className="flex items-center gap-3">
-                    <span className="flex h-12 w-12 items-center justify-center rounded-full bg-[var(--ink)] font-slab text-sm font-bold text-[var(--mint)]">
+                    <span className="flex h-12 w-12 items-center justify-center rounded-full bg-[var(--coal)] font-slab text-sm font-bold text-[#f3ede3]">
                       {initials(m.name)}
                     </span>
                     <div>
@@ -364,7 +364,7 @@ export default function Mentors() {
       {/* hire modal */}
       {hireFor && (
         <div
-          className="fixed inset-0 z-50 flex items-center justify-center bg-[var(--ink)]/60 p-4 backdrop-blur-sm"
+          className="fixed inset-0 z-50 flex items-center justify-center bg-[var(--coal)]/60 p-4 backdrop-blur-sm"
           onClick={() => setHireFor(null)}
         >
           <div
@@ -372,7 +372,7 @@ export default function Mentors() {
             onClick={(e) => e.stopPropagation()}
           >
             <div className="flex items-center gap-3">
-              <span className="flex h-11 w-11 items-center justify-center rounded-full bg-[var(--ink)] font-slab text-xs font-bold text-[var(--mint)]">
+              <span className="flex h-11 w-11 items-center justify-center rounded-full bg-[var(--coal)] font-slab text-xs font-bold text-[#f3ede3]">
                 {initials(hireFor.name)}
               </span>
               <div>
@@ -389,7 +389,7 @@ export default function Mentors() {
                   <select
                     value={hire.roomId}
                     onChange={(e) => setHire({ ...hire, roomId: e.target.value })}
-                    className="mt-1.5 w-full rounded-xl border-[1.5px] b-line bg-[var(--paper)] px-4 py-3 text-sm t-ink focus:border-[var(--ink)] focus:outline-none"
+                    className="mt-1.5 w-full rounded-xl border-[1.5px] b-line bg-[var(--paper)] px-4 py-3 text-sm t-ink focus:border-[var(--coral)] focus:outline-none"
                   >
                     {myRooms.map((r) => (
                       <option key={r.id} value={r.id}>{r.name}</option>
@@ -402,15 +402,15 @@ export default function Mentors() {
                 )}
               </label>
               <div className="flex gap-2">
-                <input type="date" value={hire.date} onChange={(e) => setHire({ ...hire, date: e.target.value })} className="flex-1 rounded-xl border-[1.5px] b-line bg-[var(--paper)] px-4 py-3 text-sm t-ink focus:border-[var(--ink)] focus:outline-none" />
-                <input type="time" value={hire.time} onChange={(e) => setHire({ ...hire, time: e.target.value })} className="flex-1 rounded-xl border-[1.5px] b-line bg-[var(--paper)] px-4 py-3 text-sm t-ink focus:border-[var(--ink)] focus:outline-none" />
+                <input type="date" value={hire.date} onChange={(e) => setHire({ ...hire, date: e.target.value })} className="flex-1 rounded-xl border-[1.5px] b-line bg-[var(--paper)] px-4 py-3 text-sm t-ink focus:border-[var(--coral)] focus:outline-none" />
+                <input type="time" value={hire.time} onChange={(e) => setHire({ ...hire, time: e.target.value })} className="flex-1 rounded-xl border-[1.5px] b-line bg-[var(--paper)] px-4 py-3 text-sm t-ink focus:border-[var(--coral)] focus:outline-none" />
               </div>
               <textarea
                 value={hire.note}
                 onChange={(e) => setHire({ ...hire, note: e.target.value })}
                 rows={3}
                 placeholder="What should the session focus on? (optional — goes with your request)"
-                className="w-full resize-none rounded-xl border-[1.5px] b-line bg-[var(--paper)] p-4 text-sm t-ink placeholder:t-faint focus:border-[var(--ink)] focus:outline-none"
+                className="w-full resize-none rounded-xl border-[1.5px] b-line bg-[var(--paper)] p-4 text-sm t-ink placeholder:t-faint focus:border-[var(--coral)] focus:outline-none"
               />
               <div className="flex gap-2 pt-1">
                 <button type="submit" disabled={busy || myRooms.length === 0} className="pill-btn flex-1 !py-3 text-sm disabled:opacity-40">

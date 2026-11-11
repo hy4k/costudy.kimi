@@ -378,7 +378,7 @@ export default function Wall() {
                   <div className="flex items-start gap-3">
                     <span
                       className={`flex h-11 w-11 shrink-0 items-center justify-center rounded-full font-slab text-sm font-bold ${
-                        p.role === 'TEACHER' ? 'bg-[var(--ink)] text-[var(--paper)]' : 'bg-[var(--coral)] text-white'
+                        p.role === 'TEACHER' ? 'bg-[var(--coal)] text-[#f3ede3]' : 'bg-[var(--coral)] text-white'
                       }`}
                     >
                       {p.initials}
@@ -393,7 +393,7 @@ export default function Wall() {
                           {meta.label}
                         </span>
                         {p.role === 'TEACHER' && (
-                          <span className="rounded-full bg-[var(--ink)] px-2 py-0.5 text-[0.6rem] font-bold tracking-widest text-[var(--paper)]">
+                          <span className="rounded-full bg-[var(--coal)] px-2 py-0.5 text-[0.6rem] font-bold tracking-widest text-[#f3ede3]">
                             FACULTY
                           </span>
                         )}
@@ -479,7 +479,7 @@ export default function Wall() {
                         <button
                           onClick={() => toggleRadar(p)}
                           className={`ml-auto flex items-center gap-1.5 rounded-full border-[1.5px] px-3.5 py-1.5 text-xs font-bold transition-all duration-300 ${
-                            p.saved ? 'border-[var(--ink)] bg-[var(--ink)] text-[var(--paper)]' : 'b-line t-muted hover:t-ink'
+                            p.saved ? 'border-[var(--ink)] bg-[var(--coal)] text-[#f3ede3]' : 'b-line t-muted hover:t-ink'
                           }`}
                           aria-pressed={p.saved}
                         >
@@ -524,7 +524,7 @@ export default function Wall() {
                                   }
                                 }}
                                 placeholder="Add to the thread…"
-                                className="min-w-0 flex-1 rounded-full border-[1.5px] b-line bg-[var(--card)] px-4 py-2 text-xs t-ink placeholder:t-faint focus:border-[var(--ink)] focus:outline-none"
+                                className="min-w-0 flex-1 rounded-full border-[1.5px] b-line bg-[var(--card)] px-4 py-2 text-xs t-ink placeholder:t-faint focus:border-[var(--coral)] focus:outline-none"
                               />
                               <button
                                 onClick={() => publishComment(p.id)}

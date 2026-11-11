@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useSyncExternalStore } from 'react';
 import { supabase } from './supabase';
 
 export type Role = 'STUDENT' | 'TEACHER';
@@ -73,57 +73,120 @@ async function ensureProfile(userId: string, metadata: Record<string, unknown>):
 export type AuthState = {
   ready: boolean;
   profile: Profile | null;
+  /** Last known role, remembered across reloads so the nav never flashes the wrong menu. */
+  cachedRole: Role | null;
 };
 
-/** Live auth state — loads the Supabase session, mirrors user_profiles, follows auth events. */
+/* ---------------------------------------------------------------------------
+ * Module-level singleton. One Supabase subscription for the whole app —
+ * every useAuth() hook reads the same snapshot, so navigating between pages
+ * never re-fetches the session and never re-renders with a stale role.
+ * ------------------------------------------------------------------------- */
+
+const ROLE_KEY = 'costudy-role';
+
+const readCachedRole = (): Role | null => {
+  try {
+    const r = localStorage.getItem(ROLE_KEY);
+    return r === 'TEACHER' || r === 'STUDENT' ? r : null;
+  } catch {
+    return null;
+  }
+};
+
+let state: AuthState = {
+  ready: false,
+  profile: null,
+  cachedRole: typeof window === 'undefined' ? null : readCachedRole(),
+};
+
+const listeners = new Set<() => void>();
+
+const sameProfile = (a: Profile | null, b: Profile | null) =>
+  a === b || (!!a && !!b && a.id === b.id && a.role === b.role && a.level === b.level &&
+    a.name === b.name && a.handle === b.handle && a.avatar === b.avatar &&
+    a.examFocus === b.examFocus && a.reputation === b.reputation);
+
+const emit = (patch: Partial<AuthState>) => {
+  const next: AuthState = { ...state, ...patch };
+  if (
+    next.ready === state.ready &&
+    next.cachedRole === state.cachedRole &&
+    sameProfile(next.profile, state.profile)
+  ) {
+    return;
+  }
+  state = next;
+  listeners.forEach((l) => l());
+};
+
+const applyProfile = (p: Profile | null) => {
+  if (p) {
+    try {
+      localStorage.setItem(ROLE_KEY, p.role);
+    } catch {
+      /* storage unavailable — nav just falls back to a fresh guess */
+    }
+  }
+  emit({ profile: p, cachedRole: p ? p.role : state.cachedRole });
+};
+
+type SessionUser = { id: string; user_metadata?: Record<string, unknown>; email?: string } | null;
+
+const sync = async (user: SessionUser) => {
+  if (!user) {
+    applyProfile(null);
+    return;
+  }
+  const p = (await fetchProfile(user.id)) || (await ensureProfile(user.id, user.user_metadata || {}));
+  applyProfile(p);
+};
+
+let booted = false;
+const boot = () => {
+  if (booted) return;
+  booted = true;
+  supabase.auth.getSession().then(({ data }) => {
+    sync(data.session?.user ?? null).finally(() => emit({ ready: true }));
+  });
+  supabase.auth.onAuthStateChange((_event, session) => {
+    sync((session?.user as SessionUser) ?? null);
+  });
+};
+
+/** Live auth state — one shared store for the whole app. */
 export function useAuth(): AuthState & {
   refresh: () => Promise<void>;
   signIn: (email: string, pass: string) => Promise<Profile>;
   signUp: (name: string, email: string, pass: string, role: Role) => Promise<Profile>;
   signOut: () => Promise<void>;
 } {
-  const [ready, setReady] = useState(false);
-  const [profile, setProfile] = useState<Profile | null>(null);
-
   useEffect(() => {
-    let cancelled = false;
-    const sync = async (user: { id: string; user_metadata?: Record<string, unknown>; email?: string } | null) => {
-      if (!user) {
-        setProfile(null);
-        return;
-      }
-      const p = (await fetchProfile(user.id)) || (await ensureProfile(user.id, user.user_metadata || {}));
-      if (!cancelled) setProfile(p);
-    };
-
-    supabase.auth.getSession().then(({ data }) => {
-      sync(data.session?.user ?? null).finally(() => !cancelled && setReady(true));
-    });
-
-    const {
-      data: { subscription },
-    } = supabase.auth.onAuthStateChange((_event, session) => {
-      sync(session?.user ?? null);
-    });
-
-    return () => {
-      cancelled = true;
-      subscription.unsubscribe();
-    };
+    boot();
   }, []);
 
+  const snap = useSyncExternalStore(
+    (cb) => {
+      listeners.add(cb);
+      return () => {
+        listeners.delete(cb);
+      };
+    },
+    () => state,
+    () => state,
+  );
+
   return {
-    ready,
-    profile,
+    ...snap,
     refresh: async () => {
       const { data } = await supabase.auth.getSession();
-      const user = data.session?.user ?? null;
+      const user = (data.session?.user as SessionUser) ?? null;
       if (!user) {
-        setProfile(null);
+        applyProfile(null);
         return;
       }
       const p = await fetchProfile(user.id);
-      if (p) setProfile(p);
+      if (p) applyProfile(p);
     },
     signIn: async (email, pass) => {
       const { data, error } = await supabase.auth.signInWithPassword({ email, password: pass });
@@ -132,7 +195,7 @@ export function useAuth(): AuthState & {
       if (!user) throw new Error('Sign-in returned no user.');
       const p = (await fetchProfile(user.id)) || (await ensureProfile(user.id, user.user_metadata || {}));
       if (!p) throw new Error('Could not load your profile.');
-      setProfile(p);
+      applyProfile(p);
       return p;
     },
     signUp: async (name, email, pass, role) => {
@@ -159,12 +222,12 @@ export function useAuth(): AuthState & {
         examFocus: 'CMA Part 1',
         reputation: 0,
       };
-      setProfile(p);
+      applyProfile(p);
       return p;
     },
     signOut: async () => {
       await supabase.auth.signOut();
-      setProfile(null);
+      applyProfile(null);
     },
   };
 }

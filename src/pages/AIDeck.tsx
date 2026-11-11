@@ -268,7 +268,7 @@ function DrillCard({
               }}
               className={`flex w-full items-start gap-2.5 rounded-xl border-[1.5px] px-3 py-2.5 text-left text-xs font-medium leading-snug transition-all ${cls}`}
             >
-              <span className="mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-[var(--ink)] text-[0.6rem] font-bold text-[var(--paper)]">
+              <span className="mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-[var(--coal)] text-[0.6rem] font-bold text-[#f3ede3]">
                 {letter}
               </span>
               <span>{body}</span>
@@ -417,7 +417,7 @@ function TaskWidget({
               }}
               className={`flex w-full items-start gap-2.5 rounded-xl border-[1.5px] px-3 py-2.5 text-left text-xs font-medium leading-snug transition-all ${cls}`}
             >
-              <span className="mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-[var(--ink)] text-[0.6rem] font-bold text-[var(--paper)]">
+              <span className="mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-[var(--coal)] text-[0.6rem] font-bold text-[#f3ede3]">
                 {letter}
               </span>
               <span>{body}</span>
@@ -452,7 +452,7 @@ function TaskWidget({
                       : 'border-transparent bg-[var(--paper)] opacity-50 shadow-[inset_0_0_0_1.5px_var(--line)]'
               }`}
             >
-              <span className={`mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-full text-[0.6rem] font-bold ${on ? 'bg-[var(--ink)] text-[var(--paper)]' : 'b-line t-muted'}`}>
+              <span className={`mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-full text-[0.6rem] font-bold ${on ? 'bg-[var(--coal)] text-[#f3ede3]' : 'b-line t-muted'}`}>
                 {on ? '✓' : ''}
               </span>
               <span>{body}</span>
@@ -483,14 +483,14 @@ function TaskWidget({
             onChange={(e) => setNumIn(e.target.value)}
             disabled={checked !== null}
             placeholder={wantDirection ? 'Amount' : 'Your answer'}
-            className="w-40 rounded-xl border-[1.5px] b-line bg-[var(--paper)] px-3 py-2 text-sm t-ink placeholder:t-faint focus:border-[var(--ink)] focus:outline-none disabled:opacity-60"
+            className="w-40 rounded-xl border-[1.5px] b-line bg-[var(--paper)] px-3 py-2 text-sm t-ink placeholder:t-faint focus:border-[var(--coral)] focus:outline-none disabled:opacity-60"
           />
           {wantDirection && (
             <select
               value={dir}
               onChange={(e) => setDir(e.target.value as 'U' | 'F')}
               disabled={checked !== null}
-              className="rounded-xl border-[1.5px] b-line bg-[var(--paper)] px-2.5 py-2 text-sm font-bold t-ink focus:border-[var(--ink)] focus:outline-none disabled:opacity-60"
+              className="rounded-xl border-[1.5px] b-line bg-[var(--paper)] px-2.5 py-2 text-sm font-bold t-ink focus:border-[var(--coral)] focus:outline-none disabled:opacity-60"
             >
               <option value="U">Unfavourable / increase</option>
               <option value="F">Favourable / decrease</option>
@@ -524,7 +524,7 @@ function TaskWidget({
               value={listVals[i] || ''}
               disabled={checked !== null}
               onChange={(e) => setListVals((v) => ({ ...v, [i]: e.target.value }))}
-              className={`min-w-0 flex-1 rounded-lg border-[1.5px] px-2.5 py-2 text-xs t-ink focus:border-[var(--ink)] focus:outline-none disabled:opacity-60 ${
+              className={`min-w-0 flex-1 rounded-lg border-[1.5px] px-2.5 py-2 text-xs t-ink focus:border-[var(--coral)] focus:outline-none disabled:opacity-60 ${
                 checked === null
                   ? 'b-line bg-[var(--paper)]'
                   : listVals[i] === want[i]
@@ -568,7 +568,7 @@ function TaskWidget({
               value={place[it.id] || ''}
               disabled={checked !== null}
               onChange={(e) => setPlace((v) => ({ ...v, [it.id]: e.target.value }))}
-              className={`rounded-lg border-[1.5px] px-2.5 py-2 text-xs t-ink focus:border-[var(--ink)] focus:outline-none disabled:opacity-60 ${
+              className={`rounded-lg border-[1.5px] px-2.5 py-2 text-xs t-ink focus:border-[var(--coral)] focus:outline-none disabled:opacity-60 ${
                 checked === null
                   ? 'b-line bg-[var(--paper)]'
                   : place[it.id] === want[it.id]
@@ -674,7 +674,7 @@ function CbqCaseCard({
         {!showTasks && !done && (
           <button
             onClick={() => setShowTasks(true)}
-            className="mt-4 w-full rounded-full bg-[var(--ink)] py-2.5 text-xs font-bold text-[var(--paper)] transition-opacity hover:opacity-85"
+            className="mt-4 w-full rounded-full bg-[var(--coal)] py-2.5 text-xs font-bold text-[#f3ede3] transition-opacity hover:opacity-85"
           >
             Start the {draw.tasks.length} tasks →
           </button>
@@ -912,13 +912,13 @@ export default function AIDeck() {
               <div className="flex overflow-hidden rounded-full border-[1.5px] b-line text-[0.65rem] font-bold">
                 <button
                   onClick={() => setMode('mcq')}
-                  className={`px-3 py-1.5 transition-colors ${mode === 'mcq' ? 'bg-[var(--ink)] text-[var(--paper)]' : 't-muted hover:t-ink'}`}
+                  className={`px-3 py-1.5 transition-colors ${mode === 'mcq' ? 'bg-[var(--coal)] text-[#f3ede3]' : 't-muted hover:t-ink'}`}
                 >
                   MCQ drill
                 </button>
                 <button
                   onClick={() => setMode('cbq')}
-                  className={`px-3 py-1.5 transition-colors ${mode === 'cbq' ? 'bg-[var(--ink)] text-[var(--paper)]' : 't-muted hover:t-ink'}`}
+                  className={`px-3 py-1.5 transition-colors ${mode === 'cbq' ? 'bg-[var(--coal)] text-[#f3ede3]' : 't-muted hover:t-ink'}`}
                 >
                   CBQ case{cbqCount !== null ? ` · ${cbqCount}` : ''}
                 </button>
@@ -1007,7 +1007,7 @@ export default function AIDeck() {
                 value={input}
                 onChange={(e) => setInput(e.target.value)}
                 placeholder="Ask your CMA US mentor anything…"
-                className="flex-1 rounded-full border-[1.5px] b-line bg-[var(--paper)] px-5 py-3 text-sm t-ink placeholder:t-faint focus:border-[var(--ink)] focus:outline-none"
+                className="flex-1 rounded-full border-[1.5px] b-line bg-[var(--paper)] px-5 py-3 text-sm t-ink placeholder:t-faint focus:border-[var(--coral)] focus:outline-none"
               />
               <button type="submit" disabled={busy} className="pill-btn !px-6 disabled:opacity-40">
                 Ask

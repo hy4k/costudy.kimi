@@ -420,7 +420,7 @@ export default function Rooms() {
                 key={`${p.name}-${i}`}
                 title={`${p.name} · ${p.fresh ? 'in the room now' : 'away'}`}
                 className={`flex h-9 w-9 items-center justify-center rounded-full border-2 border-[var(--mint)] font-slab text-xs font-bold ${
-                  p.isYou ? 'bg-[var(--coral)] text-white' : p.fresh ? 'bg-[var(--ink)] text-[var(--mint)]' : 'bg-[#6f9c3e]/60 text-[var(--mint)]'
+                  p.isYou ? 'bg-[var(--coral)] text-white' : p.fresh ? 'bg-[var(--coal)] text-[#f3ede3]' : 'bg-[#6f9c3e]/60 text-[#f3ede3]'
                 }`}
                 style={{ marginLeft: i ? -12 : 0 }}
               >
@@ -441,13 +441,13 @@ export default function Rooms() {
             <button onClick={() => setRunning((r) => !r)} className="pill-btn">
               {running ? 'Pause sprint' : 'Start sprint'}
             </button>
-            <span className="pill-btn pill-btn--ghost !border-[var(--ink)] !text-[var(--ink)] hover:!bg-[var(--ink)] hover:!text-[var(--mint)]">
+            <span className="pill-btn pill-btn--ghost !border-[var(--ink)] !text-[var(--ink)] hover:!bg-[var(--coal)] hover:!text-[#f3ede3]">
               <DoodleHeadphones className="h-4 w-4" />
               Room muted · presence only
             </span>
           </div>
         </div>
-        <div className="flex flex-col justify-between rounded-2xl bg-[var(--ink)] p-6 text-[var(--mint)]">
+        <div className="flex flex-col justify-between rounded-2xl bg-[var(--coal)] p-6 text-[#f3ede3]">
           <div className="flex items-baseline justify-between">
             <span className="eyebrow opacity-60">Shared timer</span>
             <span className="text-xs font-semibold opacity-60">{Math.round(progress * 100)}%</span>
@@ -487,7 +487,7 @@ export default function Rooms() {
           value={query}
           onChange={(e) => setQuery(e.target.value)}
           placeholder="Search active study clusters or topics…"
-          className="w-full max-w-sm rounded-full border-[1.5px] b-line bg-[var(--card)] px-5 py-2.5 text-sm t-ink placeholder:t-faint focus:border-[var(--ink)] focus:outline-none"
+          className="w-full max-w-sm rounded-full border-[1.5px] b-line bg-[var(--card)] px-5 py-2.5 text-sm t-ink placeholder:t-faint focus:border-[var(--coral)] focus:outline-none"
         />
         {profile && (
           <button

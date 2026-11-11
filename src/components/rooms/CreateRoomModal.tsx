@@ -110,7 +110,7 @@ export default function CreateRoomModal({
               onChange={(e) => setName(e.target.value)}
               required
               placeholder="e.g. Part 1 variance analysis dawn club"
-              className="mt-2 w-full rounded-xl border-[1.5px] b-line bg-[var(--paper)] p-4 text-sm t-ink placeholder:t-faint focus:border-[var(--ink)] focus:outline-none"
+              className="mt-2 w-full rounded-xl border-[1.5px] b-line bg-[var(--paper)] p-4 text-sm t-ink placeholder:t-faint focus:border-[var(--coral)] focus:outline-none"
             />
           </div>
           <div className="grid gap-4 sm:grid-cols-2">
@@ -120,7 +120,7 @@ export default function CreateRoomModal({
                 id="cr-cat"
                 value={category}
                 onChange={(e) => setCategory(e.target.value)}
-                className="mt-2 w-full rounded-xl border-[1.5px] b-line bg-[var(--paper)] p-4 text-sm t-ink focus:border-[var(--ink)] focus:outline-none"
+                className="mt-2 w-full rounded-xl border-[1.5px] b-line bg-[var(--paper)] p-4 text-sm t-ink focus:border-[var(--coral)] focus:outline-none"
               >
                 {categories.map((c) => (
                   <option key={c}>{c}</option>
@@ -133,7 +133,7 @@ export default function CreateRoomModal({
                 id="cr-size"
                 value={maxMembers}
                 onChange={(e) => setMaxMembers(Number(e.target.value))}
-                className="mt-2 w-full rounded-xl border-[1.5px] b-line bg-[var(--paper)] p-4 text-sm t-ink focus:border-[var(--ink)] focus:outline-none"
+                className="mt-2 w-full rounded-xl border-[1.5px] b-line bg-[var(--paper)] p-4 text-sm t-ink focus:border-[var(--coral)] focus:outline-none"
               >
                 {[4, 6, 8, 10, 12].map((n) => (
                   <option key={n} value={n}>{n}</option>
@@ -149,7 +149,7 @@ export default function CreateRoomModal({
               onChange={(e) => setDescription(e.target.value)}
               rows={2}
               placeholder="Quiet sprints, one mock debrief a week…"
-              className="mt-2 w-full rounded-xl border-[1.5px] b-line bg-[var(--paper)] p-4 text-sm t-ink placeholder:t-faint focus:border-[var(--ink)] focus:outline-none"
+              className="mt-2 w-full rounded-xl border-[1.5px] b-line bg-[var(--paper)] p-4 text-sm t-ink placeholder:t-faint focus:border-[var(--coral)] focus:outline-none"
             />
           </div>
           <div>
@@ -159,7 +159,7 @@ export default function CreateRoomModal({
               value={topics}
               onChange={(e) => setTopics(e.target.value)}
               placeholder="Variance analysis, Flexible budgeting"
-              className="mt-2 w-full rounded-xl border-[1.5px] b-line bg-[var(--paper)] p-4 text-sm t-ink placeholder:t-faint focus:border-[var(--ink)] focus:outline-none"
+              className="mt-2 w-full rounded-xl border-[1.5px] b-line bg-[var(--paper)] p-4 text-sm t-ink placeholder:t-faint focus:border-[var(--coral)] focus:outline-none"
             />
           </div>
           <div>

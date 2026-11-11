@@ -405,7 +405,7 @@ export default function RoomInterior({
                 onChange={(e) => setDraft(e.target.value)}
                 onKeyDown={(e) => e.key === 'Enter' && (e.preventDefault(), send())}
                 placeholder="Share a thought with the room…"
-                className="flex-1 rounded-full border-[1.5px] b-line bg-[var(--paper)] px-5 py-3 text-sm t-ink placeholder:t-faint focus:border-[var(--ink)] focus:outline-none"
+                className="flex-1 rounded-full border-[1.5px] b-line bg-[var(--paper)] px-5 py-3 text-sm t-ink placeholder:t-faint focus:border-[var(--coral)] focus:outline-none"
               />
               <button
                 onClick={send}
@@ -423,7 +423,7 @@ export default function RoomInterior({
         {/* side rail */}
         <div className="space-y-6 p-6">
           {/* timer */}
-          <div className="rounded-2xl bg-[var(--ink)] p-5 text-[var(--mint)]">
+          <div className="rounded-2xl bg-[var(--coal)] p-5 text-[#f3ede3]">
             <div className="flex items-baseline justify-between">
               <span className="eyebrow flex items-center gap-1.5 opacity-60">
                 <DoodleClock className="h-3.5 w-3.5" /> Shared sprint
@@ -480,7 +480,7 @@ export default function RoomInterior({
                 onChange={(e) => setInviteHandle(e.target.value)}
                 onKeyDown={(e) => e.key === 'Enter' && (e.preventDefault(), invite())}
                 placeholder="@studybuddy"
-                className="w-full min-w-0 flex-1 rounded-full border-[1.5px] b-line bg-[var(--card)] px-4 py-2 text-sm t-ink placeholder:t-faint focus:border-[var(--ink)] focus:outline-none"
+                className="w-full min-w-0 flex-1 rounded-full border-[1.5px] b-line bg-[var(--card)] px-4 py-2 text-sm t-ink placeholder:t-faint focus:border-[var(--coral)] focus:outline-none"
               />
               <button onClick={invite} className="pill-btn shrink-0 !px-4 !py-2 text-xs">
                 Invite
@@ -509,19 +509,19 @@ export default function RoomInterior({
                   onChange={(e) => setResForm((f) => ({ ...f, title: e.target.value }))}
                   placeholder="Title — e.g. Variance analysis formula sheet"
                   required
-                  className="w-full rounded-xl border-[1.5px] b-line bg-[var(--paper)] px-3 py-2.5 text-xs t-ink placeholder:t-faint focus:border-[var(--ink)] focus:outline-none"
+                  className="w-full rounded-xl border-[1.5px] b-line bg-[var(--paper)] px-3 py-2.5 text-xs t-ink placeholder:t-faint focus:border-[var(--coral)] focus:outline-none"
                 />
                 <input
                   value={resForm.summary}
                   onChange={(e) => setResForm((f) => ({ ...f, summary: e.target.value }))}
                   placeholder="One-line summary (optional)"
-                  className="w-full rounded-xl border-[1.5px] b-line bg-[var(--paper)] px-3 py-2.5 text-xs t-ink placeholder:t-faint focus:border-[var(--ink)] focus:outline-none"
+                  className="w-full rounded-xl border-[1.5px] b-line bg-[var(--paper)] px-3 py-2.5 text-xs t-ink placeholder:t-faint focus:border-[var(--coral)] focus:outline-none"
                 />
                 <div className="flex gap-2">
                   <select
                     value={resForm.category}
                     onChange={(e) => setResForm((f) => ({ ...f, category: e.target.value }))}
-                    className="rounded-xl border-[1.5px] b-line bg-[var(--paper)] px-3 py-2.5 text-xs t-ink focus:border-[var(--ink)] focus:outline-none"
+                    className="rounded-xl border-[1.5px] b-line bg-[var(--paper)] px-3 py-2.5 text-xs t-ink focus:border-[var(--coral)] focus:outline-none"
                   >
                     {['Formula Sheet', 'Notes', 'Practice Set', 'Video', 'Other'].map((c) => (
                       <option key={c}>{c}</option>

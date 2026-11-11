@@ -50,7 +50,7 @@ const durationDays: Record<string, number> = {
 };
 
 const inputCls =
-  'mt-2 w-full rounded-xl border-[1.5px] b-line bg-[var(--card)] p-4 text-sm t-ink placeholder:t-faint focus:border-[var(--ink)] focus:outline-none';
+  'mt-2 w-full rounded-xl border-[1.5px] b-line bg-[var(--card)] p-4 text-sm t-ink placeholder:t-faint focus:border-[var(--coral)] focus:outline-none';
 
 export default function Contracts() {
   const { profile, ready } = useAuth();
@@ -302,7 +302,7 @@ export default function Contracts() {
                   className={inputCls}
                   placeholder="@nightowl_mumbai"
                 />
-                <button onClick={lookup} className="shrink-0 rounded-xl bg-[var(--ink)] px-5 text-sm font-bold text-[#fcfbfa] transition-transform hover:-translate-y-0.5">
+                <button onClick={lookup} className="shrink-0 rounded-xl bg-[var(--coal)] px-5 text-sm font-bold text-[#fcfbfa] transition-transform hover:-translate-y-0.5">
                   Find
                 </button>
               </div>
@@ -310,7 +310,7 @@ export default function Contracts() {
               {foundPeer && (
                 <div className="mt-3 flex items-center justify-between gap-3 rounded-[1.2rem] bg-[var(--mint)] p-4">
                   <span className="flex min-w-0 items-center gap-3">
-                    <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-[var(--ink)] font-slab text-xs font-bold text-white">
+                    <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-[var(--coal)] font-slab text-xs font-bold text-white">
                       {(foundPeer.name || '?').split(' ').map((w) => w[0]).slice(0, 2).join('').toUpperCase()}
                     </span>
                     <span className="min-w-0">
@@ -468,7 +468,7 @@ export default function Contracts() {
                     </div>
 
                     <div className="mt-4 flex flex-wrap gap-2">
-                      <button onClick={() => checkIn(c)} className="rounded-full bg-[var(--ink)] px-4 py-2 text-xs font-bold text-[#fcfbfa] transition-transform hover:-translate-y-0.5">
+                      <button onClick={() => checkIn(c)} className="rounded-full bg-[var(--coal)] px-4 py-2 text-xs font-bold text-[#fcfbfa] transition-transform hover:-translate-y-0.5">
                         Check in today
                       </button>
                       <Link to="/rooms" className="rounded-full border-[1.5px] b-line px-4 py-2 text-xs font-bold t-muted hover:t-ink">
@@ -506,7 +506,7 @@ export default function Contracts() {
           </section>
 
           {/* growth: invite */}
-          <section className="relative overflow-hidden rounded-[1.8rem] bg-[var(--ink)] p-7 text-[#fcfbfa] md:p-9">
+          <section className="relative overflow-hidden rounded-[1.8rem] bg-[var(--coal)] p-7 text-[#fcfbfa] md:p-9">
             <DoodleSpark className="pointer-events-none absolute -right-4 -top-4 w-28 rotate-12 text-[#fcfbfa]/10" />
             <p className="eyebrow text-[var(--coral)]">Grow the circle</p>
             <h2 className="slab-display mt-2 text-2xl">Contracts work best with friends.</h2>

@@ -43,7 +43,7 @@ type EditForm = {
 };
 
 const inputCls =
-  'mt-2 w-full rounded-xl border-[1.5px] b-line bg-[var(--card)] p-4 text-sm t-ink placeholder:t-faint focus:border-[var(--ink)] focus:outline-none';
+  'mt-2 w-full rounded-xl border-[1.5px] b-line bg-[var(--card)] p-4 text-sm t-ink placeholder:t-faint focus:border-[var(--coral)] focus:outline-none';
 const labelCls = 'eyebrow t-faint';
 
 type MockRow = {

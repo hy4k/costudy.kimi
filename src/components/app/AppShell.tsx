@@ -76,9 +76,9 @@ export default function AppShell({
   eyebrow: string;
   children: ReactNode;
 }) {
-  const { profile } = useAuth();
+  const { profile, cachedRole } = useAuth();
   const { dark, toggle } = useTheme();
-  const isTeacher = profile?.role === 'TEACHER';
+  const isTeacher = (profile?.role ?? cachedRole ?? 'STUDENT') === 'TEACHER';
   const items = isTeacher ? mentorNav : studentNav;
   const initials = profile
     ? profile.name.split(' ').map((w) => w[0]).slice(0, 2).join('').toUpperCase()

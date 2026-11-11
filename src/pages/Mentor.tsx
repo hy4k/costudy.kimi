@@ -620,8 +620,8 @@ export default function Mentor() {
           {/* broadcast composer */}
           <section className="rounded-[1.6rem] bg-[#2b2926] p-6 text-[#fcfbfa] md:p-8">
             <div className="flex items-center gap-2">
-              <DoodleSpark className="h-5 w-5 text-[var(--mint)]" />
-              <p className="eyebrow text-[var(--mint)]">Broadcast to the wall</p>
+              <DoodleSpark className="h-5 w-5 text-[#f3ede3]" />
+              <p className="eyebrow text-[#f3ede3]">Broadcast to the wall</p>
             </div>
             <textarea
               value={draft}
@@ -733,7 +733,7 @@ export default function Mentor() {
                 value={bountyForm.task}
                 onChange={(e) => setBountyForm({ ...bountyForm, task: e.target.value })}
                 placeholder="The task — e.g. Build the cleanest variance-analysis walkthrough for Marlow Ltd"
-                className="w-full rounded-xl border-[1.5px] b-line bg-[var(--paper)] px-4 py-3 text-sm t-ink placeholder:t-faint focus:border-[var(--ink)] focus:outline-none"
+                className="w-full rounded-xl border-[1.5px] b-line bg-[var(--paper)] px-4 py-3 text-sm t-ink placeholder:t-faint focus:border-[var(--coral)] focus:outline-none"
               />
               <div className="flex flex-wrap gap-2">
                 <input
@@ -742,12 +742,12 @@ export default function Mentor() {
                   type="number"
                   min="0"
                   placeholder="Reward (0 = honour only)"
-                  className="w-48 rounded-xl border-[1.5px] b-line bg-[var(--paper)] px-4 py-3 text-sm t-ink placeholder:t-faint focus:border-[var(--ink)] focus:outline-none"
+                  className="w-48 rounded-xl border-[1.5px] b-line bg-[var(--paper)] px-4 py-3 text-sm t-ink placeholder:t-faint focus:border-[var(--coral)] focus:outline-none"
                 />
                 <select
                   value={bountyForm.type}
                   onChange={(e) => setBountyForm({ ...bountyForm, type: e.target.value as 'CREDITS' | 'BADGE' })}
-                  className="rounded-xl border-[1.5px] b-line bg-[var(--paper)] px-3 py-3 text-sm t-ink focus:border-[var(--ink)] focus:outline-none"
+                  className="rounded-xl border-[1.5px] b-line bg-[var(--paper)] px-3 py-3 text-sm t-ink focus:border-[var(--coral)] focus:outline-none"
                 >
                   <option value="CREDITS">Study credits</option>
                   <option value="BADGE">Badge</option>
@@ -812,7 +812,7 @@ export default function Mentor() {
           {/* revenue */}
           <section className="rounded-[1.6rem] bg-[#2b2926] p-6 text-[#fcfbfa] md:p-8">
             <div className="flex items-center gap-2">
-              <DoodleBulb className="h-5 w-5 text-[var(--mint)]" />
+              <DoodleBulb className="h-5 w-5 text-[#f3ede3]" />
               <h2 className="slab-display text-2xl">Revenue</h2>
             </div>
             <p className="mt-2 text-xs leading-relaxed text-[#fcfbfa]/60">
@@ -820,19 +820,19 @@ export default function Mentor() {
             </p>
             <ul className="mt-5 grid gap-3 sm:grid-cols-2">
               <li className="rounded-xl bg-[#fcfbfa]/10 p-4">
-                <p className="text-[0.65rem] font-bold tracking-widest text-[var(--mint)]">COLLECTED</p>
+                <p className="text-[0.65rem] font-bold tracking-widest text-[#f3ede3]">COLLECTED</p>
                 <p className="slab-display mt-1 text-2xl">₹{revenue.paid.toLocaleString('en-IN')}</p>
               </li>
               <li className="rounded-xl bg-[#fcfbfa]/10 p-4">
-                <p className="text-[0.65rem] font-bold tracking-widest text-[var(--mint)]">AWAITING PAYMENT</p>
+                <p className="text-[0.65rem] font-bold tracking-widest text-[#f3ede3]">AWAITING PAYMENT</p>
                 <p className="slab-display mt-1 text-2xl">₹{revenue.pending.toLocaleString('en-IN')}</p>
               </li>
               <li className="rounded-xl bg-[#fcfbfa]/10 p-4">
-                <p className="text-[0.65rem] font-bold tracking-widest text-[var(--mint)]">CO STUDY FEE (PLATFORM)</p>
+                <p className="text-[0.65rem] font-bold tracking-widest text-[#f3ede3]">CO STUDY FEE (PLATFORM)</p>
                 <p className="slab-display mt-1 text-2xl">₹{revenue.platformCut.toLocaleString('en-IN')}</p>
               </li>
               <li className="rounded-xl bg-[#fcfbfa]/10 p-4">
-                <p className="text-[0.65rem] font-bold tracking-widest text-[var(--mint)]">SESSIONS LED</p>
+                <p className="text-[0.65rem] font-bold tracking-widest text-[#f3ede3]">SESSIONS LED</p>
                 <p className="slab-display mt-1 text-2xl">{revenue.sessions}</p>
               </li>
             </ul>
@@ -860,14 +860,14 @@ export default function Mentor() {
             </p>
             {showCourse && (
               <form onSubmit={addCourse} className="mt-4 space-y-3 rounded-2xl border-[1.5px] border-dashed b-line p-4">
-                <input value={courseForm.title} onChange={(e) => setCourseForm({ ...courseForm, title: e.target.value })} placeholder="Course title — e.g. Part 1 Decision Analysis intensive" className="w-full rounded-xl border-[1.5px] b-line bg-[var(--paper)] px-4 py-3 text-sm font-semibold t-ink placeholder:t-faint focus:border-[var(--ink)] focus:outline-none" />
-                <textarea value={courseForm.description} onChange={(e) => setCourseForm({ ...courseForm, description: e.target.value })} rows={3} placeholder="What students walk away with" className="w-full resize-none rounded-xl border-[1.5px] b-line bg-[var(--paper)] p-4 text-sm t-ink placeholder:t-faint focus:border-[var(--ink)] focus:outline-none" />
+                <input value={courseForm.title} onChange={(e) => setCourseForm({ ...courseForm, title: e.target.value })} placeholder="Course title — e.g. Part 1 Decision Analysis intensive" className="w-full rounded-xl border-[1.5px] b-line bg-[var(--paper)] px-4 py-3 text-sm font-semibold t-ink placeholder:t-faint focus:border-[var(--coral)] focus:outline-none" />
+                <textarea value={courseForm.description} onChange={(e) => setCourseForm({ ...courseForm, description: e.target.value })} rows={3} placeholder="What students walk away with" className="w-full resize-none rounded-xl border-[1.5px] b-line bg-[var(--paper)] p-4 text-sm t-ink placeholder:t-faint focus:border-[var(--coral)] focus:outline-none" />
                 <div className="flex flex-wrap gap-2">
-                  <input value={courseForm.price} onChange={(e) => setCourseForm({ ...courseForm, price: e.target.value })} type="number" min="0" placeholder="Price ₹ (0 = free)" className="w-40 rounded-xl border-[1.5px] b-line bg-[var(--paper)] px-4 py-3 text-sm t-ink placeholder:t-faint focus:border-[var(--ink)] focus:outline-none" />
-                  <input value={courseForm.duration_weeks} onChange={(e) => setCourseForm({ ...courseForm, duration_weeks: e.target.value })} type="number" min="1" placeholder="Weeks" className="w-24 rounded-xl border-[1.5px] b-line bg-[var(--paper)] px-4 py-3 text-sm t-ink placeholder:t-faint focus:border-[var(--ink)] focus:outline-none" />
-                  <input value={courseForm.max_students} onChange={(e) => setCourseForm({ ...courseForm, max_students: e.target.value })} type="number" min="1" placeholder="Seats" className="w-24 rounded-xl border-[1.5px] b-line bg-[var(--paper)] px-4 py-3 text-sm t-ink placeholder:t-faint focus:border-[var(--ink)] focus:outline-none" />
+                  <input value={courseForm.price} onChange={(e) => setCourseForm({ ...courseForm, price: e.target.value })} type="number" min="0" placeholder="Price ₹ (0 = free)" className="w-40 rounded-xl border-[1.5px] b-line bg-[var(--paper)] px-4 py-3 text-sm t-ink placeholder:t-faint focus:border-[var(--coral)] focus:outline-none" />
+                  <input value={courseForm.duration_weeks} onChange={(e) => setCourseForm({ ...courseForm, duration_weeks: e.target.value })} type="number" min="1" placeholder="Weeks" className="w-24 rounded-xl border-[1.5px] b-line bg-[var(--paper)] px-4 py-3 text-sm t-ink placeholder:t-faint focus:border-[var(--coral)] focus:outline-none" />
+                  <input value={courseForm.max_students} onChange={(e) => setCourseForm({ ...courseForm, max_students: e.target.value })} type="number" min="1" placeholder="Seats" className="w-24 rounded-xl border-[1.5px] b-line bg-[var(--paper)] px-4 py-3 text-sm t-ink placeholder:t-faint focus:border-[var(--coral)] focus:outline-none" />
                 </div>
-                <input value={courseForm.schedule_text} onChange={(e) => setCourseForm({ ...courseForm, schedule_text: e.target.value })} placeholder="Schedule — e.g. Tue & Sat, 7:00 AM IST" className="w-full rounded-xl border-[1.5px] b-line bg-[var(--paper)] px-4 py-3 text-sm t-ink placeholder:t-faint focus:border-[var(--ink)] focus:outline-none" />
+                <input value={courseForm.schedule_text} onChange={(e) => setCourseForm({ ...courseForm, schedule_text: e.target.value })} placeholder="Schedule — e.g. Tue & Sat, 7:00 AM IST" className="w-full rounded-xl border-[1.5px] b-line bg-[var(--paper)] px-4 py-3 text-sm t-ink placeholder:t-faint focus:border-[var(--coral)] focus:outline-none" />
                 <button type="submit" className="pill-btn !px-5 !py-2.5 text-xs">Publish course</button>
               </form>
             )}
@@ -913,17 +913,17 @@ export default function Mentor() {
               onChange={(e) => setMarket({ ...market, bio: e.target.value })}
               rows={3}
               placeholder="One short paragraph — who you coach and what you’re known for"
-              className="mt-4 w-full resize-none rounded-xl border-[1.5px] b-line bg-[var(--paper)] p-4 text-sm t-ink placeholder:t-faint focus:border-[var(--ink)] focus:outline-none"
+              className="mt-4 w-full resize-none rounded-xl border-[1.5px] b-line bg-[var(--paper)] p-4 text-sm t-ink placeholder:t-faint focus:border-[var(--coral)] focus:outline-none"
             />
             <input
               value={market.specialties}
               onChange={(e) => setMarket({ ...market, specialties: e.target.value })}
               placeholder="Specialties — comma separated, e.g. CMA US Part 1, Internal Controls, Essay coaching"
-              className="mt-3 w-full rounded-xl border-[1.5px] b-line bg-[var(--paper)] px-4 py-3 text-sm t-ink placeholder:t-faint focus:border-[var(--ink)] focus:outline-none"
+              className="mt-3 w-full rounded-xl border-[1.5px] b-line bg-[var(--paper)] px-4 py-3 text-sm t-ink placeholder:t-faint focus:border-[var(--coral)] focus:outline-none"
             />
             <div className="mt-3 flex flex-wrap gap-2">
-              <input value={market.years_experience} onChange={(e) => setMarket({ ...market, years_experience: e.target.value })} type="number" min="0" placeholder="Years of experience" className="w-48 rounded-xl border-[1.5px] b-line bg-[var(--paper)] px-4 py-3 text-sm t-ink placeholder:t-faint focus:border-[var(--ink)] focus:outline-none" />
-              <input value={market.hourly_rate} onChange={(e) => setMarket({ ...market, hourly_rate: e.target.value })} type="number" min="0" placeholder="Hourly rate ₹" className="w-40 rounded-xl border-[1.5px] b-line bg-[var(--paper)] px-4 py-3 text-sm t-ink placeholder:t-faint focus:border-[var(--ink)] focus:outline-none" />
+              <input value={market.years_experience} onChange={(e) => setMarket({ ...market, years_experience: e.target.value })} type="number" min="0" placeholder="Years of experience" className="w-48 rounded-xl border-[1.5px] b-line bg-[var(--paper)] px-4 py-3 text-sm t-ink placeholder:t-faint focus:border-[var(--coral)] focus:outline-none" />
+              <input value={market.hourly_rate} onChange={(e) => setMarket({ ...market, hourly_rate: e.target.value })} type="number" min="0" placeholder="Hourly rate ₹" className="w-40 rounded-xl border-[1.5px] b-line bg-[var(--paper)] px-4 py-3 text-sm t-ink placeholder:t-faint focus:border-[var(--coral)] focus:outline-none" />
               <button onClick={saveMarket} className="pill-btn !px-6 !py-3 text-sm">
                 Save profile
               </button>
@@ -952,7 +952,7 @@ export default function Mentor() {
               <select
                 value={cbqPart}
                 onChange={(e) => setCbqPart(e.target.value as 'Part 1' | 'Part 2')}
-                className="rounded-xl border-[1.5px] b-line bg-[var(--paper)] px-3 py-2.5 text-sm t-ink focus:border-[var(--ink)] focus:outline-none"
+                className="rounded-xl border-[1.5px] b-line bg-[var(--paper)] px-3 py-2.5 text-sm t-ink focus:border-[var(--coral)] focus:outline-none"
               >
                 <option>Part 1</option>
                 <option>Part 2</option>
@@ -961,21 +961,21 @@ export default function Mentor() {
                 value={cbqSection}
                 onChange={(e) => setCbqSection(e.target.value)}
                 placeholder="Syllabus area — e.g. Internal Controls, Decision Analysis"
-                className="rounded-xl border-[1.5px] b-line bg-[var(--paper)] px-3 py-2.5 text-sm t-ink placeholder:t-faint focus:border-[var(--ink)] focus:outline-none"
+                className="rounded-xl border-[1.5px] b-line bg-[var(--paper)] px-3 py-2.5 text-sm t-ink placeholder:t-faint focus:border-[var(--coral)] focus:outline-none"
               />
             </div>
             <input
               value={cbqTitle}
               onChange={(e) => setCbqTitle(e.target.value)}
               placeholder="Case title — the hook students see"
-              className="mt-3 w-full rounded-xl border-[1.5px] b-line bg-[var(--paper)] px-3 py-2.5 text-sm font-semibold t-ink placeholder:t-faint focus:border-[var(--ink)] focus:outline-none"
+              className="mt-3 w-full rounded-xl border-[1.5px] b-line bg-[var(--paper)] px-3 py-2.5 text-sm font-semibold t-ink placeholder:t-faint focus:border-[var(--coral)] focus:outline-none"
             />
             <textarea
               value={cbqText}
               onChange={(e) => setCbqText(e.target.value)}
               rows={4}
               placeholder="The scenario passage — the company, the numbers, the tension. Everything the items refer back to…"
-              className="mt-3 w-full resize-y rounded-xl border-[1.5px] b-line bg-[var(--paper)] p-3 text-sm leading-relaxed t-ink placeholder:t-faint focus:border-[var(--ink)] focus:outline-none"
+              className="mt-3 w-full resize-y rounded-xl border-[1.5px] b-line bg-[var(--paper)] p-3 text-sm leading-relaxed t-ink placeholder:t-faint focus:border-[var(--coral)] focus:outline-none"
             />
             <div className="mt-4 space-y-3">
               {cbqItems.map((it, i) => (
@@ -995,7 +995,7 @@ export default function Mentor() {
                     value={it.prompt}
                     onChange={(e) => updateCbqItem(i, { prompt: e.target.value })}
                     placeholder="Task prompt"
-                    className="mt-2 w-full rounded-lg border-[1.5px] b-line bg-[var(--card)] px-3 py-2 text-xs font-medium t-ink placeholder:t-faint focus:border-[var(--ink)] focus:outline-none"
+                    className="mt-2 w-full rounded-lg border-[1.5px] b-line bg-[var(--card)] px-3 py-2 text-xs font-medium t-ink placeholder:t-faint focus:border-[var(--coral)] focus:outline-none"
                   />
                   <div className="mt-2 grid gap-2 sm:grid-cols-2">
                     {it.options.map((opt, oi) => (
@@ -1008,7 +1008,7 @@ export default function Mentor() {
                           })
                         }
                         placeholder={`Option ${'ABCDEF'[oi]}`}
-                        className="rounded-lg border-[1.5px] b-line bg-[var(--card)] px-3 py-2 text-xs t-ink placeholder:t-faint focus:border-[var(--ink)] focus:outline-none"
+                        className="rounded-lg border-[1.5px] b-line bg-[var(--card)] px-3 py-2 text-xs t-ink placeholder:t-faint focus:border-[var(--coral)] focus:outline-none"
                       />
                     ))}
                   </div>
@@ -1016,7 +1016,7 @@ export default function Mentor() {
                     <select
                       value={it.correct}
                       onChange={(e) => updateCbqItem(i, { correct: Number(e.target.value) })}
-                      className="rounded-lg border-[1.5px] b-line bg-[var(--card)] px-2.5 py-2 text-xs font-bold t-ink focus:border-[var(--ink)] focus:outline-none"
+                      className="rounded-lg border-[1.5px] b-line bg-[var(--card)] px-2.5 py-2 text-xs font-bold t-ink focus:border-[var(--coral)] focus:outline-none"
                     >
                       {it.options.map((_, oi) => (
                         <option key={oi} value={oi}>
@@ -1028,7 +1028,7 @@ export default function Mentor() {
                       value={it.explanation}
                       onChange={(e) => updateCbqItem(i, { explanation: e.target.value })}
                       placeholder="Worked explanation (unlocks after answering)"
-                      className="min-w-0 flex-1 rounded-lg border-[1.5px] b-line bg-[var(--card)] px-3 py-2 text-xs t-ink placeholder:t-faint focus:border-[var(--ink)] focus:outline-none"
+                      className="min-w-0 flex-1 rounded-lg border-[1.5px] b-line bg-[var(--card)] px-3 py-2 text-xs t-ink placeholder:t-faint focus:border-[var(--coral)] focus:outline-none"
                     />
                   </div>
                 </div>
@@ -1208,7 +1208,7 @@ export default function Mentor() {
             </ul>
             <button
               onClick={() => signOut().then(() => navigate('/'))}
-              className="mt-5 w-full rounded-full border-[1.5px] border-[var(--ink)]/30 py-2 text-xs font-bold tracking-widest transition-colors hover:bg-[var(--ink)] hover:text-[var(--mint)]"
+              className="mt-5 w-full rounded-full border-[1.5px] border-[var(--ink)]/30 py-2 text-xs font-bold tracking-widest transition-colors hover:bg-[var(--coal)] hover:text-[#f3ede3]"
             >
               Sign out
             </button>

@@ -176,7 +176,7 @@ export default function RoomPlan({ roomId, meId }: { roomId: string; meId: strin
   };
 
   const inputCls =
-    'rounded-xl border-[1.5px] b-line bg-[var(--paper)] px-4 py-2.5 text-sm t-ink placeholder:t-faint focus:border-[var(--ink)] focus:outline-none';
+    'rounded-xl border-[1.5px] b-line bg-[var(--paper)] px-4 py-2.5 text-sm t-ink placeholder:t-faint focus:border-[var(--coral)] focus:outline-none';
 
   return (
     <div className="flex h-full flex-col">
@@ -293,7 +293,7 @@ export default function RoomPlan({ roomId, meId }: { roomId: string; meId: strin
         </div>
 
         {/* room goal */}
-        <div className="rounded-2xl bg-[var(--ink)] p-5 text-[var(--mint)]">
+        <div className="rounded-2xl bg-[var(--coal)] p-5 text-[#f3ede3]">
           <div className="flex items-center justify-between">
             <p className="eyebrow flex items-center gap-1.5 opacity-60">
               <DoodleBulb className="h-3.5 w-3.5" /> Room goal
@@ -322,7 +322,7 @@ export default function RoomPlan({ roomId, meId }: { roomId: string; meId: strin
               <p className="text-xs leading-relaxed opacity-70">No active goal — set one and chase it together.</p>
               {showGoal ? (
                 <form onSubmit={addGoal} className="mt-3 space-y-2">
-                  <input value={goalForm.title} onChange={(e) => setGoalForm({ ...goalForm, title: e.target.value })} placeholder="e.g. 500 MCQs before the window closes" className="w-full rounded-xl border-[1.5px] border-[var(--mint)]/30 bg-transparent px-4 py-2.5 text-sm placeholder:text-[var(--mint)]/40 focus:border-[var(--mint)] focus:outline-none" />
+                  <input value={goalForm.title} onChange={(e) => setGoalForm({ ...goalForm, title: e.target.value })} placeholder="e.g. 500 MCQs before the window closes" className="w-full rounded-xl border-[1.5px] border-[var(--mint)]/30 bg-transparent px-4 py-2.5 text-sm placeholder:text-[#f3ede3]/40 focus:border-[var(--mint)] focus:outline-none" />
                   <div className="flex gap-2">
                     <input value={goalForm.target} onChange={(e) => setGoalForm({ ...goalForm, target: e.target.value })} type="number" min="1" className="w-28 rounded-xl border-[1.5px] border-[var(--mint)]/30 bg-transparent px-4 py-2.5 text-sm focus:border-[var(--mint)] focus:outline-none" />
                     <button type="submit" className="rounded-full bg-[var(--mint)] px-5 py-2.5 text-xs font-bold text-[var(--ink)] hover:opacity-85">

@@ -225,7 +225,7 @@ export default function Vault() {
               value={query}
               onChange={(e) => setQuery(e.target.value)}
               placeholder="Search your knowledge vault…"
-              className="w-full max-w-sm rounded-full border-[1.5px] b-line bg-[var(--card)] px-5 py-2.5 text-sm t-ink placeholder:t-faint focus:border-[var(--ink)] focus:outline-none"
+              className="w-full max-w-sm rounded-full border-[1.5px] b-line bg-[var(--card)] px-5 py-2.5 text-sm t-ink placeholder:t-faint focus:border-[var(--coral)] focus:outline-none"
             />
             <div className="flex flex-wrap gap-2">
               {kinds.map((k) => (
@@ -292,7 +292,7 @@ export default function Vault() {
                       }}
                       className={`shrink-0 rounded-full border-[1.5px] px-3.5 py-2 text-xs font-bold transition-all duration-300 ${
                         pinned
-                          ? 'border-[var(--ink)] bg-[var(--ink)] text-[var(--paper)]'
+                          ? 'border-[var(--ink)] bg-[var(--coal)] text-[#f3ede3]'
                           : 'b-line t-muted hover:t-ink hover:border-[var(--ink)]'
                       }`}
                       aria-pressed={pinned}
@@ -401,7 +401,7 @@ export default function Vault() {
               <>
                 <button
                   onClick={() => setShowSubmit((s) => !s)}
-                  className="mt-4 w-full rounded-full border-[1.5px] border-[var(--ink)]/40 py-2.5 text-xs font-bold tracking-widest transition-colors hover:bg-[var(--ink)] hover:text-[var(--mint)]"
+                  className="mt-4 w-full rounded-full border-[1.5px] border-[var(--ink)]/40 py-2.5 text-xs font-bold tracking-widest transition-colors hover:bg-[var(--coal)] hover:text-[#f3ede3]"
                 >
                   {showSubmit ? 'CANCEL' : 'SUBMIT MATERIAL'}
                 </button>
@@ -411,12 +411,12 @@ export default function Vault() {
                       value={form.title}
                       onChange={(e) => setForm((f) => ({ ...f, title: e.target.value }))}
                       placeholder="Title — e.g. Variance Analysis one-pager"
-                      className="w-full rounded-xl border-[1.5px] border-[var(--ink)]/30 bg-[#fcfbfa]/60 px-4 py-2.5 text-sm placeholder:text-[var(--ink)]/40 focus:border-[var(--ink)] focus:outline-none"
+                      className="w-full rounded-xl border-[1.5px] b-line bg-[var(--card)] px-4 py-2.5 text-sm placeholder:t-faint focus:border-[var(--coral)] focus:outline-none"
                     />
                     <select
                       value={form.kind}
                       onChange={(e) => setForm((f) => ({ ...f, kind: e.target.value as Kind }))}
-                      className="w-full rounded-xl border-[1.5px] border-[var(--ink)]/30 bg-[#fcfbfa]/60 px-4 py-2.5 text-sm focus:border-[var(--ink)] focus:outline-none"
+                      className="w-full rounded-xl border-[1.5px] b-line bg-[var(--card)] px-4 py-2.5 text-sm focus:border-[var(--coral)] focus:outline-none"
                     >
                       {(Object.keys(kindMeta) as Kind[]).map((k) => (
                         <option key={k} value={k}>{kindMeta[k].label}</option>
@@ -427,19 +427,19 @@ export default function Vault() {
                       onChange={(e) => setForm((f) => ({ ...f, description: e.target.value }))}
                       rows={2}
                       placeholder="One-line summary for fellow scholars…"
-                      className="w-full resize-none rounded-xl border-[1.5px] border-[var(--ink)]/30 bg-[#fcfbfa]/60 px-4 py-2.5 text-sm placeholder:text-[var(--ink)]/40 focus:border-[var(--ink)] focus:outline-none"
+                      className="w-full resize-none rounded-xl border-[1.5px] b-line bg-[var(--card)] px-4 py-2.5 text-sm placeholder:t-faint focus:border-[var(--coral)] focus:outline-none"
                     />
                     <input
                       value={form.url}
                       onChange={(e) => setForm((f) => ({ ...f, url: e.target.value }))}
                       placeholder="Link (optional) — https://…"
-                      className="w-full rounded-xl border-[1.5px] border-[var(--ink)]/30 bg-[#fcfbfa]/60 px-4 py-2.5 text-sm placeholder:text-[var(--ink)]/40 focus:border-[var(--ink)] focus:outline-none"
+                      className="w-full rounded-xl border-[1.5px] b-line bg-[var(--card)] px-4 py-2.5 text-sm placeholder:t-faint focus:border-[var(--coral)] focus:outline-none"
                     />
                     {submitMsg && <p className="text-xs font-bold">{submitMsg}</p>}
                     <button
                       onClick={submit}
                       disabled={!form.title.trim() || submitBusy}
-                      className="w-full rounded-full bg-[var(--ink)] py-2.5 text-xs font-bold tracking-widest text-[var(--mint)] transition-opacity disabled:opacity-40"
+                      className="w-full rounded-full bg-[var(--coal)] py-2.5 text-xs font-bold tracking-widest text-[#f3ede3] transition-opacity disabled:opacity-40"
                     >
                       {submitBusy ? 'SUBMITTING…' : 'SEND FOR REVIEW'}
                     </button>
@@ -449,7 +449,7 @@ export default function Vault() {
             ) : (
               <Link
                 to="/login"
-                className="mt-4 block w-full rounded-full border-[1.5px] border-[var(--ink)]/40 py-2.5 text-center text-xs font-bold tracking-widest transition-colors hover:bg-[var(--ink)] hover:text-[var(--mint)]"
+                className="mt-4 block w-full rounded-full border-[1.5px] border-[var(--ink)]/40 py-2.5 text-center text-xs font-bold tracking-widest transition-colors hover:bg-[var(--coal)] hover:text-[#f3ede3]"
               >
                 LOG IN TO SUBMIT
               </Link>
