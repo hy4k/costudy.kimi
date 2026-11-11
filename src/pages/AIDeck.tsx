@@ -742,17 +742,63 @@ function CbqCaseCard({
   );
 }
 
+const GREETING =
+  'Hey — I’m your CMA US mentor. I teach from live syllabus notes and pull a real exam question from the reviewed question bank for every topic — thousands of them across Parts 1 and 2. Ask anything, or tap a drill below.';
+
+const CHAT_KEY = 'costudy-deck-thread';
+const STATS_KEY = 'costudy-deck-stats';
+
+const loadThread = (): Msg[] => {
+  try {
+    const raw = localStorage.getItem(CHAT_KEY);
+    if (raw) {
+      const parsed = JSON.parse(raw) as Msg[];
+      if (Array.isArray(parsed) && parsed.length > 0) return parsed;
+    }
+  } catch {
+    /* corrupted cache — start fresh */
+  }
+  return [{ role: 'ai', text: GREETING }];
+};
+
+const loadStats = (): { asked: number; correct: number } => {
+  try {
+    const raw = localStorage.getItem(STATS_KEY);
+    if (raw) {
+      const parsed = JSON.parse(raw) as { asked?: number; correct?: number };
+      if (typeof parsed?.asked === 'number' && typeof parsed?.correct === 'number') {
+        return { asked: parsed.asked, correct: parsed.correct };
+      }
+    }
+  } catch {
+    /* ignore */
+  }
+  return { asked: 0, correct: 0 };
+};
+
 export default function AIDeck() {
-  const [msgs, setMsgs] = useState<Msg[]>([
-    {
-      role: 'ai',
-      text: 'Hey — I’m your CMA US mentor. I teach from live syllabus notes and pull a real exam question from the reviewed question bank for every topic — thousands of them across Parts 1 and 2. Ask anything, or tap a drill below.',
-    },
-  ]);
+  const [msgs, setMsgs] = useState<Msg[]>(loadThread);
   const [input, setInput] = useState('');
   const [busy, setBusy] = useState(false);
   const [mode, setMode] = useState<'mcq' | 'cbq'>('mcq');
-  const [drillStats, setDrillStats] = useState({ asked: 0, correct: 0 });
+  const [drillStats, setDrillStats] = useState(loadStats);
+
+  // the thread and score survive refreshes — last 24 bubbles only
+  useEffect(() => {
+    try {
+      localStorage.setItem(CHAT_KEY, JSON.stringify(msgs.slice(-24)));
+    } catch {
+      /* storage full — thread just won't persist */
+    }
+  }, [msgs]);
+
+  useEffect(() => {
+    try {
+      localStorage.setItem(STATS_KEY, JSON.stringify(drillStats));
+    } catch {
+      /* ignore */
+    }
+  }, [drillStats]);
   const [cbqCount, setCbqCount] = useState<number | null>(null);
   const [mcqCount, setMcqCount] = useState<number | null>(null);
   const timer = useRef<ReturnType<typeof setInterval> | null>(null);
@@ -971,7 +1017,20 @@ export default function AIDeck() {
                 </div>
               </div>
             ))}
-            {busy && <p className="text-xs t-faint">Mentor is thinking…</p>}
+            {busy && (
+              <p className="flex items-center gap-1.5 text-xs t-faint">
+                Mentor is thinking
+                <span className="inline-flex gap-0.5">
+                  {[0, 1, 2].map((d) => (
+                    <span
+                      key={d}
+                      className="h-1 w-1 animate-bounce rounded-full bg-current"
+                      style={{ animationDelay: `${d * 160}ms` }}
+                    />
+                  ))}
+                </span>
+              </p>
+            )}
           </div>
 
           <div className="border-t b-line p-4">
@@ -1071,6 +1130,20 @@ export default function AIDeck() {
                 </li>
               ))}
             </ul>
+            {drillStats.asked > 0 && (
+              <div className="mt-4">
+                <div className="mb-1.5 flex items-center justify-between text-[0.65rem] font-bold uppercase tracking-widest t-muted">
+                  <span>Accuracy today</span>
+                  <span>{Math.round((drillStats.correct / drillStats.asked) * 100)}%</span>
+                </div>
+                <div className="h-2 overflow-hidden rounded-full bg-[var(--line)]">
+                  <div
+                    className="h-full rounded-full bg-[var(--coral)] transition-[width] duration-700"
+                    style={{ width: `${Math.round((drillStats.correct / drillStats.asked) * 100)}%` }}
+                  />
+                </div>
+              </div>
+            )}
             <p className="mt-4 text-[0.65rem] leading-relaxed t-faint">
               Every question is reviewed and approved before it reaches your deck — nothing random from the internet.
             </p>
