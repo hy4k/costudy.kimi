@@ -52,6 +52,9 @@ const durationDays: Record<string, number> = {
 const inputCls =
   'mt-2 w-full rounded-xl border-[1.5px] b-line bg-[var(--card)] p-4 text-sm t-ink placeholder:t-faint focus:border-[var(--coral)] focus:outline-none';
 
+const initialsOf = (name: string) =>
+  name.split(' ').map((w) => w[0]).filter(Boolean).slice(0, 2).join('').toUpperCase() || 'A';
+
 export default function Contracts() {
   const { profile, ready } = useAuth();
   const [contracts, setContracts] = useState<Contract[]>([]);
@@ -142,6 +145,32 @@ export default function Contracts() {
   useEffect(() => {
     if (ready && profile) load();
   }, [ready, profile, load]);
+
+  // realtime — offers and answers land without a refresh
+  useEffect(() => {
+    if (!profile) return;
+    const channel = supabase
+      .channel('partners-realtime')
+      .on(
+        'postgres_changes',
+        { event: '*', schema: 'public', table: 'alignment_requests', filter: `receiver_id=eq.${profile.id}` },
+        () => {
+          void load();
+        },
+      )
+      .on(
+        'postgres_changes',
+        { event: '*', schema: 'public', table: 'alignment_requests', filter: `sender_id=eq.${profile.id}` },
+        () => {
+          void load();
+        },
+      )
+      .subscribe();
+    return () => {
+      supabase.removeChannel(channel);
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [profile?.id]);
 
   if (!ready || !profile) {
     return (
@@ -383,14 +412,19 @@ export default function Contracts() {
               {incoming.map((r) => (
                 <li key={r.id} className="rounded-[1.2rem] border-[1.5px] border-[var(--coral)]/40 bg-[var(--coral)]/5 p-5">
                   <div className="flex flex-wrap items-center justify-between gap-3">
-                    <div>
-                      <p className="text-sm font-bold t-ink">
-                        {r.counterparty.name} <span className="t-muted">@{r.counterparty.handle}</span>
-                      </p>
-                      <p className="mt-0.5 text-xs font-semibold text-[var(--coral)]">
-                        {r.purpose} · {r.duration}
-                      </p>
-                      {r.note && <p className="mt-1.5 text-xs italic t-muted">&ldquo;{r.note}&rdquo;</p>}
+                    <div className="flex min-w-0 items-start gap-3">
+                      <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-[var(--coral)] font-slab text-xs font-bold text-white">
+                        {initialsOf(r.counterparty.name || 'A')}
+                      </span>
+                      <div className="min-w-0">
+                        <p className="text-sm font-bold t-ink">
+                          {r.counterparty.name} <span className="t-muted">@{r.counterparty.handle}</span>
+                        </p>
+                        <p className="mt-0.5 text-xs font-semibold text-[var(--coral)]">
+                          {r.purpose} · {r.duration}
+                        </p>
+                        {r.note && <p className="mt-1.5 text-xs italic t-muted">&ldquo;{r.note}&rdquo;</p>}
+                      </div>
                     </div>
                     <div className="flex gap-2">
                       <button onClick={() => respond(r, true)} className="rounded-full bg-[var(--coral)] px-4 py-2 text-xs font-bold text-white transition-transform hover:-translate-y-0.5">
@@ -441,18 +475,23 @@ export default function Contracts() {
               {active.map((c) => {
                 const pct = Math.min(100, Math.round(((c.total - c.remaining) / c.total) * 100));
                 return (
-                  <li key={c.id} className="rounded-[1.4rem] border-[1.5px] b-line p-5">
+                  <li key={c.id} className="rounded-[1.4rem] border-[1.5px] b-line p-5 transition-shadow duration-300 hover:shadow-[0_18px_44px_-26px_rgba(23,19,14,0.35)]">
                     <div className="flex items-start justify-between gap-3">
-                      <div className="min-w-0">
-                        <p className="truncate text-base font-bold t-ink">
-                          {c.peer.name} <span className="t-muted">@{c.peer.handle}</span>
-                        </p>
-                        <p className="mt-0.5 text-xs font-semibold text-[var(--coral)]">
-                          {c.purpose} · {c.duration}
-                        </p>
-                        {c.goal && <p className="mt-1.5 text-xs italic t-muted">&ldquo;{c.goal}&rdquo;</p>}
+                      <div className="flex min-w-0 items-start gap-3">
+                        <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-[var(--coal)] font-slab text-xs font-bold text-[#f3ede3]">
+                          {initialsOf(c.peer.name || 'A')}
+                        </span>
+                        <div className="min-w-0">
+                          <p className="truncate text-base font-bold t-ink">
+                            {c.peer.name} <span className="t-muted">@{c.peer.handle}</span>
+                          </p>
+                          <p className="mt-0.5 text-xs font-semibold text-[var(--coral)]">
+                            {c.purpose} · {c.duration}
+                          </p>
+                          {c.goal && <p className="mt-1.5 text-xs italic t-muted">&ldquo;{c.goal}&rdquo;</p>}
+                        </div>
                       </div>
-                      <span className="shrink-0 rounded-full bg-[var(--line)]/60 px-3 py-1 text-xs font-bold t-ink">
+                      <span className="shrink-0 rounded-full bg-[var(--mint)] px-3 py-1 text-xs font-bold text-[var(--ink)]">
                         {c.streak}d streak
                       </span>
                     </div>
@@ -463,7 +502,10 @@ export default function Contracts() {
                         <span>{pct}%</span>
                       </div>
                       <div className="h-2 overflow-hidden rounded-full bg-[var(--line)]">
-                        <div className="h-full rounded-full bg-[var(--coral)]" style={{ width: `${pct}%` }} />
+                        <div
+                          className="h-full rounded-full bg-[var(--coral)] transition-[width] duration-700"
+                          style={{ width: `${pct}%` }}
+                        />
                       </div>
                     </div>
 
