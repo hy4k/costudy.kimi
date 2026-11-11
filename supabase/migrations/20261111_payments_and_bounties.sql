@@ -4,7 +4,8 @@
 alter table public.session_payments
   add column if not exists order_id text,
   add column if not exists costudy_fee numeric default 0,
-  add column if not exists label text;
+  add column if not exists label text,
+  add column if not exists created_at timestamptz default now();
 
 -- Mentor student bounties: a task with a reward, posted by faculty
 create table if not exists public.mentor_bounties (

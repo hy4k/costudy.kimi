@@ -29,7 +29,18 @@ export async function payNow(row: PaymentRow, payerName: string, payerEmail?: st
     body: { payment_id: row.id },
   });
   if (error || !data || data.error) {
-    return `error:${data?.error || error?.message || 'Could not start the payment.'}`;
+    // On non-2xx the body carries our real message — surface it instead of the generic one.
+    let detail = '';
+    const ctx = (error as { context?: Response } | null)?.context;
+    if (ctx && typeof ctx.json === 'function') {
+      try {
+        const body = (await ctx.clone().json()) as { error?: string };
+        detail = body?.error || '';
+      } catch {
+        detail = '';
+      }
+    }
+    return `error:${data?.error || detail || error?.message || 'Could not start the payment.'}`;
   }
 
   const RP = (window as unknown as { Razorpay: new (opts: Record<string, unknown>) => { open: () => void } }).Razorpay;
