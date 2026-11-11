@@ -99,6 +99,26 @@ export default function Mentor() {
     is_active: boolean;
   };
   type StudentRow = { id: string; student_id: string; created_at: string; student?: { name?: string; handle?: string } | null };
+  type BountyRow = {
+    id: string;
+    task: string;
+    reward: number | null;
+    type: string | null;
+    status: string | null;
+    created_at: string;
+  };
+  type ClassroomRow = { room_id: string; role: string | null; room?: { name?: string; topic?: string } | null };
+  type RevenueStat = { paid: number; pending: number; platformCut: number; sessions: number };
+  type StudentDetail = {
+    id: string;
+    name: string;
+    handle: string;
+    streak_days: number | null;
+    total_mocks: number | null;
+    exam_window: string | null;
+    primary_exam: string | null;
+    recent: { id: string; content: string; created_at: string }[];
+  };
   const [invites, setInvites] = useState<HireInvite[]>([]);
   const [courses, setCourses] = useState<CourseRow[]>([]);
   const [students, setStudents] = useState<StudentRow[]>([]);
@@ -107,6 +127,15 @@ export default function Mentor() {
   const [showCourse, setShowCourse] = useState(false);
   const [hireMsg, setHireMsg] = useState<string | null>(null);
   const [hireBusy, setHireBusy] = useState<string | null>(null);
+  // bounties + classrooms + revenue + student deep-dive
+  const [bounties, setBounties] = useState<BountyRow[]>([]);
+  const [bountyForm, setBountyForm] = useState({ task: '', reward: '', type: 'CREDITS' as 'CREDITS' | 'BADGE' });
+  const [bountyBusy, setBountyBusy] = useState(false);
+  const [bountyMsg, setBountyMsg] = useState<string | null>(null);
+  const [classrooms, setClassrooms] = useState<ClassroomRow[]>([]);
+  const [revenue, setRevenue] = useState<RevenueStat>({ paid: 0, pending: 0, platformCut: 0, sessions: 0 });
+  const [studentDetail, setStudentDetail] = useState<StudentDetail | null>(null);
+  const [detailBusy, setDetailBusy] = useState<string | null>(null);
 
   const loadCbq = () => {
     if (!profile) return;
@@ -194,6 +223,50 @@ export default function Mentor() {
             hourly_rate: p.hourly_rate ? String(p.hourly_rate) : '',
           });
         }
+      });
+    supabase
+      .from('mentor_bounties')
+      .select('id, task, reward, type, status, created_at')
+      .eq('teacher_id', profile.id)
+      .order('created_at', { ascending: false })
+      .limit(20)
+      .then(({ data }) => setBounties((data as BountyRow[]) || []));
+    supabase
+      .from('study_room_members')
+      .select('room_id, role, room:study_rooms(name)')
+      .eq('user_id', profile.id)
+      .eq('status', 'ACTIVE')
+      .order('joined_at', { ascending: false })
+      .then(({ data }) => setClassrooms((data as ClassroomRow[]) || []));
+    // revenue: session payments tied to my sessions + my accepted platform cuts
+    supabase
+      .from('study_room_sessions')
+      .select('id')
+      .eq('author_id', profile.id)
+      .then(async ({ data: sessRows }) => {
+        const ids = ((sessRows as { id: string }[]) || []).map((r) => r.id);
+        let paid = 0;
+        let pending = 0;
+        if (ids.length) {
+          const { data: pays } = await supabase
+            .from('session_payments')
+            .select('amount, status')
+            .in('session_id', ids);
+          ((pays as { amount: number | string; status: string | null }[]) || []).forEach((p) => {
+            if (p.status === 'PAID') paid += Number(p.amount) || 0;
+            else pending += Number(p.amount) || 0;
+          });
+        }
+        const { data: accInv } = await supabase
+          .from('mentor_invitations')
+          .select('costudy_fee')
+          .eq('mentor_id', profile.id)
+          .eq('status', 'ACCEPTED');
+        const platformCut = ((accInv as { costudy_fee: number | null }[]) || []).reduce(
+          (sum, r) => sum + (Number(r.costudy_fee) || 0),
+          0,
+        );
+        setRevenue({ paid, pending, platformCut, sessions: ids.length });
       });
   };
 
@@ -295,6 +368,8 @@ export default function Mentor() {
             user_id: inv.inviter_id,
             amount: inv.agreed_fee || 0,
             status: 'PENDING',
+            label: 'Mentorship session',
+            costudy_fee: inv.costudy_fee || 0,
           });
         }
       }
@@ -353,6 +428,68 @@ export default function Mentor() {
     const text = `📚 ${c.title} — ${c.duration_weeks}-week cohort${c.schedule_text ? ` · ${c.schedule_text}` : ''}${c.price > 0 ? ` · ₹${Number(c.price).toLocaleString('en-IN')}` : ' · free'}. Open on the Mentors page.`;
     const { error } = await supabase.from('posts').insert([{ author_id: profile.id, content: text, type: 'RESOURCE', tags: ['#faculty', '#offer'], likes: 0 }]);
     setHireMsg(error ? error.message : `“${c.title}” offered to the wall.`);
+  };
+
+  // ---- bounties / student deep-dive ----------------------------------------
+  const postBounty = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!profile || bountyBusy) return;
+    const task = bountyForm.task.trim();
+    if (!task) return;
+    setBountyBusy(true);
+    setBountyMsg(null);
+    const reward = Number(bountyForm.reward) || 0;
+    const { data: row, error } = await supabase
+      .from('mentor_bounties')
+      .insert({ teacher_id: profile.id, task, reward, type: bountyForm.type, status: 'OPEN' })
+      .select('id, task, reward, type, status, created_at')
+      .single();
+    if (error) {
+      setBountyBusy(false);
+      setBountyMsg(error.message);
+      return;
+    }
+    await supabase.from('posts').insert([
+      {
+        author_id: profile.id,
+        content: `🎯 Bounty: ${task}${reward > 0 ? ` — ${bountyForm.type === 'CREDITS' ? `₹${reward.toLocaleString('en-IN')} credits` : `“${bountyForm.type.toLowerCase()}” badge`} for the best answer` : ''}. Mentors track it in the cockpit.`,
+        type: 'RESOURCE',
+        tags: ['#faculty', '#bounty'],
+        likes: 0,
+      },
+    ]);
+    setBountyBusy(false);
+    setBountyForm({ task: '', reward: '', type: 'CREDITS' });
+    setBounties((cur) => [row as BountyRow, ...cur]);
+    setBountyMsg('Bounty posted — it’s live on the wall and tracked here.');
+  };
+
+  const toggleBounty = async (b: BountyRow) => {
+    const next = (b.status || 'OPEN') === 'OPEN' ? 'CLOSED' : 'OPEN';
+    await supabase.from('mentor_bounties').update({ status: next }).eq('id', b.id);
+    setBounties((cur) => cur.map((x) => (x.id === b.id ? { ...x, status: next } : x)));
+  };
+
+  const openStudentDetail = async (studentId: string) => {
+    if (!profile || detailBusy) return;
+    setDetailBusy(studentId);
+    const [{ data: p }, { data: recent }] = await Promise.all([
+      supabase
+        .from('user_profiles')
+        .select('id, name, handle, streak_days, total_mocks, exam_window, primary_exam')
+        .eq('id', studentId)
+        .single(),
+      supabase
+        .from('posts')
+        .select('id, content, created_at')
+        .eq('author_id', studentId)
+        .order('created_at', { ascending: false })
+        .limit(5),
+    ]);
+    setDetailBusy(null);
+    const prof = p as Omit<StudentDetail, 'recent'> | null;
+    if (!prof) return;
+    setStudentDetail({ ...prof, recent: (recent as StudentDetail['recent']) || [] });
   };
 
   const approve = async (item: QueueItem) => {
@@ -576,6 +713,132 @@ export default function Mentor() {
                 <li className="text-xs t-faint">No requests yet — they arrive here the moment a student hits Hire on your card.</li>
               )}
             </ul>
+          </section>
+
+          {/* student bounties */}
+          <section className="rounded-[1.6rem] border-[1.5px] b-line bg-[var(--card)] p-6 md:p-8">
+            <div className="flex items-center gap-2">
+              <DoodleSpark className="h-5 w-5 t-muted" />
+              <h2 className="slab-display text-2xl t-ink">Student bounties</h2>
+            </div>
+            <p className="mt-2 text-xs leading-relaxed t-faint">
+              Put a prize on a question, a case, or a challenge — the wall hears about it and the best
+              student answer earns the reward.
+            </p>
+            {bountyMsg && (
+              <p className="mt-4 rounded-xl border-[1.5px] border-dashed b-line px-4 py-3 text-xs font-semibold t-muted">{bountyMsg}</p>
+            )}
+            <form onSubmit={postBounty} className="mt-4 space-y-2.5">
+              <input
+                value={bountyForm.task}
+                onChange={(e) => setBountyForm({ ...bountyForm, task: e.target.value })}
+                placeholder="The task — e.g. Build the cleanest variance-analysis walkthrough for Marlow Ltd"
+                className="w-full rounded-xl border-[1.5px] b-line bg-[var(--paper)] px-4 py-3 text-sm t-ink placeholder:t-faint focus:border-[var(--ink)] focus:outline-none"
+              />
+              <div className="flex flex-wrap gap-2">
+                <input
+                  value={bountyForm.reward}
+                  onChange={(e) => setBountyForm({ ...bountyForm, reward: e.target.value })}
+                  type="number"
+                  min="0"
+                  placeholder="Reward (0 = honour only)"
+                  className="w-48 rounded-xl border-[1.5px] b-line bg-[var(--paper)] px-4 py-3 text-sm t-ink placeholder:t-faint focus:border-[var(--ink)] focus:outline-none"
+                />
+                <select
+                  value={bountyForm.type}
+                  onChange={(e) => setBountyForm({ ...bountyForm, type: e.target.value as 'CREDITS' | 'BADGE' })}
+                  className="rounded-xl border-[1.5px] b-line bg-[var(--paper)] px-3 py-3 text-sm t-ink focus:border-[var(--ink)] focus:outline-none"
+                >
+                  <option value="CREDITS">Study credits</option>
+                  <option value="BADGE">Badge</option>
+                </select>
+                <button type="submit" disabled={bountyBusy || !bountyForm.task.trim()} className="pill-btn !px-6 !py-3 text-sm disabled:opacity-40">
+                  {bountyBusy ? 'Posting…' : 'Post bounty'}
+                </button>
+              </div>
+            </form>
+            {bounties.length > 0 && (
+              <ul className="mt-5 space-y-2.5 border-t b-line pt-4">
+                {bounties.map((b) => (
+                  <li key={b.id} className="flex flex-wrap items-center gap-3 text-xs">
+                    <span className="min-w-0 flex-1 font-semibold t-ink">{b.task}</span>
+                    <span className="t-faint">
+                      {b.reward && Number(b.reward) > 0
+                        ? b.type === 'CREDITS'
+                          ? `₹${Number(b.reward).toLocaleString('en-IN')}`
+                          : b.type
+                        : 'honour'}
+                    </span>
+                    <button
+                      onClick={() => toggleBounty(b)}
+                      className={`rounded-full px-3 py-1 text-[0.6rem] font-bold tracking-widest transition-opacity hover:opacity-75 ${
+                        (b.status || 'OPEN') === 'OPEN' ? 'bg-[#e7fec7] text-[#21221f]' : 'b-line t-faint'
+                      }`}
+                    >
+                      {(b.status || 'OPEN') === 'OPEN' ? 'OPEN' : 'CLOSED'}
+                    </button>
+                  </li>
+                ))}
+              </ul>
+            )}
+          </section>
+
+          {/* my classrooms */}
+          <section className="rounded-[1.6rem] border-[1.5px] b-line bg-[var(--card)] p-6 md:p-8">
+            <div className="flex items-center gap-2">
+              <DoodleBook className="h-5 w-5 t-muted" />
+              <h2 className="slab-display text-2xl t-ink">My classrooms</h2>
+            </div>
+            <p className="mt-2 text-xs leading-relaxed t-faint">
+              Every room you teach in — from accepted hire requests and direct invites.
+            </p>
+            {classrooms.length === 0 ? (
+              <p className="mt-4 text-xs t-faint">No rooms yet — accept a hire request and the room appears here.</p>
+            ) : (
+              <ul className="mt-4 grid gap-3 sm:grid-cols-2">
+                {classrooms.map((c) => (
+                  <li key={c.room_id} className="rounded-xl border-[1.5px] b-line p-4">
+                    <p className="text-sm font-bold t-ink">{c.room?.name || 'Study room'}</p>
+                    <p className="mt-1 text-[0.65rem] font-bold tracking-widest t-faint">{(c.role || 'MENTOR').toUpperCase()}</p>
+                    <Link to="/rooms" className="link-underline mt-2 inline-block text-xs font-bold tracking-widest t-ink">
+                      OPEN ROOM →
+                    </Link>
+                  </li>
+                ))}
+              </ul>
+            )}
+          </section>
+
+          {/* revenue */}
+          <section className="rounded-[1.6rem] bg-[#2b2926] p-6 text-[#fcfbfa] md:p-8">
+            <div className="flex items-center gap-2">
+              <DoodleBulb className="h-5 w-5 text-[#e7fec7]" />
+              <h2 className="slab-display text-2xl">Revenue</h2>
+            </div>
+            <p className="mt-2 text-xs leading-relaxed text-[#fcfbfa]/60">
+              Payments on sessions you run. Students pay through Razorpay; the platform fee is yours to track, not to collect.
+            </p>
+            <ul className="mt-5 grid gap-3 sm:grid-cols-2">
+              <li className="rounded-xl bg-[#fcfbfa]/10 p-4">
+                <p className="text-[0.65rem] font-bold tracking-widest text-[#e7fec7]">COLLECTED</p>
+                <p className="slab-display mt-1 text-2xl">₹{revenue.paid.toLocaleString('en-IN')}</p>
+              </li>
+              <li className="rounded-xl bg-[#fcfbfa]/10 p-4">
+                <p className="text-[0.65rem] font-bold tracking-widest text-[#e7fec7]">AWAITING PAYMENT</p>
+                <p className="slab-display mt-1 text-2xl">₹{revenue.pending.toLocaleString('en-IN')}</p>
+              </li>
+              <li className="rounded-xl bg-[#fcfbfa]/10 p-4">
+                <p className="text-[0.65rem] font-bold tracking-widest text-[#e7fec7]">CO STUDY FEE (PLATFORM)</p>
+                <p className="slab-display mt-1 text-2xl">₹{revenue.platformCut.toLocaleString('en-IN')}</p>
+              </li>
+              <li className="rounded-xl bg-[#fcfbfa]/10 p-4">
+                <p className="text-[0.65rem] font-bold tracking-widest text-[#e7fec7]">SESSIONS LED</p>
+                <p className="slab-display mt-1 text-2xl">{revenue.sessions}</p>
+              </li>
+            </ul>
+            <p className="mt-4 text-[0.65rem] text-[#fcfbfa]/50">
+              Numbers update as students complete Razorpay checkouts — pending flips to collected on payment.
+            </p>
           </section>
 
           {/* courses */}
@@ -958,9 +1221,42 @@ export default function Mentor() {
             </div>
             <ul className="mt-4 space-y-2.5">
               {students.map((s) => (
-                <li key={s.id} className="flex items-center justify-between text-sm">
-                  <span className="font-semibold t-ink">{s.student?.name || 'Student'}</span>
-                  <span className="text-[0.65rem] t-faint">joined {relTime(s.created_at)}</span>
+                <li key={s.id} className="text-sm">
+                  <button
+                    onClick={() => openStudentDetail(s.student_id)}
+                    disabled={detailBusy === s.student_id}
+                    className="flex w-full items-center justify-between rounded-lg px-2 py-1.5 text-left transition-colors hover:bg-[var(--paper)] disabled:opacity-50"
+                  >
+                    <span className="font-semibold t-ink">{s.student?.name || 'Student'}</span>
+                    <span className="text-[0.65rem] t-faint">{detailBusy === s.student_id ? 'loading…' : `joined ${relTime(s.created_at)}`}</span>
+                  </button>
+                  {studentDetail?.id === s.student_id && (
+                    <div className="mt-1.5 rounded-xl border-[1.5px] border-dashed b-line p-3.5 text-xs">
+                      <p className="font-bold t-ink">
+                        {studentDetail.name} <span className="t-faint">@{studentDetail.handle}</span>
+                      </p>
+                      <ul className="mt-2.5 space-y-1.5 t-muted">
+                        <li className="flex justify-between gap-3"><span>Study streak</span><span className="font-bold t-ink">{studentDetail.streak_days ?? 0} days</span></li>
+                        <li className="flex justify-between gap-3"><span>Mocks taken</span><span className="font-bold t-ink">{studentDetail.total_mocks ?? 0}</span></li>
+                        <li className="flex justify-between gap-3"><span>Exam window</span><span className="font-bold t-ink">{studentDetail.exam_window || 'not set'}</span></li>
+                        <li className="flex justify-between gap-3"><span>Exam</span><span className="font-bold t-ink">{studentDetail.primary_exam || '—'}</span></li>
+                      </ul>
+                      {studentDetail.recent.length > 0 && (
+                        <div className="mt-3 border-t b-line pt-2.5">
+                          <p className="text-[0.6rem] font-bold tracking-widest t-faint">RECENT WALL POSTS</p>
+                          {studentDetail.recent.map((r) => (
+                            <p key={r.id} className="mt-1.5 line-clamp-2 t-muted">“{r.content}”</p>
+                          ))}
+                        </div>
+                      )}
+                      <button
+                        onClick={() => setStudentDetail(null)}
+                        className="mt-3 text-[0.6rem] font-bold tracking-widest t-faint transition-colors hover:text-[#ea4467]"
+                      >
+                        CLOSE
+                      </button>
+                    </div>
+                  )}
                 </li>
               ))}
               {students.length === 0 && (

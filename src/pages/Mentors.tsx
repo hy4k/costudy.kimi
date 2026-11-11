@@ -3,6 +3,7 @@ import { Link } from 'react-router';
 import AppShell from '@/components/app/AppShell';
 import { DoodleBook, DoodleBulb, DoodleSpark } from '@/components/Doodles';
 import { useAuth } from '@/lib/authStore';
+import { payNow } from '@/lib/payments';
 import { supabase } from '@/lib/supabase';
 
 type MentorRow = {
@@ -30,6 +31,16 @@ type Course = {
 
 type MyRoom = { id: string; name: string };
 
+type PaymentRow = {
+  id: string;
+  amount: number;
+  status: string | null;
+  label: string | null;
+  costudy_fee: number | null;
+  paid_at: string | null;
+  created_at: string;
+};
+
 const initials = (n?: string | null) =>
   (n || 'M').split(' ').map((w) => w[0]).filter(Boolean).slice(0, 2).join('').toUpperCase();
 
@@ -44,6 +55,23 @@ export default function Mentors() {
   const [hire, setHire] = useState({ roomId: '', date: '', time: '', note: '' });
   const [busy, setBusy] = useState(false);
   const [note, setNote] = useState<string | null>(null);
+  const [payments, setPayments] = useState<PaymentRow[]>([]);
+  const [paying, setPaying] = useState<string | null>(null);
+
+  const loadPayments = () => {
+    if (!profile) return;
+    supabase
+      .from('session_payments')
+      .select('id, amount, status, label, costudy_fee, paid_at, created_at')
+      .eq('user_id', profile.id)
+      .order('created_at', { ascending: false })
+      .limit(10)
+      .then(({ data }) => setPayments((data as PaymentRow[]) || []));
+  };
+
+  useEffect(() => {
+    loadPayments();
+  }, [profile]);
 
   useEffect(() => {
     supabase
@@ -118,6 +146,19 @@ export default function Mentors() {
     setHire({ roomId: '', date: '', time: '', note: '' });
   };
 
+  const handlePay = async (row: PaymentRow) => {
+    if (!profile) return;
+    setPaying(row.id);
+    const result = await payNow(row, profile.name || 'CoStudy student');
+    setPaying(null);
+    if (result === 'paid') {
+      setNote('Payment confirmed — receipt marked paid. The mentor sees it in their Revenue panel.');
+      loadPayments();
+    } else if (result !== 'dismissed') {
+      setNote(result.replace(/^error:/, ''));
+    }
+  };
+
   const enroll = async (c: Course) => {
     if (!profile) return;
     setBusy(true);
@@ -130,6 +171,8 @@ export default function Mentors() {
       user_id: profile.id,
       amount: c.price,
       status: 'PENDING',
+      label: `Course: ${c.title}`,
+      costudy_fee: Math.ceil(Number(c.price) * 0.2),
     });
     setBusy(false);
     if (e1 || e2) {
@@ -265,6 +308,51 @@ export default function Mentors() {
               </p>
             )}
           </div>
+
+          {/* my payments */}
+          {payments.length > 0 && (
+            <section className="mt-10">
+              <h2 className="slab-display text-xl t-ink">Your payments</h2>
+              <p className="mt-1 text-xs t-faint">Mentor sessions and course fees — pay securely through Razorpay.</p>
+              <div className="mt-4 space-y-2.5">
+                {payments.map((p) => (
+                  <div
+                    key={p.id}
+                    className="flex flex-wrap items-center gap-3 rounded-2xl border-[1.5px] b-line bg-[var(--card)] px-5 py-4"
+                  >
+                    <div className="min-w-0 flex-1">
+                      <p className="truncate text-sm font-semibold t-ink">{p.label || 'Mentor payment'}</p>
+                      <p className="text-[0.65rem] t-faint">
+                        {new Date(p.created_at).toLocaleDateString('en-IN', { day: 'numeric', month: 'short' })}
+                        {p.paid_at
+                          ? ` · paid ${new Date(p.paid_at).toLocaleDateString('en-IN', { day: 'numeric', month: 'short' })}`
+                          : ''}
+                      </p>
+                    </div>
+                    <span className="slab-display text-lg t-ink">₹{Number(p.amount).toLocaleString('en-IN')}</span>
+                    <span
+                      className={`rounded-full px-3 py-1 text-[0.6rem] font-bold tracking-widest ${
+                        p.status === 'PAID'
+                          ? 'bg-[#e7fec7] text-[#21221f]'
+                          : 'border-[1.5px] border-dashed b-line t-muted'
+                      }`}
+                    >
+                      {p.status === 'PAID' ? 'PAID' : 'PENDING'}
+                    </span>
+                    {p.status !== 'PAID' && (
+                      <button
+                        onClick={() => handlePay(p)}
+                        disabled={paying === p.id}
+                        className="rounded-full bg-[var(--coral)] px-4 py-2 text-[0.65rem] font-bold text-white transition-opacity hover:opacity-85 disabled:opacity-40"
+                      >
+                        {paying === p.id ? 'Opening…' : 'Pay now'}
+                      </button>
+                    )}
+                  </div>
+                ))}
+              </div>
+            </section>
+          )}
 
           <p className="mt-8 flex items-center gap-2 text-[0.65rem] t-faint">
             <DoodleSpark className="h-3.5 w-3.5" />
