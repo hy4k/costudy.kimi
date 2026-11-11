@@ -9,7 +9,11 @@ type Stroke = {
   points: [number, number][]; // normalized 0..1 so every screen draws the same
 };
 
-const INKS = ['var(--ink)', 'var(--coral)', '#2f6fed', '#6f9c3e'];
+const INKS = ['#1b1710', 'var(--coral)', '#2f6fed', '#6f9c3e'];
+
+/* legacy strokes persisted with the theme-dependent ink resolve to literal dark */
+const normalizeStrokes = (arr: Stroke[] | undefined): Stroke[] =>
+  (arr || []).map((s) => (s.color === 'var(--ink)' ? { ...s, color: '#1b1710' } : s));
 
 export default function RoomWhiteboard({ roomId }: { roomId: string }) {
   const [strokes, setStrokes] = useState<Stroke[]>([]);
@@ -30,7 +34,7 @@ export default function RoomWhiteboard({ roomId }: { roomId: string }) {
       .maybeSingle()
       .then(({ data }) => {
         if (cancelled || !data) return;
-        setStrokes((data as { strokes: Stroke[] }).strokes || []);
+        setStrokes(normalizeStrokes((data as { strokes: Stroke[] }).strokes));
       });
     return () => {
       cancelled = true;
@@ -48,7 +52,7 @@ export default function RoomWhiteboard({ roomId }: { roomId: string }) {
           const row = payload.new as { strokes?: Stroke[]; updated_at?: string };
           if (!row?.strokes) return;
           if (row.updated_at && row.updated_at === lastWrite.current) return; // own echo
-          setStrokes(row.strokes);
+          setStrokes(normalizeStrokes(row.strokes));
         },
       )
       .subscribe();
@@ -75,6 +79,8 @@ export default function RoomWhiteboard({ roomId }: { roomId: string }) {
     if (!ctx) return;
     ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
     ctx.clearRect(0, 0, w, h);
+    ctx.fillStyle = '#ffffff';
+    ctx.fillRect(0, 0, w, h);
     const all = drawing.current ? [...strokes, drawing.current] : strokes;
     for (const s of all) {
       if (s.points.length < 2) {
@@ -161,7 +167,7 @@ export default function RoomWhiteboard({ roomId }: { roomId: string }) {
               onClick={() => setInk(c)}
               aria-label={`Ink ${c}`}
               className={`h-6 w-6 rounded-full border-2 transition-transform ${
-                ink === c ? 'scale-110 border-[var(--ink)]' : 'border-transparent'
+                ink === c ? 'scale-110 border-neutral-500' : 'border-transparent'
               }`}
               style={{ backgroundColor: c }}
             />
@@ -175,7 +181,11 @@ export default function RoomWhiteboard({ roomId }: { roomId: string }) {
           </button>
         </div>
       </div>
-      <div ref={wrapRef} className="relative flex-1" style={{ minHeight: '46vh' }}>
+      <div
+        ref={wrapRef}
+        className="relative flex-1 bg-white shadow-[inset_0_0_0_1.5px_rgba(23,19,14,0.14)]"
+        style={{ minHeight: '46vh' }}
+      >
         <canvas
           ref={canvasRef}
           onPointerDown={down}
@@ -185,7 +195,7 @@ export default function RoomWhiteboard({ roomId }: { roomId: string }) {
           className="absolute inset-0 cursor-crosshair touch-none"
         />
         {strokes.length === 0 && (
-          <p className="pointer-events-none absolute inset-0 flex items-center justify-center text-center text-xs font-semibold t-faint">
+          <p className="pointer-events-none absolute inset-0 flex items-center justify-center px-6 text-center text-xs font-semibold text-neutral-400">
             Sketch a formula, a framework, a plan — everyone at a desk sees it live.
           </p>
         )}

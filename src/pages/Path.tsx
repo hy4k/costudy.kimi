@@ -65,6 +65,8 @@ export default function Path() {
   }, [profile?.id]);
 
   const latest = attempts[0]?.scaled_score ?? null;
+  const prev = attempts[1]?.scaled_score ?? null;
+  const delta = latest != null && prev != null ? latest - prev : null;
   const passMark = attempts[0]?.pass_threshold ?? 360;
   const pct = latest != null ? Math.min(100, Math.round((latest / 500) * 100)) : null;
   const countdown = examWindow ? approxCountdown(examWindow) : null;
@@ -112,20 +114,25 @@ export default function Path() {
                     inGreen ? 'Hold the line — consistency wins the exam.' : 'A few focused weeks of sprints closes the gap.'
                   }`}
             </p>
+            {delta != null && (
+              <p className="mt-4 text-xs font-bold tracking-widest text-[var(--coral)]">
+                {delta >= 0 ? '▲' : '▼'} {Math.abs(delta)} PTS VS PREVIOUS MOCK
+              </p>
+            )}
           </div>
         </section>
 
         {/* countdown */}
-        <section className="flex flex-wrap items-center justify-between gap-6 rounded-[2rem] bg-[#2b2926] px-8 py-7 text-[#fcfbfa] md:px-10">
+        <section className="flex flex-wrap items-center justify-between gap-6 rounded-[2rem] bg-[#1b1710] px-8 py-7 text-[#f3ede3] shadow-[0_18px_44px_-26px_rgba(23,19,14,0.55)] md:px-10">
           <div>
-            <p className="eyebrow opacity-60">Exam window</p>
+            <p className="eyebrow text-[#f3ede3]/60">Exam window</p>
             <p className="slab-display mt-1 text-xl md:text-2xl">
               {examWindow || 'Set your target'}
             </p>
           </div>
           <div className="text-right">
             {countdown != null ? (
-              <p className="slab-display text-5xl text-[var(--mint)]">
+              <p className="slab-display text-5xl text-[#dcf5b0]">
                 {countdown}<span className="text-xl"> days</span>
               </p>
             ) : (
