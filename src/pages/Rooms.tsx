@@ -233,6 +233,17 @@ export default function Rooms() {
             loadPresence(rows.map((r) => r.id));
           });
       })
+      .on('postgres_changes', { event: 'DELETE', schema: 'public', table: 'study_rooms' }, (payload) => {
+        // a closed cluster disappears everywhere instantly
+        const gone = (payload.old as { id?: string } | null)?.id;
+        if (!gone) return;
+        setLiveRooms((cur) => cur.filter((r) => r.id !== gone));
+        setPresence((cur) => {
+          const next = { ...cur };
+          delete next[gone];
+          return next;
+        });
+      })
       .subscribe();
     return () => {
       supabase.removeChannel(channel);
