@@ -205,13 +205,13 @@ export default function Mentors() {
               </div>
               <div className="mt-4 grid gap-4 lg:grid-cols-2">
                 {courses.map((c) => (
-                  <article key={c.id} className="flex flex-col justify-between rounded-[1.4rem] bg-[#e7fec7] p-6 text-[#21221f]">
+                  <article key={c.id} className="flex flex-col justify-between rounded-[1.4rem] bg-[var(--mint)] p-6 text-[var(--ink)]">
                     <div>
                       <p className="eyebrow opacity-70">{c.mentor?.name || 'Faculty'} · {c.duration_weeks} weeks · {c.max_students} seats</p>
                       <h3 className="slab-display mt-2 text-xl leading-snug">{c.title}</h3>
                       {c.description && <p className="mt-2 text-sm leading-relaxed opacity-75">{c.description}</p>}
                       {c.schedule_text && (
-                        <p className="mt-3 inline-block rounded-full bg-[#21221f] px-3 py-1 text-[0.65rem] font-bold tracking-wide text-[#e7fec7]">
+                        <p className="mt-3 inline-block rounded-full bg-[var(--ink)] px-3 py-1 text-[0.65rem] font-bold tracking-wide text-[var(--mint)]">
                           {c.schedule_text}
                         </p>
                       )}
@@ -221,7 +221,7 @@ export default function Mentors() {
                       <button
                         onClick={() => enroll(c)}
                         disabled={busy || profile.role === 'TEACHER'}
-                        className="rounded-full bg-[#21221f] px-5 py-2.5 text-xs font-bold text-[#e7fec7] transition-opacity hover:opacity-85 disabled:opacity-40"
+                        className="rounded-full bg-[var(--ink)] px-5 py-2.5 text-xs font-bold text-[var(--mint)] transition-opacity hover:opacity-85 disabled:opacity-40"
                       >
                         Enroll
                       </button>
@@ -245,7 +245,7 @@ export default function Mentors() {
                 key={p}
                 onClick={() => setPart(p)}
                 className={`rounded-full border-[1.5px] px-4 py-2 text-xs font-bold tracking-wide transition-colors ${
-                  part === p ? 'border-[#ea4467] bg-[#ea4467] text-white' : 'b-line t-muted hover:t-ink'
+                  part === p ? 'border-[var(--coral)] bg-[var(--coral)] text-white' : 'b-line t-muted hover:t-ink'
                 }`}
               >
                 {p === 'ALL' ? 'ALL' : p.toUpperCase()}
@@ -263,14 +263,14 @@ export default function Mentors() {
               <article key={m.id} className="flex min-h-[220px] flex-col justify-between rounded-[1.4rem] border-[1.5px] b-line bg-[var(--card)] p-6">
                 <div>
                   <div className="flex items-center gap-3">
-                    <span className="flex h-12 w-12 items-center justify-center rounded-full bg-[#21221f] font-slab text-sm font-bold text-[#e7fec7]">
+                    <span className="flex h-12 w-12 items-center justify-center rounded-full bg-[var(--ink)] font-slab text-sm font-bold text-[var(--mint)]">
                       {initials(m.name)}
                     </span>
                     <div>
                       <h3 className="slab-display text-lg leading-snug t-ink">{m.name || 'Faculty mentor'}</h3>
                       <p className="text-xs t-faint">@{m.handle}</p>
                     </div>
-                    <span className="ml-auto rounded-full bg-[#e7fec7] px-3 py-1 text-[0.6rem] font-bold tracking-widest text-[#21221f]">
+                    <span className="ml-auto rounded-full bg-[var(--mint)] px-3 py-1 text-[0.6rem] font-bold tracking-widest text-[var(--ink)]">
                       {m.years_experience ? `${m.years_experience} YRS` : 'MENTOR'}
                     </span>
                   </div>
@@ -333,7 +333,7 @@ export default function Mentors() {
                     <span
                       className={`rounded-full px-3 py-1 text-[0.6rem] font-bold tracking-widest ${
                         p.status === 'PAID'
-                          ? 'bg-[#e7fec7] text-[#21221f]'
+                          ? 'bg-[var(--mint)] text-[var(--ink)]'
                           : 'border-[1.5px] border-dashed b-line t-muted'
                       }`}
                     >
@@ -364,7 +364,7 @@ export default function Mentors() {
       {/* hire modal */}
       {hireFor && (
         <div
-          className="fixed inset-0 z-50 flex items-center justify-center bg-[#21221f]/60 p-4 backdrop-blur-sm"
+          className="fixed inset-0 z-50 flex items-center justify-center bg-[var(--ink)]/60 p-4 backdrop-blur-sm"
           onClick={() => setHireFor(null)}
         >
           <div
@@ -372,7 +372,7 @@ export default function Mentors() {
             onClick={(e) => e.stopPropagation()}
           >
             <div className="flex items-center gap-3">
-              <span className="flex h-11 w-11 items-center justify-center rounded-full bg-[#21221f] font-slab text-xs font-bold text-[#e7fec7]">
+              <span className="flex h-11 w-11 items-center justify-center rounded-full bg-[var(--ink)] font-slab text-xs font-bold text-[var(--mint)]">
                 {initials(hireFor.name)}
               </span>
               <div>

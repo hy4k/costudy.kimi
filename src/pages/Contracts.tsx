@@ -270,7 +270,7 @@ export default function Contracts() {
       {/* why contracts */}
       <section className="mb-8 flex flex-wrap items-center justify-between gap-4 rounded-[1.8rem] border-[1.5px] b-line bg-[var(--card)] p-7 md:p-9">
         <div className="max-w-2xl">
-          <p className="eyebrow text-[#ea4467]">Privacy by design</p>
+          <p className="eyebrow text-[var(--coral)]">Privacy by design</p>
           <p className="slab-display mt-2 text-2xl t-ink md:text-3xl">
             A contract, not a follower count.
           </p>
@@ -302,15 +302,15 @@ export default function Contracts() {
                   className={inputCls}
                   placeholder="@nightowl_mumbai"
                 />
-                <button onClick={lookup} className="shrink-0 rounded-xl bg-[#21221f] px-5 text-sm font-bold text-[#fcfbfa] transition-transform hover:-translate-y-0.5">
+                <button onClick={lookup} className="shrink-0 rounded-xl bg-[var(--ink)] px-5 text-sm font-bold text-[#fcfbfa] transition-transform hover:-translate-y-0.5">
                   Find
                 </button>
               </div>
-              {lookupMsg && <p className="mt-2 text-sm font-semibold text-[#ea4467]">{lookupMsg}</p>}
+              {lookupMsg && <p className="mt-2 text-sm font-semibold text-[var(--coral)]">{lookupMsg}</p>}
               {foundPeer && (
-                <div className="mt-3 flex items-center justify-between gap-3 rounded-[1.2rem] bg-[#e7fec7] p-4">
+                <div className="mt-3 flex items-center justify-between gap-3 rounded-[1.2rem] bg-[var(--mint)] p-4">
                   <span className="flex min-w-0 items-center gap-3">
-                    <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-[#21221f] font-slab text-xs font-bold text-white">
+                    <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-[var(--ink)] font-slab text-xs font-bold text-white">
                       {(foundPeer.name || '?').split(' ').map((w) => w[0]).slice(0, 2).join('').toUpperCase()}
                     </span>
                     <span className="min-w-0">
@@ -366,7 +366,7 @@ export default function Contracts() {
             <div className="flex items-center justify-between">
               <p className="eyebrow t-faint">Inbox</p>
               {incoming.length > 0 && (
-                <span className="rounded-full bg-[#ea4467] px-2.5 py-0.5 text-[0.6rem] font-bold uppercase tracking-widest text-white">
+                <span className="rounded-full bg-[var(--coral)] px-2.5 py-0.5 text-[0.6rem] font-bold uppercase tracking-widest text-white">
                   {incoming.length} waiting
                 </span>
               )}
@@ -381,19 +381,19 @@ export default function Contracts() {
 
             <ul className="mt-4 space-y-3">
               {incoming.map((r) => (
-                <li key={r.id} className="rounded-[1.2rem] border-[1.5px] border-[#ea4467]/40 bg-[#ea4467]/5 p-5">
+                <li key={r.id} className="rounded-[1.2rem] border-[1.5px] border-[var(--coral)]/40 bg-[var(--coral)]/5 p-5">
                   <div className="flex flex-wrap items-center justify-between gap-3">
                     <div>
                       <p className="text-sm font-bold t-ink">
                         {r.counterparty.name} <span className="t-muted">@{r.counterparty.handle}</span>
                       </p>
-                      <p className="mt-0.5 text-xs font-semibold text-[#ea4467]">
+                      <p className="mt-0.5 text-xs font-semibold text-[var(--coral)]">
                         {r.purpose} · {r.duration}
                       </p>
                       {r.note && <p className="mt-1.5 text-xs italic t-muted">&ldquo;{r.note}&rdquo;</p>}
                     </div>
                     <div className="flex gap-2">
-                      <button onClick={() => respond(r, true)} className="rounded-full bg-[#ea4467] px-4 py-2 text-xs font-bold text-white transition-transform hover:-translate-y-0.5">
+                      <button onClick={() => respond(r, true)} className="rounded-full bg-[var(--coral)] px-4 py-2 text-xs font-bold text-white transition-transform hover:-translate-y-0.5">
                         Accept
                       </button>
                       <button onClick={() => respond(r, false)} className="rounded-full border-[1.5px] b-line px-4 py-2 text-xs font-bold t-muted hover:t-ink">
@@ -425,7 +425,7 @@ export default function Contracts() {
           <section className="rounded-[1.8rem] border-[1.5px] b-line bg-[var(--card)] p-7 md:p-9">
             <div className="flex items-center justify-between">
               <p className="eyebrow t-faint">Active contracts</p>
-              <span className="rounded-full bg-[#e7fec7] px-3 py-1 text-[0.65rem] font-bold uppercase tracking-[0.16em] text-[#4a7a2e]">
+              <span className="rounded-full bg-[var(--mint)] px-3 py-1 text-[0.65rem] font-bold uppercase tracking-[0.16em] text-[#4a7a2e]">
                 {active.length} live
               </span>
             </div>
@@ -447,7 +447,7 @@ export default function Contracts() {
                         <p className="truncate text-base font-bold t-ink">
                           {c.peer.name} <span className="t-muted">@{c.peer.handle}</span>
                         </p>
-                        <p className="mt-0.5 text-xs font-semibold text-[#ea4467]">
+                        <p className="mt-0.5 text-xs font-semibold text-[var(--coral)]">
                           {c.purpose} · {c.duration}
                         </p>
                         {c.goal && <p className="mt-1.5 text-xs italic t-muted">&ldquo;{c.goal}&rdquo;</p>}
@@ -463,12 +463,12 @@ export default function Contracts() {
                         <span>{pct}%</span>
                       </div>
                       <div className="h-2 overflow-hidden rounded-full bg-[var(--line)]">
-                        <div className="h-full rounded-full bg-[#ea4467]" style={{ width: `${pct}%` }} />
+                        <div className="h-full rounded-full bg-[var(--coral)]" style={{ width: `${pct}%` }} />
                       </div>
                     </div>
 
                     <div className="mt-4 flex flex-wrap gap-2">
-                      <button onClick={() => checkIn(c)} className="rounded-full bg-[#21221f] px-4 py-2 text-xs font-bold text-[#fcfbfa] transition-transform hover:-translate-y-0.5">
+                      <button onClick={() => checkIn(c)} className="rounded-full bg-[var(--ink)] px-4 py-2 text-xs font-bold text-[#fcfbfa] transition-transform hover:-translate-y-0.5">
                         Check in today
                       </button>
                       <Link to="/rooms" className="rounded-full border-[1.5px] b-line px-4 py-2 text-xs font-bold t-muted hover:t-ink">
@@ -477,7 +477,7 @@ export default function Contracts() {
                       <button onClick={() => renew(c)} className="rounded-full border-[1.5px] b-line px-4 py-2 text-xs font-bold t-muted hover:t-ink">
                         Propose renewal
                       </button>
-                      <button onClick={() => endEarly(c)} className="ml-auto rounded-full px-4 py-2 text-xs font-bold text-[#ea4467]/70 hover:text-[#ea4467]">
+                      <button onClick={() => endEarly(c)} className="ml-auto rounded-full px-4 py-2 text-xs font-bold text-[var(--coral)]/70 hover:text-[var(--coral)]">
                         End early
                       </button>
                     </div>
@@ -495,7 +495,7 @@ export default function Contracts() {
                       <span className="t-muted">
                         {c.peer.name} · {c.purpose} · ended {c.remaining === 0 ? 'on schedule' : ''}
                       </span>
-                      <button onClick={() => renew(c)} className="font-bold text-[#ea4467] hover:underline">
+                      <button onClick={() => renew(c)} className="font-bold text-[var(--coral)] hover:underline">
                         Renew
                       </button>
                     </li>
@@ -506,9 +506,9 @@ export default function Contracts() {
           </section>
 
           {/* growth: invite */}
-          <section className="relative overflow-hidden rounded-[1.8rem] bg-[#21221f] p-7 text-[#fcfbfa] md:p-9">
+          <section className="relative overflow-hidden rounded-[1.8rem] bg-[var(--ink)] p-7 text-[#fcfbfa] md:p-9">
             <DoodleSpark className="pointer-events-none absolute -right-4 -top-4 w-28 rotate-12 text-[#fcfbfa]/10" />
-            <p className="eyebrow text-[#ea4467]">Grow the circle</p>
+            <p className="eyebrow text-[var(--coral)]">Grow the circle</p>
             <h2 className="slab-display mt-2 text-2xl">Contracts work best with friends.</h2>
             <p className="mt-3 max-w-md text-sm leading-relaxed text-[#fcfbfa]/70">
               Invite a study buddy from your college or coaching class. When they

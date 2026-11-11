@@ -293,7 +293,7 @@ export default function RoomPlan({ roomId, meId }: { roomId: string; meId: strin
         </div>
 
         {/* room goal */}
-        <div className="rounded-2xl bg-[#21221f] p-5 text-[#e7fec7]">
+        <div className="rounded-2xl bg-[var(--ink)] p-5 text-[var(--mint)]">
           <div className="flex items-center justify-between">
             <p className="eyebrow flex items-center gap-1.5 opacity-60">
               <DoodleBulb className="h-3.5 w-3.5" /> Room goal
@@ -307,9 +307,9 @@ export default function RoomPlan({ roomId, meId }: { roomId: string; meId: strin
           {mission ? (
             <>
               <p className="slab-display mt-2 text-lg leading-snug">{mission.title}</p>
-              <div className="mt-3 h-2 overflow-hidden rounded-full bg-[#e7fec7]/20">
+              <div className="mt-3 h-2 overflow-hidden rounded-full bg-[var(--mint)]/20">
                 <div
-                  className="h-full rounded-full bg-[#e7fec7] transition-[width] duration-700"
+                  className="h-full rounded-full bg-[var(--mint)] transition-[width] duration-700"
                   style={{ width: `${Math.min(100, (mission.current_value / Math.max(1, mission.target_value)) * 100)}%` }}
                 />
               </div>
@@ -322,10 +322,10 @@ export default function RoomPlan({ roomId, meId }: { roomId: string; meId: strin
               <p className="text-xs leading-relaxed opacity-70">No active goal — set one and chase it together.</p>
               {showGoal ? (
                 <form onSubmit={addGoal} className="mt-3 space-y-2">
-                  <input value={goalForm.title} onChange={(e) => setGoalForm({ ...goalForm, title: e.target.value })} placeholder="e.g. 500 MCQs before the window closes" className="w-full rounded-xl border-[1.5px] border-[#e7fec7]/30 bg-transparent px-4 py-2.5 text-sm placeholder:text-[#e7fec7]/40 focus:border-[#e7fec7] focus:outline-none" />
+                  <input value={goalForm.title} onChange={(e) => setGoalForm({ ...goalForm, title: e.target.value })} placeholder="e.g. 500 MCQs before the window closes" className="w-full rounded-xl border-[1.5px] border-[var(--mint)]/30 bg-transparent px-4 py-2.5 text-sm placeholder:text-[var(--mint)]/40 focus:border-[var(--mint)] focus:outline-none" />
                   <div className="flex gap-2">
-                    <input value={goalForm.target} onChange={(e) => setGoalForm({ ...goalForm, target: e.target.value })} type="number" min="1" className="w-28 rounded-xl border-[1.5px] border-[#e7fec7]/30 bg-transparent px-4 py-2.5 text-sm focus:border-[#e7fec7] focus:outline-none" />
-                    <button type="submit" className="rounded-full bg-[#e7fec7] px-5 py-2.5 text-xs font-bold text-[#21221f] hover:opacity-85">
+                    <input value={goalForm.target} onChange={(e) => setGoalForm({ ...goalForm, target: e.target.value })} type="number" min="1" className="w-28 rounded-xl border-[1.5px] border-[var(--mint)]/30 bg-transparent px-4 py-2.5 text-sm focus:border-[var(--mint)] focus:outline-none" />
+                    <button type="submit" className="rounded-full bg-[var(--mint)] px-5 py-2.5 text-xs font-bold text-[var(--ink)] hover:opacity-85">
                       Set goal
                     </button>
                     <button type="button" onClick={() => setShowGoal(false)} className="rounded-full px-3 py-2.5 text-xs font-bold opacity-60 hover:opacity-100">
@@ -334,7 +334,7 @@ export default function RoomPlan({ roomId, meId }: { roomId: string; meId: strin
                   </div>
                 </form>
               ) : (
-                <button onClick={() => setShowGoal(true)} className="mt-3 rounded-full border-[1.5px] border-[#e7fec7]/40 px-4 py-2 text-[0.65rem] font-bold tracking-wide hover:bg-[#e7fec7]/10">
+                <button onClick={() => setShowGoal(true)} className="mt-3 rounded-full border-[1.5px] border-[var(--mint)]/40 px-4 py-2 text-[0.65rem] font-bold tracking-wide hover:bg-[var(--mint)]/10">
                   + Set a goal
                 </button>
               )}

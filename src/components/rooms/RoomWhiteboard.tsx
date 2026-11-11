@@ -9,7 +9,7 @@ type Stroke = {
   points: [number, number][]; // normalized 0..1 so every screen draws the same
 };
 
-const INKS = ['#21221f', '#ea4467', '#2f6fed', '#6f9c3e'];
+const INKS = ['var(--ink)', 'var(--coral)', '#2f6fed', '#6f9c3e'];
 
 export default function RoomWhiteboard({ roomId }: { roomId: string }) {
   const [strokes, setStrokes] = useState<Stroke[]>([]);

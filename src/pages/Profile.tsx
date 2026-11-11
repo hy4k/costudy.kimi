@@ -198,7 +198,7 @@ export default function Profile() {
     .join('')
     .toUpperCase();
 
-  const accent = isTeacher ? '#6f9c3e' : '#ea4467';
+  const accent = isTeacher ? '#6f9c3e' : 'var(--coral)';
 
   const pickFile = () => editing && fileRef.current?.click();
   const onFile = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -264,7 +264,7 @@ export default function Profile() {
 
       {/* identity card */}
       <section className="relative overflow-hidden rounded-[1.8rem] border-[1.5px] b-line bg-[var(--card)] p-8 md:p-12">
-        <DoodleSpark className="pointer-events-none absolute -right-4 -top-4 w-28 rotate-12 text-[#ea4467]/10" />
+        <DoodleSpark className="pointer-events-none absolute -right-4 -top-4 w-28 rotate-12 text-[var(--coral)]/10" />
         <div className="flex flex-col items-start gap-8 md:flex-row md:items-center md:gap-12">
           <button
             onClick={pickFile}
@@ -314,7 +314,7 @@ export default function Profile() {
                 {raw?.primary_exam || profile.examFocus}
               </span>
               {raw?.tier && (
-                <span className="rounded-full bg-[#e7fec7] px-3 py-1 text-[0.6rem] font-bold uppercase tracking-[0.16em] text-[#21221f]">
+                <span className="rounded-full bg-[var(--mint)] px-3 py-1 text-[0.6rem] font-bold uppercase tracking-[0.16em] text-[var(--ink)]">
                   {raw.tier} tier
                 </span>
               )}
@@ -352,7 +352,7 @@ export default function Profile() {
                   </button>
                   <button
                     onClick={logout}
-                    className="rounded-full border-[1.5px] b-line px-6 py-3 text-sm font-bold t-muted transition-colors hover:border-[#ea4467] hover:text-[#ea4467]"
+                    className="rounded-full border-[1.5px] b-line px-6 py-3 text-sm font-bold t-muted transition-colors hover:border-[var(--coral)] hover:text-[var(--coral)]"
                   >
                     Sign out
                   </button>
@@ -414,12 +414,12 @@ export default function Profile() {
                   <div className="flex shrink-0 items-center gap-3">
                     <span className="slab-display text-xl t-ink">{m.score}</span>
                     {m.passed === true && (
-                      <span className="rounded-full bg-[#e7fec7] px-2.5 py-1 text-[0.6rem] font-bold uppercase tracking-widest text-[#4a7a2e]">
+                      <span className="rounded-full bg-[var(--mint)] px-2.5 py-1 text-[0.6rem] font-bold uppercase tracking-widest text-[#4a7a2e]">
                         Pass
                       </span>
                     )}
                     {m.passed === false && (
-                      <span className="rounded-full bg-[#ea4467]/10 px-2.5 py-1 text-[0.6rem] font-bold uppercase tracking-widest text-[#ea4467]">
+                      <span className="rounded-full bg-[var(--coral)]/10 px-2.5 py-1 text-[0.6rem] font-bold uppercase tracking-widest text-[var(--coral)]">
                         Retry
                       </span>
                     )}
@@ -573,7 +573,7 @@ export default function Profile() {
           )}
 
           {error && (
-            <p className="rounded-xl border-[1.5px] border-[#ea4467] bg-[#ea4467]/10 px-4 py-3 text-sm font-semibold t-ink">
+            <p className="rounded-xl border-[1.5px] border-[var(--coral)] bg-[var(--coral)]/10 px-4 py-3 text-sm font-semibold t-ink">
               {error}
             </p>
           )}

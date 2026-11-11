@@ -423,7 +423,7 @@ export default function RoomInterior({
         {/* side rail */}
         <div className="space-y-6 p-6">
           {/* timer */}
-          <div className="rounded-2xl bg-[#21221f] p-5 text-[#e7fec7]">
+          <div className="rounded-2xl bg-[var(--ink)] p-5 text-[var(--mint)]">
             <div className="flex items-baseline justify-between">
               <span className="eyebrow flex items-center gap-1.5 opacity-60">
                 <DoodleClock className="h-3.5 w-3.5" /> Shared sprint

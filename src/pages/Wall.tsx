@@ -66,14 +66,14 @@ const mapDbComment = (row: DbComment): WallComment => {
 };
 
 const typeMeta: Record<PostType, { label: string; tone: string; ink: string }> = {
-  QUESTION: { label: 'QUESTION', tone: '#ea4467', ink: '#ffffff' },
-  RESOURCE: { label: 'RESOURCE', tone: '#c6b3a2', ink: '#21221f' },
-  MCQ: { label: 'MCQ SHARE', tone: '#d9e6f3', ink: '#21221f' },
-  AUDIT: { label: 'PEER AUDIT', tone: '#e7fec7', ink: '#21221f' },
+  QUESTION: { label: 'QUESTION', tone: 'var(--coral)', ink: '#ffffff' },
+  RESOURCE: { label: 'RESOURCE', tone: '#c6b3a2', ink: 'var(--ink)' },
+  MCQ: { label: 'MCQ SHARE', tone: '#d9e6f3', ink: 'var(--ink)' },
+  AUDIT: { label: 'PEER AUDIT', tone: 'var(--mint)', ink: 'var(--ink)' },
   BOUNTY: { label: 'BOUNTY', tone: '#2b2926', ink: '#fcfbfa' },
-  DISCUSS: { label: 'DISCUSSION', tone: '#ea4467', ink: '#ffffff' },
-  EVENT: { label: 'EVENT', tone: '#f3f1ee', ink: '#21221f' },
-  GOAL: { label: 'GOAL', tone: '#e7fec7', ink: '#21221f' },
+  DISCUSS: { label: 'DISCUSSION', tone: 'var(--coral)', ink: '#ffffff' },
+  EVENT: { label: 'EVENT', tone: '#f3f1ee', ink: 'var(--ink)' },
+  GOAL: { label: 'GOAL', tone: 'var(--mint)', ink: 'var(--ink)' },
 };
 
 const initialsOf = (name: string) =>
@@ -312,19 +312,19 @@ export default function Wall() {
       {/* composer — deliberately set apart from the three columns */}
       {profile ? (
         <section className="relative mb-8 overflow-hidden rounded-[1.6rem] bg-[#2b2926] p-6 text-[#fcfbfa] md:p-8">
-          <DoodleSpark className="pointer-events-none absolute -right-6 -top-6 h-28 w-28 text-[#e7fec7]/15" />
+          <DoodleSpark className="pointer-events-none absolute -right-6 -top-6 h-28 w-28 text-[var(--mint)]/15" />
           <div className="flex items-center gap-2">
-            <DoodleSpark className="h-5 w-5 text-[#e7fec7]" />
-            <p className="eyebrow text-[#e7fec7]">Broadcast to the wall</p>
+            <DoodleSpark className="h-5 w-5 text-[var(--mint)]" />
+            <p className="eyebrow text-[var(--mint)]">Broadcast to the wall</p>
           </div>
           <textarea
             value={draft}
             onChange={(e) => setDraft(e.target.value)}
             rows={2}
             placeholder={profile.role === 'TEACHER' ? 'Drop a note, bounty or correction for the whole campus…' : 'What strategic insight have you learned today?'}
-            className="mt-4 w-full resize-none rounded-xl border-[1.5px] border-[#fcfbfa]/25 bg-[#fcfbfa]/10 p-4 text-sm text-[#fcfbfa] placeholder:text-[#fcfbfa]/50 focus:border-[#e7fec7] focus:outline-none"
+            className="mt-4 w-full resize-none rounded-xl border-[1.5px] border-[#fcfbfa]/25 bg-[#fcfbfa]/10 p-4 text-sm text-[#fcfbfa] placeholder:text-[#fcfbfa]/50 focus:border-[var(--mint)] focus:outline-none"
           />
-          {pubError && <p className="mt-3 rounded-lg bg-[#ea4467]/25 px-3 py-2 text-xs font-semibold">{pubError}</p>}
+          {pubError && <p className="mt-3 rounded-lg bg-[var(--coral)]/25 px-3 py-2 text-xs font-semibold">{pubError}</p>}
           <div className="mt-4 flex flex-wrap items-center justify-between gap-3">
             <div className="flex flex-wrap gap-2">
               {(Object.keys(typeMeta) as PostType[])
@@ -345,7 +345,7 @@ export default function Wall() {
             <button
               onClick={publish}
               disabled={!draft.trim() || publishing}
-              className="rounded-full bg-[#e7fec7] px-5 py-2.5 text-sm font-bold text-[#21221f] transition-opacity disabled:opacity-40"
+              className="rounded-full bg-[var(--mint)] px-5 py-2.5 text-sm font-bold text-[var(--ink)] transition-opacity disabled:opacity-40"
             >
               {publishing ? 'Broadcasting…' : 'Broadcast'}
             </button>
@@ -378,7 +378,7 @@ export default function Wall() {
                   <div className="flex items-start gap-3">
                     <span
                       className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full font-slab text-sm font-bold text-white"
-                      style={{ backgroundColor: p.role === 'TEACHER' ? '#2b2926' : '#ea4467' }}
+                      style={{ backgroundColor: p.role === 'TEACHER' ? '#2b2926' : 'var(--coral)' }}
                     >
                       {p.initials}
                     </span>
@@ -419,9 +419,9 @@ export default function Wall() {
                                   className={`rounded-lg border-[1.5px] px-3 py-2 text-left text-xs font-semibold transition-all duration-300 ${
                                     revealed
                                       ? isRight
-                                        ? 'border-[#6f9c3e] bg-[#e7fec7] text-[#21221f]'
+                                        ? 'border-[#6f9c3e] bg-[var(--mint)] text-[var(--ink)]'
                                         : isPick
-                                          ? 'border-[#ea4467] bg-[#ea4467]/10 t-ink'
+                                          ? 'border-[var(--coral)] bg-[var(--coral)]/10 t-ink'
                                           : 'b-line t-faint'
                                       : 'b-line t-ink hover:border-[var(--ink)]'
                                   }`}
@@ -443,7 +443,7 @@ export default function Wall() {
                       {/* tags + actions */}
                       <div className="mt-4 flex flex-wrap items-center gap-2">
                         {p.tags.map((t) => (
-                          <span key={t} className="text-xs font-semibold text-[#ea4467]">
+                          <span key={t} className="text-xs font-semibold text-[var(--coral)]">
                             {t}
                           </span>
                         ))}
@@ -451,7 +451,7 @@ export default function Wall() {
                           <button
                             onClick={() => toggleLike(p)}
                             className={`flex items-center gap-1.5 rounded-full border-[1.5px] px-3 py-1.5 text-xs font-bold transition-all duration-300 ${
-                              p.liked ? 'border-[#ea4467] bg-[#ea4467] text-white' : 'b-line t-muted hover:t-ink'
+                              p.liked ? 'border-[var(--coral)] bg-[var(--coral)] text-white' : 'b-line t-muted hover:t-ink'
                             }`}
                             aria-pressed={p.liked}
                           >
@@ -493,7 +493,7 @@ export default function Wall() {
                             <ul className="space-y-3">
                               {threads[p.id].items.map((c) => (
                                 <li key={c.id} className="flex items-start gap-2.5">
-                                  <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-[#c6b3a2] font-slab text-[0.65rem] font-bold text-[#21221f]">
+                                  <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-[#c6b3a2] font-slab text-[0.65rem] font-bold text-[var(--ink)]">
                                     {c.initials}
                                   </span>
                                   <div className="min-w-0">
@@ -524,14 +524,14 @@ export default function Wall() {
                               <button
                                 onClick={() => publishComment(p.id)}
                                 disabled={!(commentDrafts[p.id] || '').trim() || commentBusy === p.id}
-                                className="rounded-full bg-[#ea4467] px-4 py-2 text-xs font-bold text-white transition-opacity disabled:opacity-40"
+                                className="rounded-full bg-[var(--coral)] px-4 py-2 text-xs font-bold text-white transition-opacity disabled:opacity-40"
                               >
                                 {commentBusy === p.id ? '…' : 'Reply'}
                               </button>
                             </div>
                           ) : (
                             <p className="mt-4 border-t b-line pt-4 text-xs t-faint">
-                              <Link to="/login" className="font-bold text-[#ea4467]">Log in</Link> to join the thread.
+                              <Link to="/login" className="font-bold text-[var(--coral)]">Log in</Link> to join the thread.
                             </p>
                           )}
                         </div>
@@ -555,7 +555,7 @@ export default function Wall() {
                 <DoodleBubble className="h-5 w-5 t-muted" />
                 <h2 className="slab-display text-xl t-ink">Radar+</h2>
               </div>
-              <span className={`rounded-full px-2.5 py-0.5 text-[0.65rem] font-bold tracking-widest ${radar.length > 0 ? 'bg-[#e7fec7] text-[#21221f]' : 'b-line t-faint'}`}>
+              <span className={`rounded-full px-2.5 py-0.5 text-[0.65rem] font-bold tracking-widest ${radar.length > 0 ? 'bg-[var(--mint)] text-[var(--ink)]' : 'b-line t-faint'}`}>
                 {radar.length} tracked
               </span>
             </div>
@@ -570,7 +570,7 @@ export default function Wall() {
                     <p className="line-clamp-2 text-xs font-medium leading-snug t-ink">{p.body}</p>
                     <div className="mt-1.5 flex items-center justify-between">
                       <p className="text-[0.65rem] font-bold tracking-widest t-faint">{typeMeta[p.type].label} · {p.author}</p>
-                      <button onClick={() => toggleRadar(p)} className="text-[0.65rem] font-bold tracking-widest t-faint hover:text-[#ea4467]">
+                      <button onClick={() => toggleRadar(p)} className="text-[0.65rem] font-bold tracking-widest t-faint hover:text-[var(--coral)]">
                         RELEASE
                       </button>
                     </div>

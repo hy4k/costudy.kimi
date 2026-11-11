@@ -3,11 +3,11 @@ import { supabase } from '@/lib/supabase';
 import type { Profile } from '@/lib/authStore';
 
 const tones = [
-  ['#ea4467', '#ffffff'],
-  ['#c6b3a2', '#21221f'],
-  ['#e7fec7', '#21221f'],
-  ['#d9e6f3', '#21221f'],
-  ['#f3f1ee', '#21221f'],
+  ['var(--coral)', '#ffffff'],
+  ['#c6b3a2', 'var(--ink)'],
+  ['var(--mint)', 'var(--ink)'],
+  ['#d9e6f3', 'var(--ink)'],
+  ['#f3f1ee', 'var(--ink)'],
   ['#2b2926', '#fcfbfa'],
 ] as const;
 
@@ -204,7 +204,7 @@ export default function CreateRoomModal({
         </div>
 
         {error && (
-          <p className="mt-4 rounded-xl border-[1.5px] border-[#ea4467] bg-[#ea4467]/10 px-4 py-3 text-xs font-semibold t-ink">
+          <p className="mt-4 rounded-xl border-[1.5px] border-[var(--coral)] bg-[var(--coral)]/10 px-4 py-3 text-xs font-semibold t-ink">
             {error}
           </p>
         )}

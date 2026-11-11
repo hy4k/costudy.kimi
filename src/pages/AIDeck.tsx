@@ -254,8 +254,8 @@ function DrillCard({
           const isPicked = picked === letter;
           let cls = 'border-transparent bg-[var(--paper)] shadow-[inset_0_0_0_1.5px_var(--line)] hover:border-[var(--ink)]';
           if (picked) {
-            if (isCorrect) cls = 'border-transparent bg-[#e7fec7] text-[#21221f]';
-            else if (isPicked) cls = 'border-transparent bg-[#ea4467]/15 text-[#ea4467] shadow-[inset_0_0_0_1.5px_#ea4467]';
+            if (isCorrect) cls = 'border-transparent bg-[var(--mint)] text-[var(--ink)]';
+            else if (isPicked) cls = 'border-transparent bg-[var(--coral)]/15 text-[var(--coral)] shadow-[inset_0_0_0_1.5px_var(--coral)]';
             else cls = 'border-transparent bg-[var(--paper)] opacity-50 shadow-[inset_0_0_0_1.5px_var(--line)]';
           }
           return (
@@ -282,7 +282,7 @@ function DrillCard({
             {picked === q.correct_answer ? (
               <span className="text-[#5a7d1f]">Correct — bank answer is {q.correct_answer}.</span>
             ) : (
-              <span className="text-[#ea4467]">
+              <span className="text-[var(--coral)]">
                 Not quite — the bank marks {q.correct_answer}: {q.options[q.correct_answer]}
               </span>
             )}
@@ -380,7 +380,7 @@ function TaskWidget({
         {checked ? (
           <span className="text-[#5a7d1f]">Correct.</span>
         ) : (
-          <span className="text-[#ea4467]">Not quite — the bank says: {gotLabel}</span>
+          <span className="text-[var(--coral)]">Not quite — the bank says: {gotLabel}</span>
         )}
       </p>
       {task.explanation && (
@@ -403,8 +403,8 @@ function TaskWidget({
           const isPicked = picked === letter;
           let cls = 'border-transparent bg-[var(--paper)] shadow-[inset_0_0_0_1.5px_var(--line)] hover:border-[var(--ink)]';
           if (picked) {
-            if (isCorrect) cls = 'border-transparent bg-[#e7fec7] text-[#21221f]';
-            else if (isPicked) cls = 'border-transparent bg-[#ea4467]/15 text-[#ea4467] shadow-[inset_0_0_0_1.5px_#ea4467]';
+            if (isCorrect) cls = 'border-transparent bg-[var(--mint)] text-[var(--ink)]';
+            else if (isPicked) cls = 'border-transparent bg-[var(--coral)]/15 text-[var(--coral)] shadow-[inset_0_0_0_1.5px_var(--coral)]';
             else cls = 'border-transparent bg-[var(--paper)] opacity-50 shadow-[inset_0_0_0_1.5px_var(--line)]';
           }
           return (
@@ -446,9 +446,9 @@ function TaskWidget({
                     ? 'border-[var(--ink)] bg-[var(--paper)]'
                     : 'border-transparent bg-[var(--paper)] opacity-70 shadow-[inset_0_0_0_1.5px_var(--line)] hover:border-[var(--ink)]'
                   : wantIdx.includes(i)
-                    ? 'border-transparent bg-[#e7fec7] text-[#21221f]'
+                    ? 'border-transparent bg-[var(--mint)] text-[var(--ink)]'
                     : on
-                      ? 'border-transparent bg-[#ea4467]/15 text-[#ea4467] shadow-[inset_0_0_0_1.5px_#ea4467]'
+                      ? 'border-transparent bg-[var(--coral)]/15 text-[var(--coral)] shadow-[inset_0_0_0_1.5px_var(--coral)]'
                       : 'border-transparent bg-[var(--paper)] opacity-50 shadow-[inset_0_0_0_1.5px_var(--line)]'
               }`}
             >
@@ -528,8 +528,8 @@ function TaskWidget({
                 checked === null
                   ? 'b-line bg-[var(--paper)]'
                   : listVals[i] === want[i]
-                    ? 'border-transparent bg-[#e7fec7] text-[#21221f]'
-                    : 'border-transparent bg-[#ea4467]/15 text-[#ea4467]'
+                    ? 'border-transparent bg-[var(--mint)] text-[var(--ink)]'
+                    : 'border-transparent bg-[var(--coral)]/15 text-[var(--coral)]'
               }`}
             >
               <option value="">Select…</option>
@@ -572,8 +572,8 @@ function TaskWidget({
                 checked === null
                   ? 'b-line bg-[var(--paper)]'
                   : place[it.id] === want[it.id]
-                    ? 'border-transparent bg-[#e7fec7] text-[#21221f]'
-                    : 'border-transparent bg-[#ea4467]/15 text-[#ea4467]'
+                    ? 'border-transparent bg-[var(--mint)] text-[var(--ink)]'
+                    : 'border-transparent bg-[var(--coral)]/15 text-[var(--coral)]'
               }`}
             >
               <option value="">Classify…</option>
@@ -635,7 +635,7 @@ function CbqCaseCard({
   return (
     <div className="mt-4 overflow-hidden rounded-2xl bg-[var(--card)] shadow-[inset_0_0_0_1.5px_var(--line)]">
       {/* the case itself — visually distinct from the chat bubble */}
-      <div className="border-l-4 border-[#ea4467] bg-[var(--paper)] p-4">
+      <div className="border-l-4 border-[var(--coral)] bg-[var(--paper)] p-4">
         <p className="text-[0.6rem] font-bold uppercase tracking-[0.2em] t-faint">
           CBQ case · {draw.case.part}
           {draw.case.section ? ` · ${draw.case.section}` : ''}
@@ -896,9 +896,9 @@ export default function AIDeck() {
         {/* chat */}
         <section className="flex flex-col overflow-hidden rounded-[1.6rem] border-[1.5px] b-line bg-[var(--card)]">
           <div className="flex items-center gap-3 border-b b-line px-6 py-4">
-            <span className="relative flex h-9 w-9 items-center justify-center rounded-full bg-[#e7fec7] text-[#21221f]">
+            <span className="relative flex h-9 w-9 items-center justify-center rounded-full bg-[var(--mint)] text-[var(--ink)]">
               <DoodleBulb className="h-5 w-5" />
-              <span className="absolute -right-0.5 -top-0.5 h-2.5 w-2.5 rounded-full bg-[#ea4467]" />
+              <span className="absolute -right-0.5 -top-0.5 h-2.5 w-2.5 rounded-full bg-[var(--coral)]" />
             </span>
             <div>
               <p className="text-sm font-bold leading-tight t-ink">CoStudy AI Mentor</p>
@@ -923,7 +923,7 @@ export default function AIDeck() {
                   CBQ case{cbqCount !== null ? ` · ${cbqCount}` : ''}
                 </button>
               </div>
-              <span className="rounded-full bg-[#e7fec7] px-3 py-1 text-xs font-bold text-[#21221f]">
+              <span className="rounded-full bg-[var(--mint)] px-3 py-1 text-xs font-bold text-[var(--ink)]">
                 {mcqCount !== null ? `${mcqCount.toLocaleString()} exam questions ready` : 'Full CMA US bank'}
               </span>
             </div>
@@ -935,7 +935,7 @@ export default function AIDeck() {
                 <div
                   className={`max-w-[85%] rounded-2xl px-5 py-3.5 text-sm leading-relaxed ${
                     m.role === 'user'
-                      ? 'rounded-br-md bg-[#ea4467] text-white'
+                      ? 'rounded-br-md bg-[var(--coral)] text-white'
                       : 'rounded-bl-md bg-[var(--paper)] t-ink shadow-[inset_0_0_0_1.5px_var(--line)]'
                   }`}
                 >
@@ -990,7 +990,7 @@ export default function AIDeck() {
                 <button
                   onClick={() => send('Summarise my pinned resources')}
                   disabled={busy}
-                  className="rounded-full border-[1.5px] border-[#ea4467] bg-[#ea4467]/10 px-3.5 py-1.5 text-xs font-semibold text-[#ea4467] transition-colors hover:bg-[#ea4467] hover:text-white disabled:opacity-40"
+                  className="rounded-full border-[1.5px] border-[var(--coral)] bg-[var(--coral)]/10 px-3.5 py-1.5 text-xs font-semibold text-[var(--coral)] transition-colors hover:bg-[var(--coral)] hover:text-white disabled:opacity-40"
                 >
                   ✦ Summarise my {pins.length} pinned
                 </button>
@@ -1018,7 +1018,7 @@ export default function AIDeck() {
 
         {/* deck rail */}
         <aside className="space-y-4">
-          <div className="rounded-[1.6rem] bg-[#ea4467] p-6 text-white">
+          <div className="rounded-[1.6rem] bg-[var(--coral)] p-6 text-white">
             <p className="eyebrow opacity-70">Deck building</p>
             <h2 className="slab-display mt-2 text-2xl">Every answer ships with a real exam question.</h2>
             <p className="mt-3 text-sm leading-relaxed opacity-85">
@@ -1030,7 +1030,7 @@ export default function AIDeck() {
             <div className="rounded-[1.6rem] border-[1.5px] b-line bg-[var(--card)] p-6">
               <div className="mb-4 flex items-center justify-between">
                 <p className="eyebrow t-faint">Pinned from the vault</p>
-                <span className="rounded-full bg-[#e7fec7] px-2.5 py-0.5 text-[0.65rem] font-bold text-[#21221f]">
+                <span className="rounded-full bg-[var(--mint)] px-2.5 py-0.5 text-[0.65rem] font-bold text-[var(--ink)]">
                   {pins.length}
                 </span>
               </div>
@@ -1039,14 +1039,14 @@ export default function AIDeck() {
                   <li key={p.id} className="flex items-center gap-2.5 rounded-xl bg-[var(--paper)] p-2.5 shadow-[inset_0_0_0_1.5px_var(--line)]">
                     <span
                       className="shrink-0 rounded-full px-2 py-0.5 text-[0.55rem] font-bold tracking-widest"
-                      style={{ backgroundColor: p.tone, color: '#21221f' }}
+                      style={{ backgroundColor: p.tone, color: 'var(--ink)' }}
                     >
                       {p.kind.split(' ')[0]}
                     </span>
                     <span className="min-w-0 flex-1 truncate text-xs font-semibold t-ink">{p.title}</span>
                     <button
                       onClick={() => togglePin(p)}
-                      className="text-xs font-bold t-faint transition-colors hover:text-[#ea4467]"
+                      className="text-xs font-bold t-faint transition-colors hover:text-[var(--coral)]"
                       aria-label={`Unpin ${p.title}`}
                     >
                       ✕

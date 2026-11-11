@@ -55,17 +55,17 @@ type PresenceRow = { name: string; userId: string; isYou: boolean; fresh: boolea
 type Membership = { status: string; role: string };
 
 const palette: [string, string][] = [
-  ['#ea4467', '#ffffff'],
-  ['#c6b3a2', '#21221f'],
-  ['#e7fec7', '#21221f'],
-  ['#d9e6f3', '#21221f'],
-  ['#f3f1ee', '#21221f'],
+  ['var(--coral)', '#ffffff'],
+  ['#c6b3a2', 'var(--ink)'],
+  ['var(--mint)', 'var(--ink)'],
+  ['#d9e6f3', 'var(--ink)'],
+  ['#f3f1ee', 'var(--ink)'],
   ['#2b2926', '#fcfbfa'],
 ];
 
 const toneFor = (room: DbRoom, index: number): [string, string] => {
   const theme = (room.color_theme || '').trim();
-  if (theme.startsWith('#')) return [theme, theme === '#2b2926' ? '#fcfbfa' : '#21221f'];
+  if (theme.startsWith('#')) return [theme, theme === '#2b2926' ? '#fcfbfa' : 'var(--ink)'];
   return palette[index % palette.length];
 };
 
@@ -74,11 +74,11 @@ const initialsOf = (name: string) =>
 
 /* Starter clusters — shown only until live rooms exist. */
 const seed: Room[] = [
-  { id: 'seed-1', name: 'Ethics & Governance — morning grind', topic: 'Part 1 · Ethics', category: 'Ethics', tags: ['#part1'], tone: '#ea4467', ink: '#ffffff', maxMembers: 8, isLive: true, streak: 12 },
-  { id: 'seed-2', name: 'Variance Analysis deep dive', topic: 'Part 1 · Performance Mgmt', category: 'Performance Management', tags: ['#part1'], tone: '#c6b3a2', ink: '#21221f', maxMembers: 8, isLive: true, streak: 7 },
-  { id: 'seed-3', name: 'Internal Controls flash sprint', topic: 'Part 1 · Controls', category: 'Internal Controls', tags: ['#part1'], tone: '#e7fec7', ink: '#21221f', maxMembers: 8, isLive: false, streak: 3 },
-  { id: 'seed-4', name: 'Corporate Finance quiet room', topic: 'Part 2 · Corp Finance', category: 'Corporate Finance', tags: ['#part2'], tone: '#d9e6f3', ink: '#21221f', maxMembers: 8, isLive: true, streak: 21 },
-  { id: 'seed-5', name: 'Decision Analysis whiteboard club', topic: 'Part 2 · Decision Analysis', category: 'Decision Analysis', tags: ['#part2'], tone: '#f3f1ee', ink: '#21221f', maxMembers: 8, isLive: true, streak: 5 },
+  { id: 'seed-1', name: 'Ethics & Governance — morning grind', topic: 'Part 1 · Ethics', category: 'Ethics', tags: ['#part1'], tone: 'var(--coral)', ink: '#ffffff', maxMembers: 8, isLive: true, streak: 12 },
+  { id: 'seed-2', name: 'Variance Analysis deep dive', topic: 'Part 1 · Performance Mgmt', category: 'Performance Management', tags: ['#part1'], tone: '#c6b3a2', ink: 'var(--ink)', maxMembers: 8, isLive: true, streak: 7 },
+  { id: 'seed-3', name: 'Internal Controls flash sprint', topic: 'Part 1 · Controls', category: 'Internal Controls', tags: ['#part1'], tone: 'var(--mint)', ink: 'var(--ink)', maxMembers: 8, isLive: false, streak: 3 },
+  { id: 'seed-4', name: 'Corporate Finance quiet room', topic: 'Part 2 · Corp Finance', category: 'Corporate Finance', tags: ['#part2'], tone: '#d9e6f3', ink: 'var(--ink)', maxMembers: 8, isLive: true, streak: 21 },
+  { id: 'seed-5', name: 'Decision Analysis whiteboard club', topic: 'Part 2 · Decision Analysis', category: 'Decision Analysis', tags: ['#part2'], tone: '#f3f1ee', ink: 'var(--ink)', maxMembers: 8, isLive: true, streak: 5 },
   { id: 'seed-6', name: 'Final-review war room (P1+P2)', topic: 'Mixed · Mock season', category: 'Mock Season', tags: ['#mixed'], tone: '#2b2926', ink: '#fcfbfa', maxMembers: 10, isLive: true, streak: 30 },
 ];
 
@@ -321,8 +321,8 @@ export default function Rooms() {
                 topic: row.topic || row.category || 'Open cluster',
                 category: row.category,
                 tags: row.tags || [],
-                tone: (row.color_theme || '').startsWith('#') ? (row.color_theme as string) : '#ea4467',
-                ink: row.color_theme === '#2b2926' ? '#fcfbfa' : '#21221f',
+                tone: (row.color_theme || '').startsWith('#') ? (row.color_theme as string) : 'var(--coral)',
+                ink: row.color_theme === '#2b2926' ? '#fcfbfa' : 'var(--ink)',
                 maxMembers: row.max_members || 8,
                 isLive: row.is_live ?? true,
                 streak: row.cluster_streak,
@@ -408,7 +408,7 @@ export default function Rooms() {
       ) : (
         <>
       {/* my desk — sprint stays local; the faces are real presence */}
-      <section className="mb-10 grid gap-6 rounded-[1.8rem] bg-[#e7fec7] p-7 text-[#21221f] md:grid-cols-[1.2fr_1fr] md:p-10" aria-label="Your desk">
+      <section className="mb-10 grid gap-6 rounded-[1.8rem] bg-[var(--mint)] p-7 text-[var(--ink)] md:grid-cols-[1.2fr_1fr] md:p-10" aria-label="Your desk">
         <div>
           <p className="eyebrow opacity-70">Your desk</p>
           <h2 className="slab-display mt-2 text-2xl md:text-3xl">
@@ -419,8 +419,8 @@ export default function Rooms() {
               <span
                 key={`${p.name}-${i}`}
                 title={`${p.name} · ${p.fresh ? 'in the room now' : 'away'}`}
-                className={`flex h-9 w-9 items-center justify-center rounded-full border-2 border-[#e7fec7] font-slab text-xs font-bold ${
-                  p.isYou ? 'bg-[#ea4467] text-white' : p.fresh ? 'bg-[#21221f] text-[#e7fec7]' : 'bg-[#6f9c3e]/60 text-[#e7fec7]'
+                className={`flex h-9 w-9 items-center justify-center rounded-full border-2 border-[var(--mint)] font-slab text-xs font-bold ${
+                  p.isYou ? 'bg-[var(--coral)] text-white' : p.fresh ? 'bg-[var(--ink)] text-[var(--mint)]' : 'bg-[#6f9c3e]/60 text-[var(--mint)]'
                 }`}
                 style={{ marginLeft: i ? -12 : 0 }}
               >
@@ -441,13 +441,13 @@ export default function Rooms() {
             <button onClick={() => setRunning((r) => !r)} className="pill-btn">
               {running ? 'Pause sprint' : 'Start sprint'}
             </button>
-            <span className="pill-btn pill-btn--ghost !border-[#21221f] !text-[#21221f] hover:!bg-[#21221f] hover:!text-[#e7fec7]">
+            <span className="pill-btn pill-btn--ghost !border-[var(--ink)] !text-[var(--ink)] hover:!bg-[var(--ink)] hover:!text-[var(--mint)]">
               <DoodleHeadphones className="h-4 w-4" />
               Room muted · presence only
             </span>
           </div>
         </div>
-        <div className="flex flex-col justify-between rounded-2xl bg-[#21221f] p-6 text-[#e7fec7]">
+        <div className="flex flex-col justify-between rounded-2xl bg-[var(--ink)] p-6 text-[var(--mint)]">
           <div className="flex items-baseline justify-between">
             <span className="eyebrow opacity-60">Shared timer</span>
             <span className="text-xs font-semibold opacity-60">{Math.round(progress * 100)}%</span>
@@ -455,9 +455,9 @@ export default function Rooms() {
           <p className="slab-display my-4 text-center text-6xl tabular-nums md:text-7xl">
             {mm}:{ss}
           </p>
-          <div className="h-2 overflow-hidden rounded-full bg-[#e7fec7]/20">
+          <div className="h-2 overflow-hidden rounded-full bg-[var(--mint)]/20">
             <div
-              className="h-full rounded-full bg-[#e7fec7] transition-[width] duration-1000 ease-linear"
+              className="h-full rounded-full bg-[var(--mint)] transition-[width] duration-1000 ease-linear"
               style={{ width: `${progress * 100}%` }}
             />
           </div>
@@ -470,7 +470,7 @@ export default function Rooms() {
       </section>
 
       {roomError && (
-        <p className="mb-6 rounded-xl border-[1.5px] border-[#ea4467] bg-[#ea4467]/10 px-4 py-3 text-xs font-semibold t-ink">
+        <p className="mb-6 rounded-xl border-[1.5px] border-[var(--coral)] bg-[var(--coral)]/10 px-4 py-3 text-xs font-semibold t-ink">
           {roomError}
         </p>
       )}
@@ -503,7 +503,7 @@ export default function Rooms() {
               key={c}
               onClick={() => setCat(c)}
               className={`rounded-full border-[1.5px] px-4 py-2 text-xs font-bold tracking-wide transition-colors ${
-                cat === c ? 'border-[#ea4467] bg-[#ea4467] text-white' : 'b-line t-muted hover:t-ink'
+                cat === c ? 'border-[var(--coral)] bg-[var(--coral)] text-white' : 'b-line t-muted hover:t-ink'
               }`}
             >
               {c === 'ALL' ? 'ALL' : c.toUpperCase()}

@@ -125,13 +125,13 @@ export default function Path() {
           </div>
           <div className="text-right">
             {countdown != null ? (
-              <p className="slab-display text-5xl text-[#e7fec7]">
+              <p className="slab-display text-5xl text-[var(--mint)]">
                 {countdown}<span className="text-xl"> days</span>
               </p>
             ) : (
               <Link
                 to="/profile"
-                className="rounded-full bg-[#e7fec7] px-5 py-2.5 text-xs font-bold tracking-wide text-[#21221f] transition-opacity hover:opacity-85"
+                className="rounded-full bg-[var(--mint)] px-5 py-2.5 text-xs font-bold tracking-wide text-[var(--ink)] transition-opacity hover:opacity-85"
               >
                 Add exam date
               </Link>

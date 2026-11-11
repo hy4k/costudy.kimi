@@ -620,23 +620,23 @@ export default function Mentor() {
           {/* broadcast composer */}
           <section className="rounded-[1.6rem] bg-[#2b2926] p-6 text-[#fcfbfa] md:p-8">
             <div className="flex items-center gap-2">
-              <DoodleSpark className="h-5 w-5 text-[#e7fec7]" />
-              <p className="eyebrow text-[#e7fec7]">Broadcast to the wall</p>
+              <DoodleSpark className="h-5 w-5 text-[var(--mint)]" />
+              <p className="eyebrow text-[var(--mint)]">Broadcast to the wall</p>
             </div>
             <textarea
               value={draft}
               onChange={(e) => setDraft(e.target.value)}
               rows={3}
               placeholder="Post a note, a bounty, a correction — the whole campus hears it…"
-              className="mt-4 w-full resize-none rounded-xl border-[1.5px] border-[#fcfbfa]/25 bg-[#fcfbfa]/10 p-4 text-sm text-[#fcfbfa] placeholder:text-[#fcfbfa]/50 focus:border-[#e7fec7] focus:outline-none"
+              className="mt-4 w-full resize-none rounded-xl border-[1.5px] border-[#fcfbfa]/25 bg-[#fcfbfa]/10 p-4 text-sm text-[#fcfbfa] placeholder:text-[#fcfbfa]/50 focus:border-[var(--mint)] focus:outline-none"
             />
-            {error && <p className="mt-3 rounded-lg bg-[#ea4467]/25 px-3 py-2 text-xs font-semibold">{error}</p>}
+            {error && <p className="mt-3 rounded-lg bg-[var(--coral)]/25 px-3 py-2 text-xs font-semibold">{error}</p>}
             <div className="mt-4 flex items-center justify-between gap-3">
               <p className="text-xs text-[#fcfbfa]/60">Broadcasts land on the Study Wall as FACULTY.</p>
               <button
                 onClick={broadcast}
                 disabled={!draft.trim() || busy}
-                className="rounded-full bg-[#e7fec7] px-5 py-2.5 text-sm font-bold text-[#21221f] transition-opacity disabled:opacity-40"
+                className="rounded-full bg-[var(--mint)] px-5 py-2.5 text-sm font-bold text-[var(--ink)] transition-opacity disabled:opacity-40"
               >
                 {busy ? 'Sending…' : 'Broadcast'}
               </button>
@@ -650,7 +650,7 @@ export default function Mentor() {
                 <DoodlePeople className="h-5 w-5 t-muted" />
                 <h2 className="slab-display text-2xl t-ink">Hire requests</h2>
               </div>
-              <span className="rounded-full bg-[#e7fec7] px-3 py-1 text-[0.65rem] font-bold tracking-widest text-[#21221f]">
+              <span className="rounded-full bg-[var(--mint)] px-3 py-1 text-[0.65rem] font-bold tracking-widest text-[var(--ink)]">
                 {invites.filter((i) => (i.status || 'PENDING') === 'PENDING').length} PENDING
               </span>
             </div>
@@ -700,7 +700,7 @@ export default function Mentor() {
                             </button>
                           </>
                         ) : (
-                          <span className={`rounded-full px-3 py-1 text-[0.6rem] font-bold tracking-widest ${inv.status === 'ACCEPTED' ? 'bg-[#e7fec7] text-[#21221f]' : 'bg-[var(--paper)] t-faint'}`}>
+                          <span className={`rounded-full px-3 py-1 text-[0.6rem] font-bold tracking-widest ${inv.status === 'ACCEPTED' ? 'bg-[var(--mint)] text-[var(--ink)]' : 'bg-[var(--paper)] t-faint'}`}>
                             {inv.status}
                           </span>
                         )}
@@ -772,7 +772,7 @@ export default function Mentor() {
                     <button
                       onClick={() => toggleBounty(b)}
                       className={`rounded-full px-3 py-1 text-[0.6rem] font-bold tracking-widest transition-opacity hover:opacity-75 ${
-                        (b.status || 'OPEN') === 'OPEN' ? 'bg-[#e7fec7] text-[#21221f]' : 'b-line t-faint'
+                        (b.status || 'OPEN') === 'OPEN' ? 'bg-[var(--mint)] text-[var(--ink)]' : 'b-line t-faint'
                       }`}
                     >
                       {(b.status || 'OPEN') === 'OPEN' ? 'OPEN' : 'CLOSED'}
@@ -812,7 +812,7 @@ export default function Mentor() {
           {/* revenue */}
           <section className="rounded-[1.6rem] bg-[#2b2926] p-6 text-[#fcfbfa] md:p-8">
             <div className="flex items-center gap-2">
-              <DoodleBulb className="h-5 w-5 text-[#e7fec7]" />
+              <DoodleBulb className="h-5 w-5 text-[var(--mint)]" />
               <h2 className="slab-display text-2xl">Revenue</h2>
             </div>
             <p className="mt-2 text-xs leading-relaxed text-[#fcfbfa]/60">
@@ -820,19 +820,19 @@ export default function Mentor() {
             </p>
             <ul className="mt-5 grid gap-3 sm:grid-cols-2">
               <li className="rounded-xl bg-[#fcfbfa]/10 p-4">
-                <p className="text-[0.65rem] font-bold tracking-widest text-[#e7fec7]">COLLECTED</p>
+                <p className="text-[0.65rem] font-bold tracking-widest text-[var(--mint)]">COLLECTED</p>
                 <p className="slab-display mt-1 text-2xl">₹{revenue.paid.toLocaleString('en-IN')}</p>
               </li>
               <li className="rounded-xl bg-[#fcfbfa]/10 p-4">
-                <p className="text-[0.65rem] font-bold tracking-widest text-[#e7fec7]">AWAITING PAYMENT</p>
+                <p className="text-[0.65rem] font-bold tracking-widest text-[var(--mint)]">AWAITING PAYMENT</p>
                 <p className="slab-display mt-1 text-2xl">₹{revenue.pending.toLocaleString('en-IN')}</p>
               </li>
               <li className="rounded-xl bg-[#fcfbfa]/10 p-4">
-                <p className="text-[0.65rem] font-bold tracking-widest text-[#e7fec7]">CO STUDY FEE (PLATFORM)</p>
+                <p className="text-[0.65rem] font-bold tracking-widest text-[var(--mint)]">CO STUDY FEE (PLATFORM)</p>
                 <p className="slab-display mt-1 text-2xl">₹{revenue.platformCut.toLocaleString('en-IN')}</p>
               </li>
               <li className="rounded-xl bg-[#fcfbfa]/10 p-4">
-                <p className="text-[0.65rem] font-bold tracking-widest text-[#e7fec7]">SESSIONS LED</p>
+                <p className="text-[0.65rem] font-bold tracking-widest text-[var(--mint)]">SESSIONS LED</p>
                 <p className="slab-display mt-1 text-2xl">{revenue.sessions}</p>
               </li>
             </ul>
@@ -883,7 +883,7 @@ export default function Mentor() {
                       </p>
                     </div>
                     <div className="flex items-center gap-2">
-                      <button onClick={() => offerOnWall(c)} className="rounded-full bg-[#e7fec7] px-3.5 py-1.5 text-[0.65rem] font-bold text-[#21221f] hover:opacity-85">
+                      <button onClick={() => offerOnWall(c)} className="rounded-full bg-[var(--mint)] px-3.5 py-1.5 text-[0.65rem] font-bold text-[var(--ink)] hover:opacity-85">
                         Offer on wall
                       </button>
                       <button onClick={() => toggleCourse(c)} className="rounded-full border-[1.5px] b-line px-3.5 py-1.5 text-[0.65rem] font-bold t-muted hover:t-ink">
@@ -937,7 +937,7 @@ export default function Mentor() {
                 <DoodleNote className="h-5 w-5 t-muted" />
                 <h2 className="slab-display text-2xl t-ink">CBQ case intake</h2>
               </div>
-              <span className="rounded-full bg-[#e7fec7] px-3 py-1 text-[0.65rem] font-bold tracking-widest text-[#21221f]">
+              <span className="rounded-full bg-[var(--mint)] px-3 py-1 text-[0.65rem] font-bold tracking-widest text-[var(--ink)]">
                 {cbqMine.length} LIVE · {cbqPending.length} AWAITING REVIEW
               </span>
             </div>
@@ -985,7 +985,7 @@ export default function Mentor() {
                     {cbqItems.length > 1 && (
                       <button
                         onClick={() => setCbqItems((items) => items.filter((_, j) => j !== i))}
-                        className="text-xs font-bold t-faint transition-colors hover:text-[#ea4467]"
+                        className="text-xs font-bold t-faint transition-colors hover:text-[var(--coral)]"
                       >
                         remove
                       </button>
@@ -1056,7 +1056,7 @@ export default function Mentor() {
                   <li key={s.id} className="flex items-center justify-between gap-3 text-xs">
                     <span className="min-w-0 flex-1 truncate font-semibold t-ink">{s.title}</span>
                     <span className="shrink-0 font-bold tracking-widest t-faint">{s.part.toUpperCase()}{s.section ? ` · ${s.section}` : ''}</span>
-                    <span className="shrink-0 rounded-full bg-[#e7fec7] px-2 py-0.5 text-[0.6rem] font-bold text-[#21221f]">
+                    <span className="shrink-0 rounded-full bg-[var(--mint)] px-2 py-0.5 text-[0.6rem] font-bold text-[var(--ink)]">
                       LIVE
                     </span>
                   </li>
@@ -1093,7 +1093,7 @@ export default function Mentor() {
                         <button
                           onClick={() => reviewCbq(s, 'reject')}
                           disabled={reviewing === s.id}
-                          className="rounded-full border-[1.5px] border-[#ea4467] px-4 py-2 text-xs font-bold text-[#ea4467] transition-opacity disabled:opacity-40"
+                          className="rounded-full border-[1.5px] border-[var(--coral)] px-4 py-2 text-xs font-bold text-[var(--coral)] transition-opacity disabled:opacity-40"
                         >
                           Reject
                         </button>
@@ -1112,7 +1112,7 @@ export default function Mentor() {
                 <DoodleBook className="h-5 w-5 t-muted" />
                 <h2 className="slab-display text-2xl t-ink">Vault review queue</h2>
               </div>
-              <span className={`rounded-full px-3 py-1 text-[0.65rem] font-bold tracking-widest ${queue.length > 0 ? 'bg-[#ea4467] text-white' : 'b-line t-faint'}`}>
+              <span className={`rounded-full px-3 py-1 text-[0.65rem] font-bold tracking-widest ${queue.length > 0 ? 'bg-[var(--coral)] text-white' : 'b-line t-faint'}`}>
                 {queue.length} AWAITING
               </span>
             </div>
@@ -1139,7 +1139,7 @@ export default function Mentor() {
                           {item.metadata?.kind?.toUpperCase() || 'NOTES'} · by {item.metadata?.submitted_by || 'Community'} · {relTime(item.created_at)}
                         </p>
                         {item.external_ref && (
-                          <a href={item.external_ref} target="_blank" rel="noreferrer" className="link-underline mt-1 inline-block text-xs font-semibold text-[#ea4467]">
+                          <a href={item.external_ref} target="_blank" rel="noreferrer" className="link-underline mt-1 inline-block text-xs font-semibold text-[var(--coral)]">
                             Open link ↗
                           </a>
                         )}
@@ -1155,7 +1155,7 @@ export default function Mentor() {
                         <button
                           onClick={() => reject(item)}
                           disabled={reviewing === item.id}
-                          className="rounded-full border-[1.5px] border-[#ea4467] px-4 py-2 text-xs font-bold text-[#ea4467] transition-opacity disabled:opacity-40"
+                          className="rounded-full border-[1.5px] border-[var(--coral)] px-4 py-2 text-xs font-bold text-[var(--coral)] transition-opacity disabled:opacity-40"
                         >
                           Reject
                         </button>
@@ -1191,7 +1191,7 @@ export default function Mentor() {
 
         {/* right rail */}
         <aside className="space-y-4">
-          <section className="rounded-[1.6rem] bg-[#e7fec7] p-6 text-[#21221f]">
+          <section className="rounded-[1.6rem] bg-[var(--mint)] p-6 text-[var(--ink)]">
             <div className="flex items-center gap-3">
               <span className="flex h-12 w-12 items-center justify-center rounded-full bg-[#2b2926] font-slab text-sm font-bold text-[#fcfbfa]">
                 {profile.name.split(' ').map((w) => w[0]).slice(0, 2).join('')}
@@ -1202,13 +1202,13 @@ export default function Mentor() {
               </div>
             </div>
             <ul className="mt-5 space-y-2.5 text-sm font-medium">
-              <li className="flex justify-between border-b border-[#21221f]/15 pb-2"><span>Focus</span><span className="font-slab font-bold">{profile.examFocus}</span></li>
-              <li className="flex justify-between border-b border-[#21221f]/15 pb-2"><span>Reputation</span><span className="font-slab font-bold">{profile.reputation}</span></li>
+              <li className="flex justify-between border-b border-[var(--ink)]/15 pb-2"><span>Focus</span><span className="font-slab font-bold">{profile.examFocus}</span></li>
+              <li className="flex justify-between border-b border-[var(--ink)]/15 pb-2"><span>Reputation</span><span className="font-slab font-bold">{profile.reputation}</span></li>
               <li className="flex justify-between"><span>Broadcasts</span><span className="font-slab font-bold">{mine.length}</span></li>
             </ul>
             <button
               onClick={() => signOut().then(() => navigate('/'))}
-              className="mt-5 w-full rounded-full border-[1.5px] border-[#21221f]/30 py-2 text-xs font-bold tracking-widest transition-colors hover:bg-[#21221f] hover:text-[#e7fec7]"
+              className="mt-5 w-full rounded-full border-[1.5px] border-[var(--ink)]/30 py-2 text-xs font-bold tracking-widest transition-colors hover:bg-[var(--ink)] hover:text-[var(--mint)]"
             >
               Sign out
             </button>
@@ -1251,7 +1251,7 @@ export default function Mentor() {
                       )}
                       <button
                         onClick={() => setStudentDetail(null)}
-                        className="mt-3 text-[0.6rem] font-bold tracking-widest t-faint transition-colors hover:text-[#ea4467]"
+                        className="mt-3 text-[0.6rem] font-bold tracking-widest t-faint transition-colors hover:text-[var(--coral)]"
                       >
                         CLOSE
                       </button>

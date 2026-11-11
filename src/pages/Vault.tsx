@@ -22,11 +22,11 @@ type Resource = {
 };
 
 const kindMeta: Record<Kind, { label: string; tone: string; ink: string }> = {
-  CHEATSHEET: { label: 'CHEATSHEET', tone: '#e7fec7', ink: '#21221f' },
-  FORMULA: { label: 'FORMULA SHEET', tone: '#d9e6f3', ink: '#21221f' },
-  NOTES: { label: 'SUMMARY NOTES', tone: '#c6b3a2', ink: '#21221f' },
-  'PAST PAPER': { label: 'PAST PAPER', tone: '#f3f1ee', ink: '#21221f' },
-  MOCK: { label: 'MOCK TEST', tone: '#ea4467', ink: '#ffffff' },
+  CHEATSHEET: { label: 'CHEATSHEET', tone: 'var(--mint)', ink: 'var(--ink)' },
+  FORMULA: { label: 'FORMULA SHEET', tone: '#d9e6f3', ink: 'var(--ink)' },
+  NOTES: { label: 'SUMMARY NOTES', tone: '#c6b3a2', ink: 'var(--ink)' },
+  'PAST PAPER': { label: 'PAST PAPER', tone: '#f3f1ee', ink: 'var(--ink)' },
+  MOCK: { label: 'MOCK TEST', tone: 'var(--coral)', ink: '#ffffff' },
   VISUAL: { label: 'STUDY VISUAL', tone: '#2b2926', ink: '#fcfbfa' },
 };
 
@@ -234,7 +234,7 @@ export default function Vault() {
                   onClick={() => setKind(k)}
                   className={`rounded-full border-[1.5px] px-3.5 py-2 text-[0.65rem] font-bold tracking-widest transition-all duration-300 ${
                     kind === k
-                      ? 'border-[#ea4467] bg-[#ea4467] text-white'
+                      ? 'border-[var(--coral)] bg-[var(--coral)] text-white'
                       : 'b-line t-muted hover:t-ink hover:border-[var(--ink)]'
                   }`}
                 >
@@ -280,7 +280,7 @@ export default function Vault() {
                       </p>
                       <div className="mt-1 flex flex-wrap gap-2">
                         {r.tags.map((t) => (
-                          <span key={t} className="text-[0.65rem] font-semibold text-[#ea4467]">{t}</span>
+                          <span key={t} className="text-[0.65rem] font-semibold text-[var(--coral)]">{t}</span>
                         ))}
                       </div>
                     </div>
@@ -331,7 +331,7 @@ export default function Vault() {
 
         {/* pinned rail */}
         <aside className="space-y-4">
-          <section className="rounded-[1.6rem] bg-[#ea4467] p-6 text-white">
+          <section className="rounded-[1.6rem] bg-[var(--coral)] p-6 text-white">
             <div className="flex items-center gap-2">
               <DoodleBulb className="h-5 w-5" />
               <p className="eyebrow opacity-80">Pinned to AI Deck</p>
@@ -367,7 +367,7 @@ export default function Vault() {
                   >
                     <span
                       className="shrink-0 rounded-full px-2 py-1 text-[0.55rem] font-bold tracking-widest"
-                      style={{ backgroundColor: p.tone, color: '#21221f' }}
+                      style={{ backgroundColor: p.tone, color: 'var(--ink)' }}
                     >
                       {p.kind.split(' ')[0]}
                     </span>
@@ -377,7 +377,7 @@ export default function Vault() {
                         togglePin(p);
                         force((v) => v + 1);
                       }}
-                      className="text-xs font-bold t-faint transition-colors hover:text-[#ea4467]"
+                      className="text-xs font-bold t-faint transition-colors hover:text-[var(--coral)]"
                     >
                       ✕
                     </button>
@@ -388,7 +388,7 @@ export default function Vault() {
           </section>
 
           {/* submit to the vault */}
-          <section className="rounded-[1.6rem] bg-[#e7fec7] p-6 text-[#21221f]">
+          <section className="rounded-[1.6rem] bg-[var(--mint)] p-6 text-[var(--ink)]">
             <div className="flex items-center gap-2">
               <DoodleBook className="h-5 w-5" />
               <h2 className="slab-display text-xl">Share to the vault</h2>
@@ -401,7 +401,7 @@ export default function Vault() {
               <>
                 <button
                   onClick={() => setShowSubmit((s) => !s)}
-                  className="mt-4 w-full rounded-full border-[1.5px] border-[#21221f]/40 py-2.5 text-xs font-bold tracking-widest transition-colors hover:bg-[#21221f] hover:text-[#e7fec7]"
+                  className="mt-4 w-full rounded-full border-[1.5px] border-[var(--ink)]/40 py-2.5 text-xs font-bold tracking-widest transition-colors hover:bg-[var(--ink)] hover:text-[var(--mint)]"
                 >
                   {showSubmit ? 'CANCEL' : 'SUBMIT MATERIAL'}
                 </button>
@@ -411,12 +411,12 @@ export default function Vault() {
                       value={form.title}
                       onChange={(e) => setForm((f) => ({ ...f, title: e.target.value }))}
                       placeholder="Title — e.g. Variance Analysis one-pager"
-                      className="w-full rounded-xl border-[1.5px] border-[#21221f]/30 bg-[#fcfbfa]/60 px-4 py-2.5 text-sm placeholder:text-[#21221f]/40 focus:border-[#21221f] focus:outline-none"
+                      className="w-full rounded-xl border-[1.5px] border-[var(--ink)]/30 bg-[#fcfbfa]/60 px-4 py-2.5 text-sm placeholder:text-[var(--ink)]/40 focus:border-[var(--ink)] focus:outline-none"
                     />
                     <select
                       value={form.kind}
                       onChange={(e) => setForm((f) => ({ ...f, kind: e.target.value as Kind }))}
-                      className="w-full rounded-xl border-[1.5px] border-[#21221f]/30 bg-[#fcfbfa]/60 px-4 py-2.5 text-sm focus:border-[#21221f] focus:outline-none"
+                      className="w-full rounded-xl border-[1.5px] border-[var(--ink)]/30 bg-[#fcfbfa]/60 px-4 py-2.5 text-sm focus:border-[var(--ink)] focus:outline-none"
                     >
                       {(Object.keys(kindMeta) as Kind[]).map((k) => (
                         <option key={k} value={k}>{kindMeta[k].label}</option>
@@ -427,19 +427,19 @@ export default function Vault() {
                       onChange={(e) => setForm((f) => ({ ...f, description: e.target.value }))}
                       rows={2}
                       placeholder="One-line summary for fellow scholars…"
-                      className="w-full resize-none rounded-xl border-[1.5px] border-[#21221f]/30 bg-[#fcfbfa]/60 px-4 py-2.5 text-sm placeholder:text-[#21221f]/40 focus:border-[#21221f] focus:outline-none"
+                      className="w-full resize-none rounded-xl border-[1.5px] border-[var(--ink)]/30 bg-[#fcfbfa]/60 px-4 py-2.5 text-sm placeholder:text-[var(--ink)]/40 focus:border-[var(--ink)] focus:outline-none"
                     />
                     <input
                       value={form.url}
                       onChange={(e) => setForm((f) => ({ ...f, url: e.target.value }))}
                       placeholder="Link (optional) — https://…"
-                      className="w-full rounded-xl border-[1.5px] border-[#21221f]/30 bg-[#fcfbfa]/60 px-4 py-2.5 text-sm placeholder:text-[#21221f]/40 focus:border-[#21221f] focus:outline-none"
+                      className="w-full rounded-xl border-[1.5px] border-[var(--ink)]/30 bg-[#fcfbfa]/60 px-4 py-2.5 text-sm placeholder:text-[var(--ink)]/40 focus:border-[var(--ink)] focus:outline-none"
                     />
                     {submitMsg && <p className="text-xs font-bold">{submitMsg}</p>}
                     <button
                       onClick={submit}
                       disabled={!form.title.trim() || submitBusy}
-                      className="w-full rounded-full bg-[#21221f] py-2.5 text-xs font-bold tracking-widest text-[#e7fec7] transition-opacity disabled:opacity-40"
+                      className="w-full rounded-full bg-[var(--ink)] py-2.5 text-xs font-bold tracking-widest text-[var(--mint)] transition-opacity disabled:opacity-40"
                     >
                       {submitBusy ? 'SUBMITTING…' : 'SEND FOR REVIEW'}
                     </button>
@@ -449,7 +449,7 @@ export default function Vault() {
             ) : (
               <Link
                 to="/login"
-                className="mt-4 block w-full rounded-full border-[1.5px] border-[#21221f]/40 py-2.5 text-center text-xs font-bold tracking-widest transition-colors hover:bg-[#21221f] hover:text-[#e7fec7]"
+                className="mt-4 block w-full rounded-full border-[1.5px] border-[var(--ink)]/40 py-2.5 text-center text-xs font-bold tracking-widest transition-colors hover:bg-[var(--ink)] hover:text-[var(--mint)]"
               >
                 LOG IN TO SUBMIT
               </Link>

@@ -51,7 +51,7 @@ const journey = [
     role: 'Start here',
     hint: 'Your plan, progress and exam countdown.',
     Doodle: DoodleNote,
-    bg: '#ea4467',
+    bg: 'var(--coral)',
     ink: '#ffffff',
   },
   {
@@ -62,7 +62,7 @@ const journey = [
     hint: 'Pair with a student on your schedule — for a fixed, safe window.',
     Doodle: DoodleClock,
     bg: '#e9c46a',
-    ink: '#21221f',
+    ink: 'var(--ink)',
   },
   {
     no: '4',
@@ -71,8 +71,8 @@ const journey = [
     role: 'Study',
     hint: 'Do the deep work, together — with your rooms.',
     Doodle: DoodlePeople,
-    bg: '#e7fec7',
-    ink: '#21221f',
+    bg: 'var(--mint)',
+    ink: 'var(--ink)',
   },
   {
     no: '5',
@@ -82,7 +82,7 @@ const journey = [
     hint: 'Drill questions and get un-stuck, fast.',
     Doodle: DoodleBulb,
     bg: '#d9e6f3',
-    ink: '#21221f',
+    ink: 'var(--ink)',
   },
   {
     no: '6',
@@ -92,7 +92,7 @@ const journey = [
     hint: 'Quality-checked notes, decks and papers.',
     Doodle: DoodleBook,
     bg: '#c6b3a2',
-    ink: '#21221f',
+    ink: 'var(--ink)',
   },
 ];
 
@@ -172,14 +172,14 @@ export default function Desk() {
       {/* where you stand */}
       <section className="grid gap-6 lg:grid-cols-[1.5fr_1fr]">
         <div className="relative overflow-hidden rounded-[1.8rem] border-[1.5px] b-line bg-[var(--card)] p-8 md:p-10">
-          <DoodleSpark className="pointer-events-none absolute -right-4 -top-4 w-28 rotate-12 text-[#ea4467]/10" />
+          <DoodleSpark className="pointer-events-none absolute -right-4 -top-4 w-28 rotate-12 text-[var(--coral)]/10" />
           <p className="eyebrow t-faint">Where you stand</p>
           <div className="mt-4 flex flex-wrap items-center gap-3">
-            <span className="rounded-full bg-[#ea4467]/10 px-3 py-1 text-[0.65rem] font-bold uppercase tracking-[0.16em] text-[#ea4467]">
+            <span className="rounded-full bg-[var(--coral)]/10 px-3 py-1 text-[0.65rem] font-bold uppercase tracking-[0.16em] text-[var(--coral)]">
               {raw?.primary_exam || profile.examFocus}
             </span>
             {raw?.tier && (
-              <span className="rounded-full bg-[#e7fec7] px-3 py-1 text-[0.65rem] font-bold uppercase tracking-[0.16em] text-[#21221f]">
+              <span className="rounded-full bg-[var(--mint)] px-3 py-1 text-[0.65rem] font-bold uppercase tracking-[0.16em] text-[var(--ink)]">
                 {raw.tier} tier
               </span>
             )}
@@ -209,7 +209,7 @@ export default function Desk() {
             </div>
             <div className="h-2 overflow-hidden rounded-full bg-[var(--line)]">
               <div
-                className="h-full rounded-full bg-[#ea4467] transition-all duration-700"
+                className="h-full rounded-full bg-[var(--coral)] transition-all duration-700"
                 style={{ width: `${completeness}%` }}
               />
             </div>
@@ -219,7 +219,7 @@ export default function Desk() {
                   key={c.label}
                   to="/profile"
                   className={`rounded-full px-2.5 py-1 text-[0.6rem] font-bold uppercase tracking-widest ${
-                    c.done ? 'bg-[#e7fec7] text-[#4a7a2e]' : 'bg-[var(--line)]/60 t-muted hover:text-[#ea4467]'
+                    c.done ? 'bg-[var(--mint)] text-[#4a7a2e]' : 'bg-[var(--line)]/60 t-muted hover:text-[var(--coral)]'
                   }`}
                 >
                   {c.done ? '✓ ' : '+ '}
@@ -267,7 +267,7 @@ export default function Desk() {
       <section className="mt-10">
         <div className="mb-6 flex flex-wrap items-end justify-between gap-4">
           <div>
-            <p className="eyebrow mb-2 text-[#ea4467]">The CoStudy loop</p>
+            <p className="eyebrow mb-2 text-[var(--coral)]">The CoStudy loop</p>
             <h2 className="slab-display text-3xl t-ink md:text-4xl">One page at a time.</h2>
           </div>
           <p className="max-w-sm text-sm leading-relaxed t-muted">
@@ -303,7 +303,7 @@ export default function Desk() {
       {/* gentle nudge */}
       <section className="mt-10 flex flex-wrap items-center justify-between gap-4 rounded-[1.8rem] border-[1.5px] b-line bg-[var(--card)] p-7 md:p-9">
         <div>
-          <p className="eyebrow text-[#ea4467]">Next best step</p>
+          <p className="eyebrow text-[var(--coral)]">Next best step</p>
           <p className="slab-display mt-2 text-2xl t-ink md:text-3xl">
             {lastMock
               ? `Last mock ${new Date(lastMock).toLocaleDateString()} — time for the next one?`
