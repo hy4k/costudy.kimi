@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { Link } from 'react-router';
 import AppShell from '@/components/app/AppShell';
-import { DoodleBook, DoodleBulb, DoodleSpark } from '@/components/Doodles';
+import { DoodleBulb, DoodleSpark } from '@/components/Doodles';
 import { useAuth } from '@/lib/authStore';
 import { payNow } from '@/lib/payments';
 import { supabase } from '@/lib/supabase';
@@ -57,6 +57,7 @@ export default function Mentors() {
   const [note, setNote] = useState<string | null>(null);
   const [payments, setPayments] = useState<PaymentRow[]>([]);
   const [paying, setPaying] = useState<string | null>(null);
+  const [enrolled, setEnrolled] = useState<Set<string>>(new Set());
 
   const loadPayments = () => {
     if (!profile) return;
@@ -160,7 +161,7 @@ export default function Mentors() {
   };
 
   const enroll = async (c: Course) => {
-    if (!profile) return;
+    if (!profile || enrolled.has(c.id)) return;
     setBusy(true);
     const { error: e1 } = await supabase.from('student_enrollments').insert({
       teacher_id: c.mentor_id,
@@ -179,7 +180,9 @@ export default function Mentors() {
       setNote((e1 || e2)?.message || 'Enrolment failed — try again.');
       return;
     }
+    setEnrolled((s) => new Set(s).add(c.id));
     setNote(`Enrolled in “${c.title}” — ${c.mentor?.name || 'the mentor'} will reach out to schedule the first session.`);
+    loadPayments();
   };
 
   return (
@@ -196,44 +199,60 @@ export default function Mentors() {
         </section>
       ) : (
         <>
-          {/* course offers */}
+          {/* open cohorts & offers */}
           {courses.length > 0 && (
-            <section className="mb-10">
-              <div className="flex items-center gap-2">
-                <DoodleBook className="h-5 w-5 text-[var(--coral)]" />
-                <h2 className="slab-display text-2xl t-ink">Open cohorts &amp; offers</h2>
+            <>
+              <div className="flex items-baseline gap-3">
+                <h2 className="slab-display text-xl t-ink">Open cohorts &amp; offers</h2>
+                <span className="text-[0.65rem] font-bold tracking-widest t-faint">{courses.length} ENROLLING</span>
               </div>
-              <div className="mt-4 grid gap-4 lg:grid-cols-2">
+              <p className="mt-1 text-xs t-faint">Structured courses from faculty — enrol and the mentor schedules the first session.</p>
+              <div className="mt-6 grid gap-5 lg:grid-cols-2">
                 {courses.map((c) => (
-                  <article key={c.id} className="flex flex-col justify-between rounded-[1.4rem] bg-[var(--mint)] p-6 text-[var(--ink)]">
+                  <article
+                    key={c.id}
+                    className="flex min-h-[190px] flex-col justify-between gap-5 rounded-[1.4rem] bg-[var(--mint)] p-6 text-[var(--ink)] transition-transform duration-500 ease-out-soft hover:-translate-y-1"
+                  >
                     <div>
                       <p className="eyebrow opacity-70">{c.mentor?.name || 'Faculty'} · {c.duration_weeks} weeks · {c.max_students} seats</p>
                       <h3 className="slab-display mt-2 text-xl leading-snug">{c.title}</h3>
-                      {c.description && <p className="mt-2 text-sm leading-relaxed opacity-75">{c.description}</p>}
+                      {c.description && <p className="mt-2 line-clamp-2 text-sm leading-relaxed opacity-75">{c.description}</p>}
                       {c.schedule_text && (
                         <p className="mt-3 inline-block rounded-full bg-[var(--coal)] px-3 py-1 text-[0.65rem] font-bold tracking-wide text-[#f3ede3]">
                           {c.schedule_text}
                         </p>
                       )}
                     </div>
-                    <div className="mt-5 flex items-center justify-between">
+                    <div className="flex items-center justify-between border-t border-[var(--ink)]/15 pt-4">
                       <span className="slab-display text-2xl">{c.price > 0 ? `₹${Number(c.price).toLocaleString('en-IN')}` : 'Free'}</span>
                       <button
                         onClick={() => enroll(c)}
-                        disabled={busy || profile.role === 'TEACHER'}
-                        className="rounded-full bg-[var(--coal)] px-5 py-2.5 text-xs font-bold text-[#f3ede3] transition-opacity hover:opacity-85 disabled:opacity-40"
+                        disabled={busy || enrolled.has(c.id) || profile.role === 'TEACHER'}
+                        className={`rounded-full px-5 py-2.5 text-xs font-bold transition-all ${
+                          enrolled.has(c.id)
+                            ? 'bg-[var(--coal)]/70 text-[#f3ede3]'
+                            : 'bg-[var(--coal)] text-[#f3ede3] hover:opacity-85'
+                        } disabled:opacity-40`}
                       >
-                        Enroll
+                        {enrolled.has(c.id) ? 'Enrolled ✓' : 'Enroll'}
                       </button>
                     </div>
                   </article>
                 ))}
               </div>
-            </section>
+            </>
           )}
 
-          {/* filters */}
-          <div className="mb-6 flex flex-wrap items-center gap-3">
+          {/* the mentor bench */}
+          <div className={courses.length > 0 ? 'mt-12' : ''}>
+            <div className="flex items-baseline gap-3">
+              <h2 className="slab-display text-xl t-ink">The mentor bench</h2>
+              <span className="text-[0.65rem] font-bold tracking-widest t-faint">{filtered.length} AVAILABLE</span>
+            </div>
+            <p className="mt-1 text-xs t-faint">Hire by the hour — the session happens inside your own study room.</p>
+          </div>
+
+          <div className="mt-6 flex flex-wrap items-center gap-3">
             <input
               value={query}
               onChange={(e) => setQuery(e.target.value)}
@@ -244,8 +263,8 @@ export default function Mentors() {
               <button
                 key={p}
                 onClick={() => setPart(p)}
-                className={`rounded-full border-[1.5px] px-4 py-2 text-xs font-bold tracking-wide transition-colors ${
-                  part === p ? 'border-[var(--coral)] bg-[var(--coral)] text-white' : 'b-line t-muted hover:t-ink'
+                className={`rounded-full border-[1.5px] px-4 py-2 text-xs font-bold tracking-wide transition-all duration-300 ${
+                  part === p ? 'border-[var(--coral)] bg-[var(--coral)] text-white' : 'b-line t-muted hover:t-ink hover:border-[var(--ink)]'
                 }`}
               >
                 {p === 'ALL' ? 'ALL' : p.toUpperCase()}
@@ -254,27 +273,29 @@ export default function Mentors() {
           </div>
 
           {note && (
-            <p className="mb-6 rounded-xl border-[1.5px] border-dashed b-line px-4 py-3 text-xs font-semibold t-muted">{note}</p>
+            <p className="mt-5 rounded-xl border-[1.5px] border-dashed b-line px-4 py-3 text-xs font-semibold t-muted">{note}</p>
           )}
 
-          {/* mentor cards */}
-          <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
+          <div className="mt-6 grid gap-5 md:grid-cols-2 xl:grid-cols-3">
             {filtered.map((m) => (
-              <article key={m.id} className="flex min-h-[220px] flex-col justify-between rounded-[1.4rem] border-[1.5px] b-line bg-[var(--card)] p-6">
+              <article
+                key={m.id}
+                className="flex min-h-[210px] flex-col justify-between gap-5 rounded-[1.4rem] border-[1.5px] b-line bg-[var(--card)] p-6 transition-transform duration-500 ease-out-soft hover:-translate-y-1"
+              >
                 <div>
                   <div className="flex items-center gap-3">
-                    <span className="flex h-12 w-12 items-center justify-center rounded-full bg-[var(--coal)] font-slab text-sm font-bold text-[#f3ede3]">
+                    <span className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-[var(--coal)] font-slab text-sm font-bold text-[#f3ede3]">
                       {initials(m.name)}
                     </span>
-                    <div>
-                      <h3 className="slab-display text-lg leading-snug t-ink">{m.name || 'Faculty mentor'}</h3>
-                      <p className="text-xs t-faint">@{m.handle}</p>
+                    <div className="min-w-0">
+                      <h3 className="slab-display truncate text-lg leading-snug t-ink">{m.name || 'Faculty mentor'}</h3>
+                      <p className="truncate text-xs t-faint">@{m.handle}</p>
                     </div>
-                    <span className="ml-auto rounded-full bg-[var(--mint)] px-3 py-1 text-[0.6rem] font-bold tracking-widest text-[var(--ink)]">
+                    <span className="ml-auto shrink-0 rounded-full bg-[var(--mint)] px-3 py-1 text-[0.6rem] font-bold tracking-widest text-[var(--ink)]">
                       {m.years_experience ? `${m.years_experience} YRS` : 'MENTOR'}
                     </span>
                   </div>
-                  {m.bio && <p className="mt-3 text-xs leading-relaxed t-muted">{m.bio}</p>}
+                  {m.bio && <p className="mt-3 line-clamp-3 text-xs leading-relaxed t-muted">{m.bio}</p>}
                   {(m.specialties || []).length > 0 && (
                     <div className="mt-3 flex flex-wrap gap-1.5">
                       {m.specialties!.map((s) => (
@@ -285,7 +306,7 @@ export default function Mentors() {
                     </div>
                   )}
                 </div>
-                <div className="mt-5 flex items-center justify-between">
+                <div className="flex items-center justify-between border-t b-line pt-4">
                   <span className="slab-display text-xl t-ink">
                     {m.hourly_rate ? `₹${m.hourly_rate.toLocaleString('en-IN')}/hr` : 'Rate on request'}
                   </span>
@@ -311,10 +332,13 @@ export default function Mentors() {
 
           {/* my payments */}
           {payments.length > 0 && (
-            <section className="mt-10">
-              <h2 className="slab-display text-xl t-ink">Your payments</h2>
+            <section className="mt-12">
+              <div className="flex items-baseline gap-3">
+                <h2 className="slab-display text-xl t-ink">Your payments</h2>
+                <span className="text-[0.65rem] font-bold tracking-widest t-faint">{payments.length} RECEIPT{payments.length === 1 ? '' : 'S'}</span>
+              </div>
               <p className="mt-1 text-xs t-faint">Mentor sessions and course fees — pay securely through Razorpay.</p>
-              <div className="mt-4 space-y-2.5">
+              <div className="mt-5 space-y-3">
                 {payments.map((p) => (
                   <div
                     key={p.id}
@@ -354,7 +378,7 @@ export default function Mentors() {
             </section>
           )}
 
-          <p className="mt-8 flex items-center gap-2 text-[0.65rem] t-faint">
+          <p className="mt-10 flex items-center gap-2 text-[0.65rem] t-faint">
             <DoodleSpark className="h-3.5 w-3.5" />
             Mentors teach inside your study rooms — sessions, whiteboard, plan and drills all included. CoStudy keeps a small platform fee on every hire.
           </p>

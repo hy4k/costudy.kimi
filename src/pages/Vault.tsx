@@ -23,6 +23,8 @@ type Resource = {
   summary: string;
   url?: string | null;
   live?: boolean;
+  /** full inline content — shown when the card is opened */
+  body?: string;
   /* community trust layer */
   vouches: number;
   views: number;
@@ -55,14 +57,14 @@ const toKind = (raw?: string | null): Kind => {
 
 /* Curated starter shelf — shown only until live rows exist. */
 const seed: Resource[] = [
-  { id: 'variance-cheatsheet', title: 'Variance Analysis — one-pager', kind: 'CHEATSHEET', author: 'Sarah Jenkins', downloads: 1240, verified: true, tags: ['#variance', '#performance-mgmt'], summary: 'Every split with a worked mini-example. Print it, then throw it away.', vouches: 12, views: 0, comments: 0 },
-  { id: 'cost-of-capital-formulas', title: 'Cost of Capital — formula sheet', kind: 'FORMULA', author: 'Prof. Vikram Sethi', downloads: 986, verified: true, tags: ['#wacc', '#capital-budgeting'], summary: "WACC builds, kd(1−T), CAPM and the examiner's favourite traps.", vouches: 9, views: 0, comments: 0 },
-  { id: 'internal-controls-notes', title: 'Internal Controls — summary notes', kind: 'NOTES', author: 'Dr. Anita Desai', downloads: 874, verified: true, tags: ['#coso', '#crime', '#controls'], summary: 'The five COSO components with SOX attestations, in six pages.', vouches: 7, views: 0, comments: 0 },
-  { id: 'p2-nov-paper', title: 'Part 2 — past paper walkthrough', kind: 'PAST PAPER', author: 'Faculty Lounge', downloads: 2130, verified: true, tags: ['#part2', '#past-paper'], summary: 'Last sitting, fully worked with time-per-question annotations.', vouches: 15, views: 0, comments: 0 },
-  { id: 'p1-mock-5', title: 'Part 1 Mock 5 — full timed set', kind: 'MOCK', author: 'CoStudy Mock Engine', downloads: 3412, verified: true, tags: ['#mock', '#part1', '#timed'], summary: 'Closest match to the real exam difficulty this season. 4 hrs.', vouches: 21, views: 0, comments: 0 },
-  { id: 'fx-translation-visual', title: 'FX translation — study visual', kind: 'VISUAL', author: 'Candidate #8842', downloads: 655, verified: true, tags: ['#fx', '#translation'], summary: 'One diagram for when to divide vs multiply. Ends the confusion.', vouches: 6, views: 0, comments: 0 },
-  { id: 'responsibility-centres-notes', title: 'Responsibility Centres — notes', kind: 'NOTES', author: 'Rohan Sharma', downloads: 231, verified: false, tags: ['#centres', '#needs-review'], summary: 'Draft summary — pending faculty quality check. Read critically.', vouches: 0, views: 0, comments: 0 },
-  { id: 'npv-vs-payback-visual', title: 'NPV vs payback — visual explainer', kind: 'VISUAL', author: 'Midhun', downloads: 189, verified: false, tags: ['#capital-budgeting', '#fresh'], summary: 'Three panels: time value, reinvestment, risk. Community upload.', vouches: 2, views: 0, comments: 0 },
+  { id: 'variance-cheatsheet', title: 'Variance Analysis — one-pager', kind: 'CHEATSHEET', author: 'Sarah Jenkins', downloads: 1240, verified: true, tags: ['#variance', '#performance-mgmt'], summary: 'Every split with a worked mini-example. Print it, then throw it away.', body: 'Price variance = (AP − SP) × AQ. Efficiency variance = (AQ − SQ) × SP.\n\nVolume variance = (Actual units − Budget units) × budgeted CM per unit.\n\nFlexible-budget variance splits into price + efficiency — never mix the two on the exam; the answer choices are built on the mix-up.', vouches: 12, views: 0, comments: 0 },
+  { id: 'cost-of-capital-formulas', title: 'Cost of Capital — formula sheet', kind: 'FORMULA', author: 'Prof. Vikram Sethi', downloads: 986, verified: true, tags: ['#wacc', '#capital-budgeting'], summary: "WACC builds, kd(1−T), CAPM and the examiner's favourite traps.", body: 'WACC = wd·kd(1−T) + wp·kp + we·ke.\n\nCAPM: ke = Rf + β(Rm − Rf).\n\nTrap 1: kd must be after-tax; kp (preferred) is not tax-deductible.\nTrap 2: use market weights, not book.\nTrap 3: flotation costs raise ke — never deduct them from NPV directly.', vouches: 9, views: 0, comments: 0 },
+  { id: 'internal-controls-notes', title: 'Internal Controls — summary notes', kind: 'NOTES', author: 'Dr. Anita Desai', downloads: 874, verified: true, tags: ['#coso', '#crime', '#controls'], summary: 'The five COSO components with SOX attestations, in six pages.', body: 'COSO five components:\n1. Control Environment — tone at the top, the foundation.\n2. Risk Assessment — identify and rank threats to objectives.\n3. Control Activities — policies and procedures that carry out #2.\n4. Information & Communication.\n5. Monitoring — ongoing + separate evaluations.\n\nSOX 404: management attests to ICFR; external auditor opines on it.', vouches: 7, views: 0, comments: 0 },
+  { id: 'p2-nov-paper', title: 'Part 2 — past paper walkthrough', kind: 'PAST PAPER', author: 'Faculty Lounge', downloads: 2130, verified: true, tags: ['#part2', '#past-paper'], summary: 'Last sitting, fully worked with time-per-question annotations.', body: 'Section A (100 MCQs, 3 hrs): budget ~90 seconds per item. Flag ethics-scenario stems — they are longer than they look.\n\nEssays: 2 scenarios × 5 tasks. Read all five tasks before writing; task 5 is usually the integration point.\n\nAnnotated timing and every answer key cross-referenced to the ICMA LOS in the full document.', vouches: 15, views: 0, comments: 0 },
+  { id: 'p1-mock-5', title: 'Part 1 Mock 5 — full timed set', kind: 'MOCK', author: 'CoStudy Mock Engine', downloads: 3412, verified: true, tags: ['#mock', '#part1', '#timed'], summary: 'Closest match to the real exam difficulty this season. 4 hrs.', body: '100 MCQs + 2 essay scenarios. Weighting mirrors the live blueprint: Planning/Analysis/Control ~35%, Cost Management ~20%, the balance spread across the remaining domains.\n\nScoring bands included — aim for 75%+ consistently before booking the real sitting.', vouches: 21, views: 0, comments: 0 },
+  { id: 'fx-translation-visual', title: 'FX translation — study visual', kind: 'VISUAL', author: 'Candidate #8842', downloads: 655, verified: true, tags: ['#fx', '#translation'], summary: 'One diagram for when to divide vs multiply. Ends the confusion.', body: 'The rule: translate INTO the reporting currency.\n\nForeign currency → Reporting currency? MULTIPLY by the rate.\nReporting currency → Foreign currency? DIVIDE.\n\nCurrent rate method: assets/liabilities at the closing rate; income statement at the average rate. Remeasurement (temporal) uses historical rates for non-monetary items.', vouches: 6, views: 0, comments: 0 },
+  { id: 'responsibility-centres-notes', title: 'Responsibility Centres — notes', kind: 'NOTES', author: 'Rohan Sharma', downloads: 231, verified: false, tags: ['#centres', '#needs-review'], summary: 'Draft summary — pending faculty quality check. Read critically.', body: 'Cost centre — judged on cost variance vs budget.\nRevenue centre — judged on revenue vs target.\nProfit centre — both revenue and costs.\nInvestment centre — profit relative to capital invested (ROI, RI).\n\nDraft note: examples for transfer pricing still being checked — please comment if you spot an error.', vouches: 0, views: 0, comments: 0 },
+  { id: 'npv-vs-payback-visual', title: 'NPV vs payback — visual explainer', kind: 'VISUAL', author: 'Midhun', downloads: 189, verified: false, tags: ['#capital-budgeting', '#fresh'], summary: 'Three panels: time value, reinvestment, risk. Community upload.', body: 'Panel 1 — Time value: payback ignores money after the cut-off; NPV counts every cash flow at its present value.\n\nPanel 2 — Reinvestment: NPV assumes reinvestment at the hurdle rate; IRR assumes at IRR (often unrealistic).\n\nPanel 3 — Risk: discounted payback fixes the time-value gap but still ignores flows after payback.', vouches: 2, views: 0, comments: 0 },
 ];
 
 const kinds: (Kind | 'ALL')[] = ['ALL', 'CHEATSHEET', 'FORMULA', 'NOTES', 'PAST PAPER', 'MOCK', 'VISUAL'];
@@ -138,6 +140,7 @@ export default function Vault() {
   const [eng, setEng] = useState<EngageCounts>({ vouches: {}, views: {}, mine: new Set() });
   const [seedVouch, setSeedVouch] = useState<Record<string, boolean>>({});
   const [openThread, setOpenThread] = useState<string | null>(null);
+  const [openDetail, setOpenDetail] = useState<string | null>(null);
   const [threads, setThreads] = useState<Record<string, { items: ResComment[]; loaded: boolean }>>({});
   const [commentDrafts, setCommentDrafts] = useState<Record<string, string>>({});
   const [commentBusy, setCommentBusy] = useState<string | null>(null);
@@ -180,6 +183,7 @@ export default function Vault() {
         verified: true,
         tags: r.category ? [r.category.toLowerCase().replace(/\s+/g, '-').replace(/^/, '#')] : [],
         summary: r.description || '',
+        body: r.description || '',
         url: r.file_url,
         live: true,
       }));
@@ -191,6 +195,7 @@ export default function Vault() {
         verified: false,
         tags: ['#community'],
         summary: r.metadata?.description || 'Awaiting faculty quality check.',
+        body: r.metadata?.description || '',
         url: r.external_ref,
         live: true,
       }));
@@ -317,6 +322,12 @@ export default function Vault() {
     }
   };
 
+  const toggleDetail = (r: Resource) => {
+    const opening = openDetail !== r.id;
+    if (opening && r.live && profile) recordView('vault', r.id, profile.id);
+    setOpenDetail(opening ? r.id : null);
+  };
+
   const toggleThread = (r: Resource) => {
     if (r.live && profile) recordView('vault', r.id, profile.id);
     setOpenThread((cur) => (cur === r.id ? null : r.id));
@@ -387,6 +398,7 @@ export default function Vault() {
         verified: false,
         tags: ['#community'],
         summary: row.metadata?.description || 'Awaiting faculty quality check.',
+        body: row.metadata?.description || '',
         url: row.external_ref,
         live: true,
       }),
@@ -400,7 +412,18 @@ export default function Vault() {
     const pinned = isPinned(r.id);
     const tier = vouchTier(r.vouches);
     const title = (
-      <h3 className="slab-display mt-3 text-lg leading-snug t-ink">{r.title}</h3>
+      <button
+        onClick={() => toggleDetail(r)}
+        aria-expanded={openDetail === r.id}
+        className="group mt-3 block w-full text-left"
+      >
+        <h3 className="slab-display inline text-lg leading-snug t-ink underline-offset-4 group-hover:underline">
+          {r.title}
+        </h3>
+        <span className="ml-2 align-middle text-[0.65rem] font-bold tracking-widest text-[var(--coral)]">
+          {openDetail === r.id ? 'CLOSE ▴' : 'OPEN ▾'}
+        </span>
+      </button>
     );
     return (
       <article
@@ -427,22 +450,30 @@ export default function Vault() {
               </span>
             )}
           </div>
-          {r.url ? (
-            <a
-              href={r.url}
-              target="_blank"
-              rel="noreferrer"
-              onClick={() => {
-                if (r.live && profile) recordView('vault', r.id, profile.id);
-              }}
-              className="block"
-            >
-              {title}
-            </a>
-          ) : (
-            title
-          )}
+          {title}
           <p className="mt-2 line-clamp-2 text-xs leading-relaxed t-muted">{r.summary}</p>
+
+          {/* opened detail — the full content lives here */}
+          {openDetail === r.id && (
+            <div className="mt-4 rounded-xl bg-[var(--paper)] p-4 shadow-[inset_0_0_0_1.5px_var(--line)]">
+              <p className="whitespace-pre-line text-sm leading-relaxed t-ink">
+                {r.body || r.summary}
+              </p>
+              {r.url && (
+                <a
+                  href={r.url}
+                  target="_blank"
+                  rel="noreferrer"
+                  onClick={() => {
+                    if (r.live && profile) recordView('vault', r.id, profile.id);
+                  }}
+                  className="pill-btn mt-4 inline-block !px-5 !py-2 text-xs"
+                >
+                  Open full material ↗
+                </a>
+              )}
+            </div>
+          )}
         </div>
 
         <div>
