@@ -39,6 +39,59 @@ type CbqItemDraft = {
   explanation: string;
 };
 
+type HireInvite = {
+  id: string;
+  room_id: string | null;
+  inviter_id: string;
+  agreed_fee: number | null;
+  costudy_fee: number | null;
+  status: string | null;
+  session_date: string | null;
+  note: string | null;
+  created_at: string;
+  inviter?: { name?: string; handle?: string } | null;
+  room?: { name?: string } | null;
+};
+
+type CourseRow = {
+  id: string;
+  title: string;
+  description: string | null;
+  price: number;
+  duration_weeks: number;
+  schedule_text: string | null;
+  max_students: number;
+  is_active: boolean;
+};
+
+type StudentRow = { id: string; student_id: string; created_at: string; student?: { name?: string; handle?: string } | null };
+
+type BountyRow = {
+  id: string;
+  task: string;
+  reward: number | null;
+  type: string | null;
+  status: string | null;
+  created_at: string;
+};
+
+type ClassroomRow = { room_id: string; role: string | null; room?: { name?: string; topic?: string } | null };
+
+type RevenueStat = { paid: number; pending: number; platformCut: number; sessions: number };
+
+type StudentDetail = {
+  id: string;
+  name: string;
+  handle: string;
+  streak_days: number | null;
+  total_mocks: number | null;
+  exam_window: string | null;
+  primary_exam: string | null;
+  recent: { id: string; content: string; created_at: string }[];
+};
+
+type TabId = 'action' | 'create' | 'teach' | 'earn';
+
 const emptyCbqItem = (): CbqItemDraft => ({
   prompt: '',
   options: ['', '', '', ''],
@@ -54,6 +107,17 @@ const relTime = (iso: string) => {
   return `${Math.floor(s / 86400)}d ago`;
 };
 
+const readTab = (): TabId => {
+  try {
+    const t = localStorage.getItem('costudy-mentor-tab');
+    return t === 'action' || t === 'create' || t === 'teach' || t === 'earn' ? t : 'action';
+  } catch {
+    return 'action';
+  }
+};
+
+const inr = (n: number) => `₹${Number(n).toLocaleString('en-IN')}`;
+
 export default function Mentor() {
   const navigate = useNavigate();
   const { ready, profile, signOut } = useAuth();
@@ -66,6 +130,7 @@ export default function Mentor() {
   const [queueVouches, setQueueVouches] = useState<Record<string, number>>({});
   const [reviewMsg, setReviewMsg] = useState<string | null>(null);
   const [reviewing, setReviewing] = useState<string | null>(null);
+  const [tab, setTab] = useState<TabId>(readTab);
   // CBQ intake + review
   const [cbqPart, setCbqPart] = useState<'Part 1' | 'Part 2'>('Part 1');
   const [cbqSection, setCbqSection] = useState('');
@@ -77,50 +142,6 @@ export default function Mentor() {
   const [cbqMine, setCbqMine] = useState<CbqMine[]>([]);
   const [cbqPending, setCbqPending] = useState<CbqMine[]>([]);
   // mentor marketplace
-  type HireInvite = {
-    id: string;
-    room_id: string | null;
-    inviter_id: string;
-    agreed_fee: number | null;
-    costudy_fee: number | null;
-    status: string | null;
-    session_date: string | null;
-    note: string | null;
-    created_at: string;
-    inviter?: { name?: string; handle?: string } | null;
-    room?: { name?: string } | null;
-  };
-  type CourseRow = {
-    id: string;
-    title: string;
-    description: string | null;
-    price: number;
-    duration_weeks: number;
-    schedule_text: string | null;
-    max_students: number;
-    is_active: boolean;
-  };
-  type StudentRow = { id: string; student_id: string; created_at: string; student?: { name?: string; handle?: string } | null };
-  type BountyRow = {
-    id: string;
-    task: string;
-    reward: number | null;
-    type: string | null;
-    status: string | null;
-    created_at: string;
-  };
-  type ClassroomRow = { room_id: string; role: string | null; room?: { name?: string; topic?: string } | null };
-  type RevenueStat = { paid: number; pending: number; platformCut: number; sessions: number };
-  type StudentDetail = {
-    id: string;
-    name: string;
-    handle: string;
-    streak_days: number | null;
-    total_mocks: number | null;
-    exam_window: string | null;
-    primary_exam: string | null;
-    recent: { id: string; content: string; created_at: string }[];
-  };
   const [invites, setInvites] = useState<HireInvite[]>([]);
   const [courses, setCourses] = useState<CourseRow[]>([]);
   const [students, setStudents] = useState<StudentRow[]>([]);
@@ -184,7 +205,6 @@ export default function Mentor() {
     loadCbq();
   }, [profile]);
 
-  // mentor marketplace loaders
   const loadMarketplace = () => {
     if (!profile) return;
     supabase
@@ -282,6 +302,15 @@ export default function Mentor() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [profile]);
 
+  const pickTab = (t: TabId) => {
+    setTab(t);
+    try {
+      localStorage.setItem('costudy-mentor-tab', t);
+    } catch {
+      /* tab memory is a nicety, not a requirement */
+    }
+  };
+
   if (!ready || !profile) {
     return (
       <AppShell eyebrow="Faculty room" title="Mentor cockpit">
@@ -297,6 +326,9 @@ export default function Mentor() {
       </AppShell>
     );
   }
+
+  const pendingHires = invites.filter((i) => (i.status || 'PENDING') === 'PENDING').length;
+  const pendingActions = pendingHires + queue.length + cbqPending.length;
 
   const broadcast = async () => {
     const text = draft.trim();
@@ -628,585 +660,641 @@ export default function Mentor() {
     loadCbq();
   };
 
+  const tabs: { id: TabId; label: string; count?: number }[] = [
+    { id: 'action', label: 'Action desk', count: pendingActions },
+    { id: 'create', label: 'Create', count: cbqMine.length },
+    { id: 'teach', label: 'Teach', count: classrooms.length },
+    { id: 'earn', label: 'Earn' },
+  ];
+
   return (
     <AppShell eyebrow="The faculty room" title={`${profile.name.split(' ')[0]}'s cockpit`}>
+      {/* at-a-glance strip */}
+      <div className="mb-8 grid grid-cols-2 gap-4 lg:grid-cols-4">
+        {[
+          { n: String(pendingActions), l: 'awaiting you', hot: pendingActions > 0 },
+          { n: String(students.length), l: 'students', hot: false },
+          { n: String(cbqMine.length), l: 'live cbq cases', hot: false },
+          { n: inr(revenue.paid), l: 'collected', hot: false },
+        ].map((s) => (
+          <div
+            key={s.l}
+            className={`rounded-2xl border-[1.5px] px-5 py-4 ${
+              s.hot ? 'border-[var(--coral)] bg-[var(--coral)]/10' : 'b-line bg-[var(--card)]'
+            }`}
+          >
+            <p className={`slab-display text-2xl ${s.hot ? 'text-[var(--coral)]' : 't-ink'}`}>{s.n}</p>
+            <p className="mt-0.5 text-xs t-faint">{s.l}</p>
+          </div>
+        ))}
+      </div>
+
       <div className="grid gap-6 xl:grid-cols-[1.6fr_1fr]">
-        <div className="space-y-6">
-          {/* broadcast composer */}
-          <section className="rounded-[1.6rem] bg-[#2b2926] p-6 text-[#fcfbfa] md:p-8">
-            <div className="flex items-center gap-2">
-              <DoodleSpark className="h-5 w-5 text-[#f3ede3]" />
-              <p className="eyebrow text-[#f3ede3]">Broadcast to the wall</p>
-            </div>
-            <textarea
-              value={draft}
-              onChange={(e) => setDraft(e.target.value)}
-              rows={3}
-              placeholder="Post a note, a bounty, a correction — the whole campus hears it…"
-              className="mt-4 w-full resize-none rounded-xl border-[1.5px] border-[#fcfbfa]/25 bg-[#fcfbfa]/10 p-4 text-sm text-[#fcfbfa] placeholder:text-[#fcfbfa]/50 focus:border-[var(--mint)] focus:outline-none"
-            />
-            {error && <p className="mt-3 rounded-lg bg-[var(--coral)]/25 px-3 py-2 text-xs font-semibold">{error}</p>}
-            <div className="mt-4 flex items-center justify-between gap-3">
-              <p className="text-xs text-[#fcfbfa]/60">Broadcasts land on the Study Wall as FACULTY.</p>
+        <div>
+          {/* deck tabs */}
+          <div className="mb-6 flex flex-wrap gap-2">
+            {tabs.map((t) => (
               <button
-                onClick={broadcast}
-                disabled={!draft.trim() || busy}
-                className="rounded-full bg-[var(--mint)] px-5 py-2.5 text-sm font-bold text-[var(--ink)] transition-opacity disabled:opacity-40"
+                key={t.id}
+                onClick={() => pickTab(t.id)}
+                aria-pressed={tab === t.id}
+                className={`flex items-center gap-2 rounded-full border-[1.5px] px-4 py-2 text-xs font-bold tracking-wide transition-all duration-300 ${
+                  tab === t.id
+                    ? 'border-[var(--coral)] bg-[var(--coral)] text-white'
+                    : 'b-line t-muted hover:t-ink hover:border-[var(--ink)]'
+                }`}
               >
-                {busy ? 'Sending…' : 'Broadcast'}
+                {t.label}
+                {t.count !== undefined && t.count > 0 && (
+                  <span
+                    className={`rounded-full px-1.5 py-0.5 text-[0.6rem] font-bold ${
+                      tab === t.id ? 'bg-white/25 text-white' : 'bg-[var(--mint)] text-[var(--ink)]'
+                    }`}
+                  >
+                    {t.count}
+                  </span>
+                )}
               </button>
-            </div>
-          </section>
+            ))}
+          </div>
 
-          {/* hire requests */}
-          <section className="rounded-[1.6rem] border-[1.5px] b-line bg-[var(--card)] p-6 md:p-8">
-            <div className="flex flex-wrap items-center justify-between gap-3">
-              <div className="flex items-center gap-2">
-                <DoodlePeople className="h-5 w-5 t-muted" />
-                <h2 className="slab-display text-2xl t-ink">Hire requests</h2>
-              </div>
-              <span className="rounded-full bg-[var(--mint)] px-3 py-1 text-[0.65rem] font-bold tracking-widest text-[var(--ink)]">
-                {invites.filter((i) => (i.status || 'PENDING') === 'PENDING').length} PENDING
-              </span>
-            </div>
-            <p className="mt-2 text-xs leading-relaxed t-faint">
-              Students hire you into their study room. Accepting joins you to the room, schedules a kickoff
-              session on its Plan tab, and opens a payment line with the platform fee attached.
-            </p>
-            {hireMsg && (
-              <p className="mt-4 rounded-xl border-[1.5px] border-dashed b-line px-4 py-3 text-xs font-semibold t-muted">{hireMsg}</p>
-            )}
-            <ul className="mt-4 space-y-3">
-              {invites.map((inv) => {
-                const pending = (inv.status || 'PENDING') === 'PENDING';
-                return (
-                  <li key={inv.id} className="rounded-xl border-[1.5px] b-line p-4">
-                    <div className="flex flex-wrap items-start justify-between gap-3">
-                      <div>
-                        <p className="text-sm font-bold t-ink">
-                          {inv.inviter?.name || 'A student'} <span className="t-faint">@{inv.inviter?.handle}</span>
-                        </p>
-                        <p className="mt-1 text-xs t-muted">
-                          {inv.room?.name || 'Your pick of room'} ·{' '}
-                          {inv.session_date
-                            ? new Date(inv.session_date).toLocaleString(undefined, { weekday: 'short', month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' })
-                            : 'date to agree'}
-                          {' · '}
-                          {inv.agreed_fee ? `₹${Number(inv.agreed_fee).toLocaleString('en-IN')} (CoStudy cut ₹${Number(inv.costudy_fee || 0).toLocaleString('en-IN')})` : 'fee on agree'}
-                        </p>
-                        {inv.note && <p className="mt-2 text-xs italic leading-relaxed t-muted">“{inv.note}”</p>}
-                      </div>
-                      <div className="flex items-center gap-2">
-                        {pending ? (
-                          <>
-                            <button
-                              onClick={() => respondHire(inv, true)}
-                              disabled={hireBusy === inv.id}
-                              className="rounded-full bg-[var(--coral)] px-4 py-2 text-xs font-bold text-white transition-opacity hover:opacity-85 disabled:opacity-40"
-                            >
-                              {hireBusy === inv.id ? 'Working…' : 'Accept'}
-                            </button>
-                            <button
-                              onClick={() => respondHire(inv, false)}
-                              disabled={hireBusy === inv.id}
-                              className="rounded-full border-[1.5px] b-line px-4 py-2 text-xs font-bold t-muted hover:t-ink"
-                            >
-                              Decline
-                            </button>
-                          </>
-                        ) : (
-                          <span className={`rounded-full px-3 py-1 text-[0.6rem] font-bold tracking-widest ${inv.status === 'ACCEPTED' ? 'bg-[var(--mint)] text-[var(--ink)]' : 'bg-[var(--paper)] t-faint'}`}>
-                            {inv.status}
-                          </span>
-                        )}
-                      </div>
-                    </div>
-                  </li>
-                );
-              })}
-              {invites.length === 0 && (
-                <li className="text-xs t-faint">No requests yet — they arrive here the moment a student hits Hire on your card.</li>
-              )}
-            </ul>
-          </section>
-
-          {/* student bounties */}
-          <section className="rounded-[1.6rem] border-[1.5px] b-line bg-[var(--card)] p-6 md:p-8">
-            <div className="flex items-center gap-2">
-              <DoodleSpark className="h-5 w-5 t-muted" />
-              <h2 className="slab-display text-2xl t-ink">Student bounties</h2>
-            </div>
-            <p className="mt-2 text-xs leading-relaxed t-faint">
-              Put a prize on a question, a case, or a challenge — the wall hears about it and the best
-              student answer earns the reward.
-            </p>
-            {bountyMsg && (
-              <p className="mt-4 rounded-xl border-[1.5px] border-dashed b-line px-4 py-3 text-xs font-semibold t-muted">{bountyMsg}</p>
-            )}
-            <form onSubmit={postBounty} className="mt-4 space-y-2.5">
-              <input
-                value={bountyForm.task}
-                onChange={(e) => setBountyForm({ ...bountyForm, task: e.target.value })}
-                placeholder="The task — e.g. Build the cleanest variance-analysis walkthrough for Marlow Ltd"
-                className="w-full rounded-xl border-[1.5px] b-line bg-[var(--paper)] px-4 py-3 text-sm t-ink placeholder:t-faint focus:border-[var(--coral)] focus:outline-none"
-              />
-              <div className="flex flex-wrap gap-2">
-                <input
-                  value={bountyForm.reward}
-                  onChange={(e) => setBountyForm({ ...bountyForm, reward: e.target.value })}
-                  type="number"
-                  min="0"
-                  placeholder="Reward (0 = honour only)"
-                  className="w-48 rounded-xl border-[1.5px] b-line bg-[var(--paper)] px-4 py-3 text-sm t-ink placeholder:t-faint focus:border-[var(--coral)] focus:outline-none"
-                />
-                <select
-                  value={bountyForm.type}
-                  onChange={(e) => setBountyForm({ ...bountyForm, type: e.target.value as 'CREDITS' | 'BADGE' })}
-                  className="rounded-xl border-[1.5px] b-line bg-[var(--paper)] px-3 py-3 text-sm t-ink focus:border-[var(--coral)] focus:outline-none"
-                >
-                  <option value="CREDITS">Study credits</option>
-                  <option value="BADGE">Badge</option>
-                </select>
-                <button type="submit" disabled={bountyBusy || !bountyForm.task.trim()} className="pill-btn !px-6 !py-3 text-sm disabled:opacity-40">
-                  {bountyBusy ? 'Posting…' : 'Post bounty'}
-                </button>
-              </div>
-            </form>
-            {bounties.length > 0 && (
-              <ul className="mt-5 space-y-2.5 border-t b-line pt-4">
-                {bounties.map((b) => (
-                  <li key={b.id} className="flex flex-wrap items-center gap-3 text-xs">
-                    <span className="min-w-0 flex-1 font-semibold t-ink">{b.task}</span>
-                    <span className="t-faint">
-                      {b.reward && Number(b.reward) > 0
-                        ? b.type === 'CREDITS'
-                          ? `₹${Number(b.reward).toLocaleString('en-IN')}`
-                          : b.type
-                        : 'honour'}
-                    </span>
-                    <button
-                      onClick={() => toggleBounty(b)}
-                      className={`rounded-full px-3 py-1 text-[0.6rem] font-bold tracking-widest transition-opacity hover:opacity-75 ${
-                        (b.status || 'OPEN') === 'OPEN' ? 'bg-[var(--mint)] text-[var(--ink)]' : 'b-line t-faint'
-                      }`}
-                    >
-                      {(b.status || 'OPEN') === 'OPEN' ? 'OPEN' : 'CLOSED'}
-                    </button>
-                  </li>
-                ))}
-              </ul>
-            )}
-          </section>
-
-          {/* my classrooms */}
-          <section className="rounded-[1.6rem] border-[1.5px] b-line bg-[var(--card)] p-6 md:p-8">
-            <div className="flex items-center gap-2">
-              <DoodleBook className="h-5 w-5 t-muted" />
-              <h2 className="slab-display text-2xl t-ink">My classrooms</h2>
-            </div>
-            <p className="mt-2 text-xs leading-relaxed t-faint">
-              Every room you teach in — from accepted hire requests and direct invites.
-            </p>
-            {classrooms.length === 0 ? (
-              <p className="mt-4 text-xs t-faint">No rooms yet — accept a hire request and the room appears here.</p>
-            ) : (
-              <ul className="mt-4 grid gap-3 sm:grid-cols-2">
-                {classrooms.map((c) => (
-                  <li key={c.room_id} className="rounded-xl border-[1.5px] b-line p-4">
-                    <p className="text-sm font-bold t-ink">{c.room?.name || 'Study room'}</p>
-                    <p className="mt-1 text-[0.65rem] font-bold tracking-widest t-faint">{(c.role || 'MENTOR').toUpperCase()}</p>
-                    <Link to="/rooms" className="link-underline mt-2 inline-block text-xs font-bold tracking-widest t-ink">
-                      OPEN ROOM →
-                    </Link>
-                  </li>
-                ))}
-              </ul>
-            )}
-          </section>
-
-          {/* revenue */}
-          <section className="rounded-[1.6rem] bg-[#2b2926] p-6 text-[#fcfbfa] md:p-8">
-            <div className="flex items-center gap-2">
-              <DoodleBulb className="h-5 w-5 text-[#f3ede3]" />
-              <h2 className="slab-display text-2xl">Revenue</h2>
-            </div>
-            <p className="mt-2 text-xs leading-relaxed text-[#fcfbfa]/60">
-              Payments on sessions you run. Students pay through Razorpay; the platform fee is yours to track, not to collect.
-            </p>
-            <ul className="mt-5 grid gap-3 sm:grid-cols-2">
-              <li className="rounded-xl bg-[#fcfbfa]/10 p-4">
-                <p className="text-[0.65rem] font-bold tracking-widest text-[#f3ede3]">COLLECTED</p>
-                <p className="slab-display mt-1 text-2xl">₹{revenue.paid.toLocaleString('en-IN')}</p>
-              </li>
-              <li className="rounded-xl bg-[#fcfbfa]/10 p-4">
-                <p className="text-[0.65rem] font-bold tracking-widest text-[#f3ede3]">AWAITING PAYMENT</p>
-                <p className="slab-display mt-1 text-2xl">₹{revenue.pending.toLocaleString('en-IN')}</p>
-              </li>
-              <li className="rounded-xl bg-[#fcfbfa]/10 p-4">
-                <p className="text-[0.65rem] font-bold tracking-widest text-[#f3ede3]">CO STUDY FEE (PLATFORM)</p>
-                <p className="slab-display mt-1 text-2xl">₹{revenue.platformCut.toLocaleString('en-IN')}</p>
-              </li>
-              <li className="rounded-xl bg-[#fcfbfa]/10 p-4">
-                <p className="text-[0.65rem] font-bold tracking-widest text-[#f3ede3]">SESSIONS LED</p>
-                <p className="slab-display mt-1 text-2xl">{revenue.sessions}</p>
-              </li>
-            </ul>
-            <p className="mt-4 text-[0.65rem] text-[#fcfbfa]/50">
-              Numbers update as students complete Razorpay checkouts — pending flips to collected on payment.
-            </p>
-          </section>
-
-          {/* courses */}
-          <section className="rounded-[1.6rem] border-[1.5px] b-line bg-[var(--card)] p-6 md:p-8">
-            <div className="flex flex-wrap items-center justify-between gap-3">
-              <div className="flex items-center gap-2">
-                <DoodleBook className="h-5 w-5 t-muted" />
-                <h2 className="slab-display text-2xl t-ink">Courses &amp; cohorts</h2>
-              </div>
-              <button
-                onClick={() => setShowCourse((v) => !v)}
-                className="rounded-full border-[1.5px] b-line px-4 py-2 text-xs font-bold t-muted hover:t-ink"
-              >
-                {showCourse ? 'Close' : '+ New course'}
-              </button>
-            </div>
-            <p className="mt-2 text-xs leading-relaxed t-faint">
-              Published offers show on the Mentors page; “Offer on wall” posts them to the Study Wall as faculty.
-            </p>
-            {showCourse && (
-              <form onSubmit={addCourse} className="mt-4 space-y-3 rounded-2xl border-[1.5px] border-dashed b-line p-4">
-                <input value={courseForm.title} onChange={(e) => setCourseForm({ ...courseForm, title: e.target.value })} placeholder="Course title — e.g. Part 1 Decision Analysis intensive" className="w-full rounded-xl border-[1.5px] b-line bg-[var(--paper)] px-4 py-3 text-sm font-semibold t-ink placeholder:t-faint focus:border-[var(--coral)] focus:outline-none" />
-                <textarea value={courseForm.description} onChange={(e) => setCourseForm({ ...courseForm, description: e.target.value })} rows={3} placeholder="What students walk away with" className="w-full resize-none rounded-xl border-[1.5px] b-line bg-[var(--paper)] p-4 text-sm t-ink placeholder:t-faint focus:border-[var(--coral)] focus:outline-none" />
-                <div className="flex flex-wrap gap-2">
-                  <input value={courseForm.price} onChange={(e) => setCourseForm({ ...courseForm, price: e.target.value })} type="number" min="0" placeholder="Price ₹ (0 = free)" className="w-40 rounded-xl border-[1.5px] b-line bg-[var(--paper)] px-4 py-3 text-sm t-ink placeholder:t-faint focus:border-[var(--coral)] focus:outline-none" />
-                  <input value={courseForm.duration_weeks} onChange={(e) => setCourseForm({ ...courseForm, duration_weeks: e.target.value })} type="number" min="1" placeholder="Weeks" className="w-24 rounded-xl border-[1.5px] b-line bg-[var(--paper)] px-4 py-3 text-sm t-ink placeholder:t-faint focus:border-[var(--coral)] focus:outline-none" />
-                  <input value={courseForm.max_students} onChange={(e) => setCourseForm({ ...courseForm, max_students: e.target.value })} type="number" min="1" placeholder="Seats" className="w-24 rounded-xl border-[1.5px] b-line bg-[var(--paper)] px-4 py-3 text-sm t-ink placeholder:t-faint focus:border-[var(--coral)] focus:outline-none" />
+          {/* ---------------- ACTION DESK ---------------- */}
+          {tab === 'action' && (
+            <div className="space-y-6">
+              {/* hire requests */}
+              <section className="rounded-[1.6rem] border-[1.5px] b-line bg-[var(--card)] p-6 md:p-7">
+                <div className="flex flex-wrap items-center justify-between gap-3">
+                  <div className="flex items-center gap-2">
+                    <DoodlePeople className="h-5 w-5 t-muted" />
+                    <h2 className="slab-display text-xl t-ink">Hire requests</h2>
+                  </div>
+                  <span className={`rounded-full px-3 py-1 text-[0.65rem] font-bold tracking-widest ${pendingHires > 0 ? 'bg-[var(--coral)] text-white' : 'b-line t-faint'}`}>
+                    {pendingHires} PENDING
+                  </span>
                 </div>
-                <input value={courseForm.schedule_text} onChange={(e) => setCourseForm({ ...courseForm, schedule_text: e.target.value })} placeholder="Schedule — e.g. Tue & Sat, 7:00 AM IST" className="w-full rounded-xl border-[1.5px] b-line bg-[var(--paper)] px-4 py-3 text-sm t-ink placeholder:t-faint focus:border-[var(--coral)] focus:outline-none" />
-                <button type="submit" className="pill-btn !px-5 !py-2.5 text-xs">Publish course</button>
-              </form>
-            )}
-            <ul className="mt-4 space-y-3">
-              {courses.map((c) => (
-                <li key={c.id} className="rounded-xl border-[1.5px] b-line p-4">
-                  <div className="flex flex-wrap items-start justify-between gap-3">
-                    <div>
-                      <p className={`text-sm font-bold ${c.is_active ? 't-ink' : 't-faint line-through'}`}>{c.title}</p>
-                      <p className="mt-1 text-xs t-muted">
-                        {c.duration_weeks} weeks · {c.max_students} seats · {Number(c.price) > 0 ? `₹${Number(c.price).toLocaleString('en-IN')}` : 'free'}
-                        {c.schedule_text ? ` · ${c.schedule_text}` : ''}
-                      </p>
-                    </div>
-                    <div className="flex items-center gap-2">
-                      <button onClick={() => offerOnWall(c)} className="rounded-full bg-[var(--mint)] px-3.5 py-1.5 text-[0.65rem] font-bold text-[var(--ink)] hover:opacity-85">
-                        Offer on wall
-                      </button>
-                      <button onClick={() => toggleCourse(c)} className="rounded-full border-[1.5px] b-line px-3.5 py-1.5 text-[0.65rem] font-bold t-muted hover:t-ink">
-                        {c.is_active ? 'Unpublish' : 'Publish'}
-                      </button>
-                    </div>
-                  </div>
-                </li>
-              ))}
-              {courses.length === 0 && !showCourse && (
-                <li className="text-xs t-faint">No courses yet — package what you teach and publish it here.</li>
-              )}
-            </ul>
-          </section>
+                <p className="mt-1 text-xs t-faint">Accepting joins you to the student’s room and schedules the kickoff.</p>
+                {hireMsg && (
+                  <p className="mt-4 rounded-xl border-[1.5px] border-dashed b-line px-4 py-3 text-xs font-semibold t-muted">{hireMsg}</p>
+                )}
+                <ul className="mt-4 space-y-3">
+                  {invites.map((inv) => {
+                    const pending = (inv.status || 'PENDING') === 'PENDING';
+                    return (
+                      <li key={inv.id} className="rounded-xl border-[1.5px] b-line p-4">
+                        <div className="flex flex-wrap items-start justify-between gap-3">
+                          <div>
+                            <p className="text-sm font-bold t-ink">
+                              {inv.inviter?.name || 'A student'} <span className="t-faint">@{inv.inviter?.handle}</span>
+                            </p>
+                            <p className="mt-1 text-xs t-muted">
+                              {inv.room?.name || 'Your pick of room'} ·{' '}
+                              {inv.session_date
+                                ? new Date(inv.session_date).toLocaleString(undefined, { weekday: 'short', month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' })
+                                : 'date to agree'}
+                              {' · '}
+                              {inv.agreed_fee ? `${inr(Number(inv.agreed_fee))} (CoStudy cut ${inr(Number(inv.costudy_fee || 0))})` : 'fee on agree'}
+                            </p>
+                            {inv.note && <p className="mt-2 text-xs italic leading-relaxed t-muted">“{inv.note}”</p>}
+                          </div>
+                          <div className="flex items-center gap-2">
+                            {pending ? (
+                              <>
+                                <button
+                                  onClick={() => respondHire(inv, true)}
+                                  disabled={hireBusy === inv.id}
+                                  className="rounded-full bg-[var(--coral)] px-4 py-2 text-xs font-bold text-white transition-opacity hover:opacity-85 disabled:opacity-40"
+                                >
+                                  {hireBusy === inv.id ? 'Working…' : 'Accept'}
+                                </button>
+                                <button
+                                  onClick={() => respondHire(inv, false)}
+                                  disabled={hireBusy === inv.id}
+                                  className="rounded-full border-[1.5px] b-line px-4 py-2 text-xs font-bold t-muted hover:t-ink"
+                                >
+                                  Decline
+                                </button>
+                              </>
+                            ) : (
+                              <span className={`rounded-full px-3 py-1 text-[0.6rem] font-bold tracking-widest ${inv.status === 'ACCEPTED' ? 'bg-[var(--mint)] text-[var(--ink)]' : 'bg-[var(--paper)] t-faint'}`}>
+                                {inv.status}
+                              </span>
+                            )}
+                          </div>
+                        </div>
+                      </li>
+                    );
+                  })}
+                  {invites.length === 0 && (
+                    <li className="text-xs t-faint">No requests yet — they arrive here the moment a student hits Hire on your card.</li>
+                  )}
+                </ul>
+              </section>
 
-          {/* marketplace profile */}
-          <section className="rounded-[1.6rem] border-[1.5px] b-line bg-[var(--card)] p-6 md:p-8">
-            <div className="flex items-center gap-2">
-              <DoodleBulb className="h-5 w-5 t-muted" />
-              <h2 className="slab-display text-2xl t-ink">Marketplace profile</h2>
-            </div>
-            <p className="mt-2 text-xs leading-relaxed t-faint">
-              This is your card on the Mentors page — what students see before they hire you.
-            </p>
-            <textarea
-              value={market.bio}
-              onChange={(e) => setMarket({ ...market, bio: e.target.value })}
-              rows={3}
-              placeholder="One short paragraph — who you coach and what you’re known for"
-              className="mt-4 w-full resize-none rounded-xl border-[1.5px] b-line bg-[var(--paper)] p-4 text-sm t-ink placeholder:t-faint focus:border-[var(--coral)] focus:outline-none"
-            />
-            <input
-              value={market.specialties}
-              onChange={(e) => setMarket({ ...market, specialties: e.target.value })}
-              placeholder="Specialties — comma separated, e.g. CMA US Part 1, Internal Controls, Essay coaching"
-              className="mt-3 w-full rounded-xl border-[1.5px] b-line bg-[var(--paper)] px-4 py-3 text-sm t-ink placeholder:t-faint focus:border-[var(--coral)] focus:outline-none"
-            />
-            <div className="mt-3 flex flex-wrap gap-2">
-              <input value={market.years_experience} onChange={(e) => setMarket({ ...market, years_experience: e.target.value })} type="number" min="0" placeholder="Years of experience" className="w-48 rounded-xl border-[1.5px] b-line bg-[var(--paper)] px-4 py-3 text-sm t-ink placeholder:t-faint focus:border-[var(--coral)] focus:outline-none" />
-              <input value={market.hourly_rate} onChange={(e) => setMarket({ ...market, hourly_rate: e.target.value })} type="number" min="0" placeholder="Hourly rate ₹" className="w-40 rounded-xl border-[1.5px] b-line bg-[var(--paper)] px-4 py-3 text-sm t-ink placeholder:t-faint focus:border-[var(--coral)] focus:outline-none" />
-              <button onClick={saveMarket} className="pill-btn !px-6 !py-3 text-sm">
-                Save profile
-              </button>
-            </div>
-          </section>
-
-          {/* CBQ case intake */}
-          <section className="rounded-[1.6rem] border-[1.5px] b-line bg-[var(--card)] p-6 md:p-8">
-            <div className="flex flex-wrap items-center justify-between gap-3">
-              <div className="flex items-center gap-2">
-                <DoodleNote className="h-5 w-5 t-muted" />
-                <h2 className="slab-display text-2xl t-ink">CBQ case intake</h2>
-              </div>
-              <span className="rounded-full bg-[var(--mint)] px-3 py-1 text-[0.65rem] font-bold tracking-widest text-[var(--ink)]">
-                {cbqMine.length} LIVE · {cbqPending.length} AWAITING REVIEW
-              </span>
-            </div>
-            <p className="mt-2 text-xs leading-relaxed t-faint">
-              Case-based questions land in the AI Deck as scenario + linked items. Submissions stay
-              pending until another faculty member approves them — the same verified-shelf rule as the vault.
-            </p>
-            {cbqMsg && (
-              <p className="mt-4 rounded-xl border-[1.5px] border-dashed b-line px-4 py-3 text-xs font-semibold t-muted">{cbqMsg}</p>
-            )}
-            <div className="mt-4 grid gap-3 sm:grid-cols-[10rem_1fr]">
-              <select
-                value={cbqPart}
-                onChange={(e) => setCbqPart(e.target.value as 'Part 1' | 'Part 2')}
-                className="rounded-xl border-[1.5px] b-line bg-[var(--paper)] px-3 py-2.5 text-sm t-ink focus:border-[var(--coral)] focus:outline-none"
-              >
-                <option>Part 1</option>
-                <option>Part 2</option>
-              </select>
-              <input
-                value={cbqSection}
-                onChange={(e) => setCbqSection(e.target.value)}
-                placeholder="Syllabus area — e.g. Internal Controls, Decision Analysis"
-                className="rounded-xl border-[1.5px] b-line bg-[var(--paper)] px-3 py-2.5 text-sm t-ink placeholder:t-faint focus:border-[var(--coral)] focus:outline-none"
-              />
-            </div>
-            <input
-              value={cbqTitle}
-              onChange={(e) => setCbqTitle(e.target.value)}
-              placeholder="Case title — the hook students see"
-              className="mt-3 w-full rounded-xl border-[1.5px] b-line bg-[var(--paper)] px-3 py-2.5 text-sm font-semibold t-ink placeholder:t-faint focus:border-[var(--coral)] focus:outline-none"
-            />
-            <textarea
-              value={cbqText}
-              onChange={(e) => setCbqText(e.target.value)}
-              rows={4}
-              placeholder="The scenario passage — the company, the numbers, the tension. Everything the items refer back to…"
-              className="mt-3 w-full resize-y rounded-xl border-[1.5px] b-line bg-[var(--paper)] p-3 text-sm leading-relaxed t-ink placeholder:t-faint focus:border-[var(--coral)] focus:outline-none"
-            />
-            <div className="mt-4 space-y-3">
-              {cbqItems.map((it, i) => (
-                <div key={i} className="rounded-xl bg-[var(--paper)] p-4 shadow-[inset_0_0_0_1.5px_var(--line)]">
-                  <div className="flex items-center justify-between">
-                    <p className="text-[0.65rem] font-bold tracking-widest t-faint">ITEM {i + 1}</p>
-                    {cbqItems.length > 1 && (
-                      <button
-                        onClick={() => setCbqItems((items) => items.filter((_, j) => j !== i))}
-                        className="text-xs font-bold t-faint transition-colors hover:text-[var(--coral)]"
-                      >
-                        remove
-                      </button>
-                    )}
+              {/* vault review queue */}
+              <section className="rounded-[1.6rem] border-[1.5px] b-line bg-[var(--card)] p-6 md:p-7">
+                <div className="flex flex-wrap items-center justify-between gap-3">
+                  <div className="flex items-center gap-2">
+                    <DoodleBook className="h-5 w-5 t-muted" />
+                    <h2 className="slab-display text-xl t-ink">Vault review queue</h2>
                   </div>
-                  <input
-                    value={it.prompt}
-                    onChange={(e) => updateCbqItem(i, { prompt: e.target.value })}
-                    placeholder="Task prompt"
-                    className="mt-2 w-full rounded-lg border-[1.5px] b-line bg-[var(--card)] px-3 py-2 text-xs font-medium t-ink placeholder:t-faint focus:border-[var(--coral)] focus:outline-none"
-                  />
-                  <div className="mt-2 grid gap-2 sm:grid-cols-2">
-                    {it.options.map((opt, oi) => (
-                      <input
-                        key={oi}
-                        value={opt}
-                        onChange={(e) =>
-                          updateCbqItem(i, {
-                            options: it.options.map((x, j) => (j === oi ? e.target.value : x)),
-                          })
-                        }
-                        placeholder={`Option ${'ABCDEF'[oi]}`}
-                        className="rounded-lg border-[1.5px] b-line bg-[var(--card)] px-3 py-2 text-xs t-ink placeholder:t-faint focus:border-[var(--coral)] focus:outline-none"
-                      />
+                  <span className={`rounded-full px-3 py-1 text-[0.65rem] font-bold tracking-widest ${queue.length > 0 ? 'bg-[var(--coral)] text-white' : 'b-line t-faint'}`}>
+                    {queue.length} AWAITING
+                  </span>
+                </div>
+                <p className="mt-1 text-xs t-faint">Community uploads — campus vouches ride along when you approve.</p>
+                {reviewMsg && (
+                  <p className="mt-4 rounded-xl border-[1.5px] border-dashed b-line px-4 py-3 text-xs font-semibold t-muted">{reviewMsg}</p>
+                )}
+                {!queueLoaded ? (
+                  <p className="mt-4 text-sm t-faint">Loading the queue…</p>
+                ) : queue.length === 0 ? (
+                  <p className="mt-4 text-sm t-faint">
+                    The review queue is clear — community submissions will appear here the moment students share to the vault.
+                  </p>
+                ) : (
+                  <ul className="mt-4 space-y-3">
+                    {queue.map((item) => (
+                      <li key={item.id} className="rounded-xl bg-[var(--paper)] p-4 shadow-[inset_0_0_0_1.5px_var(--line)]">
+                        <div className="flex flex-wrap items-start justify-between gap-3">
+                          <div className="min-w-0 flex-1">
+                            <p className="text-sm font-bold t-ink">{item.name}</p>
+                            <p className="mt-1 text-xs leading-relaxed t-muted">
+                              {item.metadata?.description || 'No summary provided.'}
+                            </p>
+                            <p className="mt-1.5 flex flex-wrap items-center gap-x-2 text-[0.65rem] font-bold tracking-widest t-faint">
+                              <span>{item.metadata?.kind?.toUpperCase() || 'NOTES'} · by {item.metadata?.submitted_by || 'Community'} · {relTime(item.created_at)}</span>
+                              {(queueVouches[`src-${item.id}`] || 0) > 0 && (
+                                <span className="rounded-full bg-[var(--mint)] px-2 py-0.5 text-[0.6rem] tracking-widest text-[var(--ink)]">
+                                  ✓ {queueVouches[`src-${item.id}`]} CAMPUS VOUCH{queueVouches[`src-${item.id}`] === 1 ? '' : 'ES'}
+                                </span>
+                              )}
+                            </p>
+                            {item.external_ref && (
+                              <a href={item.external_ref} target="_blank" rel="noreferrer" className="link-underline mt-1 inline-block text-xs font-semibold text-[var(--coral)]">
+                                Open link ↗
+                              </a>
+                            )}
+                          </div>
+                          <div className="flex shrink-0 gap-2">
+                            <button
+                              onClick={() => approve(item)}
+                              disabled={reviewing === item.id}
+                              className="rounded-full bg-[#6f9c3e] px-4 py-2 text-xs font-bold text-white transition-opacity disabled:opacity-40"
+                            >
+                              Approve
+                            </button>
+                            <button
+                              onClick={() => reject(item)}
+                              disabled={reviewing === item.id}
+                              className="rounded-full border-[1.5px] border-[var(--coral)] px-4 py-2 text-xs font-bold text-[var(--coral)] transition-opacity disabled:opacity-40"
+                            >
+                              Reject
+                            </button>
+                          </div>
+                        </div>
+                      </li>
                     ))}
-                  </div>
-                  <div className="mt-2 flex flex-wrap items-center gap-2">
-                    <select
-                      value={it.correct}
-                      onChange={(e) => updateCbqItem(i, { correct: Number(e.target.value) })}
-                      className="rounded-lg border-[1.5px] b-line bg-[var(--card)] px-2.5 py-2 text-xs font-bold t-ink focus:border-[var(--coral)] focus:outline-none"
-                    >
-                      {it.options.map((_, oi) => (
-                        <option key={oi} value={oi}>
-                          Answer {'ABCDEF'[oi]}
-                        </option>
-                      ))}
-                    </select>
-                    <input
-                      value={it.explanation}
-                      onChange={(e) => updateCbqItem(i, { explanation: e.target.value })}
-                      placeholder="Worked explanation (unlocks after answering)"
-                      className="min-w-0 flex-1 rounded-lg border-[1.5px] b-line bg-[var(--card)] px-3 py-2 text-xs t-ink placeholder:t-faint focus:border-[var(--coral)] focus:outline-none"
-                    />
-                  </div>
-                </div>
-              ))}
-              <button
-                onClick={() => setCbqItems((items) => [...items, emptyCbqItem()])}
-                className="rounded-full border-[1.5px] border-dashed b-line px-4 py-2 text-xs font-bold t-muted transition-colors hover:t-ink hover:border-[var(--ink)]"
-              >
-                + Add another item
-              </button>
-            </div>
-            <div className="mt-4 flex items-center justify-between gap-3">
-              <p className="text-xs t-faint">Students never see pending cases — approve peers' work to grow the track.</p>
-              <button
-                onClick={submitCbq}
-                disabled={cbqBusy}
-                className="rounded-full bg-[#2b2926] px-5 py-2.5 text-sm font-bold text-[#fcfbfa] transition-opacity disabled:opacity-40"
-              >
-                {cbqBusy ? 'Submitting…' : 'Submit for review'}
-              </button>
-            </div>
-            {cbqMine.length > 0 && (
-              <ul className="mt-5 space-y-2 border-t b-line pt-4">
-                {cbqMine.slice(0, 5).map((s) => (
-                  <li key={s.id} className="flex items-center justify-between gap-3 text-xs">
-                    <span className="min-w-0 flex-1 truncate font-semibold t-ink">{s.title}</span>
-                    <span className="shrink-0 font-bold tracking-widest t-faint">{s.part.toUpperCase()}{s.section ? ` · ${s.section}` : ''}</span>
-                    <span className="shrink-0 rounded-full bg-[var(--mint)] px-2 py-0.5 text-[0.6rem] font-bold text-[var(--ink)]">
-                      LIVE
-                    </span>
-                  </li>
-                ))}
-              </ul>
-            )}
-          </section>
+                  </ul>
+                )}
+              </section>
 
-          {/* CBQ review queue */}
-          {cbqPending.length > 0 && (
-            <section className="rounded-[1.6rem] border-[1.5px] b-line bg-[var(--card)] p-6 md:p-8">
-              <div className="flex items-center gap-2">
-                <DoodleBook className="h-5 w-5 t-muted" />
-                <h2 className="slab-display text-2xl t-ink">CBQ review queue</h2>
-              </div>
-              <ul className="mt-5 space-y-3">
-                {cbqPending.map((s) => (
-                  <li key={s.id} className="rounded-xl bg-[var(--paper)] p-4 shadow-[inset_0_0_0_1.5px_var(--line)]">
-                    <div className="flex flex-wrap items-start justify-between gap-3">
-                      <div className="min-w-0 flex-1">
-                        <p className="text-sm font-bold t-ink">{s.title}</p>
-                        <p className="mt-1 text-[0.65rem] font-bold tracking-widest t-faint">
-                          {s.part.toUpperCase()}{s.section ? ` · ${s.section}` : ''} · {relTime(s.created_at)}
-                        </p>
-                      </div>
-                      <div className="flex shrink-0 gap-2">
-                        <button
-                          onClick={() => reviewCbq(s, 'approve')}
-                          disabled={reviewing === s.id}
-                          className="rounded-full bg-[#6f9c3e] px-4 py-2 text-xs font-bold text-white transition-opacity disabled:opacity-40"
-                        >
-                          Approve
-                        </button>
-                        <button
-                          onClick={() => reviewCbq(s, 'reject')}
-                          disabled={reviewing === s.id}
-                          className="rounded-full border-[1.5px] border-[var(--coral)] px-4 py-2 text-xs font-bold text-[var(--coral)] transition-opacity disabled:opacity-40"
-                        >
-                          Reject
-                        </button>
-                      </div>
-                    </div>
-                  </li>
-                ))}
-              </ul>
-            </section>
+              {/* CBQ review queue */}
+              {cbqPending.length > 0 && (
+                <section className="rounded-[1.6rem] border-[1.5px] b-line bg-[var(--card)] p-6 md:p-7">
+                  <div className="flex items-center gap-2">
+                    <DoodleNote className="h-5 w-5 t-muted" />
+                    <h2 className="slab-display text-xl t-ink">CBQ review queue</h2>
+                  </div>
+                  <p className="mt-1 text-xs t-faint">Peer-submitted cases — approve and they go live on the AI Deck.</p>
+                  <ul className="mt-4 space-y-3">
+                    {cbqPending.map((s) => (
+                      <li key={s.id} className="rounded-xl bg-[var(--paper)] p-4 shadow-[inset_0_0_0_1.5px_var(--line)]">
+                        <div className="flex flex-wrap items-start justify-between gap-3">
+                          <div className="min-w-0 flex-1">
+                            <p className="text-sm font-bold t-ink">{s.title}</p>
+                            <p className="mt-1 text-[0.65rem] font-bold tracking-widest t-faint">
+                              {s.part.toUpperCase()}{s.section ? ` · ${s.section}` : ''} · {relTime(s.created_at)}
+                            </p>
+                          </div>
+                          <div className="flex shrink-0 gap-2">
+                            <button
+                              onClick={() => reviewCbq(s, 'approve')}
+                              disabled={reviewing === s.id}
+                              className="rounded-full bg-[#6f9c3e] px-4 py-2 text-xs font-bold text-white transition-opacity disabled:opacity-40"
+                            >
+                              Approve
+                            </button>
+                            <button
+                              onClick={() => reviewCbq(s, 'reject')}
+                              disabled={reviewing === s.id}
+                              className="rounded-full border-[1.5px] border-[var(--coral)] px-4 py-2 text-xs font-bold text-[var(--coral)] transition-opacity disabled:opacity-40"
+                            >
+                              Reject
+                            </button>
+                          </div>
+                        </div>
+                      </li>
+                    ))}
+                  </ul>
+                </section>
+              )}
+
+              {pendingActions === 0 && (
+                <p className="rounded-2xl border-[1.5px] border-dashed b-line px-5 py-6 text-center text-sm t-faint">
+                  Desk clear — nothing needs your signature right now. Head to <button onClick={() => pickTab('create')} className="font-bold text-[var(--coral)]">Create</button> to put something new on the campus.
+                </p>
+              )}
+            </div>
           )}
 
-          {/* vault review queue */}
-          <section className="rounded-[1.6rem] border-[1.5px] b-line bg-[var(--card)] p-6 md:p-8">
-            <div className="flex flex-wrap items-center justify-between gap-3">
-              <div className="flex items-center gap-2">
-                <DoodleBook className="h-5 w-5 t-muted" />
-                <h2 className="slab-display text-2xl t-ink">Vault review queue</h2>
-              </div>
-              <span className={`rounded-full px-3 py-1 text-[0.65rem] font-bold tracking-widest ${queue.length > 0 ? 'bg-[var(--coral)] text-white' : 'b-line t-faint'}`}>
-                {queue.length} AWAITING
-              </span>
-            </div>
-            {reviewMsg && (
-              <p className="mt-4 rounded-xl border-[1.5px] border-dashed b-line px-4 py-3 text-xs font-semibold t-muted">{reviewMsg}</p>
-            )}
-            {!queueLoaded ? (
-              <p className="mt-4 text-sm t-faint">Loading the queue…</p>
-            ) : queue.length === 0 ? (
-              <p className="mt-4 text-sm t-faint">
-                The review queue is clear — community submissions will appear here the moment students share to the vault.
-              </p>
-            ) : (
-              <ul className="mt-5 space-y-3">
-                {queue.map((item) => (
-                  <li key={item.id} className="rounded-xl bg-[var(--paper)] p-4 shadow-[inset_0_0_0_1.5px_var(--line)]">
-                    <div className="flex flex-wrap items-start justify-between gap-3">
-                      <div className="min-w-0 flex-1">
-                        <p className="text-sm font-bold t-ink">{item.name}</p>
-                        <p className="mt-1 text-xs leading-relaxed t-muted">
-                          {item.metadata?.description || 'No summary provided.'}
-                        </p>
-                        <p className="mt-1.5 flex flex-wrap items-center gap-x-2 text-[0.65rem] font-bold tracking-widest t-faint">
-                          <span>{item.metadata?.kind?.toUpperCase() || 'NOTES'} · by {item.metadata?.submitted_by || 'Community'} · {relTime(item.created_at)}</span>
-                          {(queueVouches[`src-${item.id}`] || 0) > 0 && (
-                            <span className="rounded-full bg-[var(--mint)] px-2 py-0.5 text-[0.6rem] tracking-widest text-[var(--ink)]">
-                              ✓ {queueVouches[`src-${item.id}`]} CAMPUS VOUCH{queueVouches[`src-${item.id}`] === 1 ? '' : 'ES'}
-                            </span>
-                          )}
-                        </p>
-                        {item.external_ref && (
-                          <a href={item.external_ref} target="_blank" rel="noreferrer" className="link-underline mt-1 inline-block text-xs font-semibold text-[var(--coral)]">
-                            Open link ↗
-                          </a>
+          {/* ---------------- CREATE ---------------- */}
+          {tab === 'create' && (
+            <div className="space-y-6">
+              {/* broadcast composer */}
+              <section className="rounded-[1.6rem] bg-[#2b2926] p-6 text-[#fcfbfa] md:p-8">
+                <div className="flex items-center gap-2">
+                  <DoodleSpark className="h-5 w-5 text-[#f3ede3]" />
+                  <p className="eyebrow text-[#f3ede3]">Broadcast to the wall</p>
+                </div>
+                <textarea
+                  value={draft}
+                  onChange={(e) => setDraft(e.target.value)}
+                  rows={3}
+                  placeholder="Post a note, a bounty, a correction — the whole campus hears it…"
+                  className="mt-4 w-full resize-none rounded-xl border-[1.5px] border-[#fcfbfa]/25 bg-[#fcfbfa]/10 p-4 text-sm text-[#fcfbfa] placeholder:text-[#fcfbfa]/50 focus:border-[var(--mint)] focus:outline-none"
+                />
+                {error && <p className="mt-3 rounded-lg bg-[var(--coral)]/25 px-3 py-2 text-xs font-semibold">{error}</p>}
+                <div className="mt-4 flex items-center justify-between gap-3">
+                  <p className="text-xs text-[#fcfbfa]/60">Broadcasts land on the Study Wall as FACULTY.</p>
+                  <button
+                    onClick={broadcast}
+                    disabled={!draft.trim() || busy}
+                    className="rounded-full bg-[var(--mint)] px-5 py-2.5 text-sm font-bold text-[var(--ink)] transition-opacity disabled:opacity-40"
+                  >
+                    {busy ? 'Sending…' : 'Broadcast'}
+                  </button>
+                </div>
+                {mine.length > 0 && (
+                  <ul className="mt-5 space-y-2 border-t border-[#fcfbfa]/15 pt-4">
+                    {mine.slice(0, 5).map((b) => (
+                      <li key={b.id} className="flex items-baseline gap-2 text-xs text-[#fcfbfa]/70">
+                        <span className="line-clamp-1 min-w-0 flex-1">“{b.content}”</span>
+                        <span className="shrink-0 text-[0.6rem] tracking-widest text-[#fcfbfa]/40">▲ {b.likes} · {relTime(b.created_at)}</span>
+                      </li>
+                    ))}
+                  </ul>
+                )}
+              </section>
+
+              {/* CBQ case intake */}
+              <section className="rounded-[1.6rem] border-[1.5px] b-line bg-[var(--card)] p-6 md:p-7">
+                <div className="flex flex-wrap items-center justify-between gap-3">
+                  <div className="flex items-center gap-2">
+                    <DoodleNote className="h-5 w-5 t-muted" />
+                    <h2 className="slab-display text-xl t-ink">CBQ case intake</h2>
+                  </div>
+                  <span className="rounded-full bg-[var(--mint)] px-3 py-1 text-[0.65rem] font-bold tracking-widest text-[var(--ink)]">
+                    {cbqMine.length} LIVE · {cbqPending.length} AWAITING REVIEW
+                  </span>
+                </div>
+                <p className="mt-1 text-xs t-faint">Cases stay pending until a faculty peer verifies them — the same rule as the vault.</p>
+                {cbqMsg && (
+                  <p className="mt-4 rounded-xl border-[1.5px] border-dashed b-line px-4 py-3 text-xs font-semibold t-muted">{cbqMsg}</p>
+                )}
+                <div className="mt-4 grid gap-3 sm:grid-cols-[10rem_1fr]">
+                  <select
+                    value={cbqPart}
+                    onChange={(e) => setCbqPart(e.target.value as 'Part 1' | 'Part 2')}
+                    className="rounded-xl border-[1.5px] b-line bg-[var(--paper)] px-3 py-2.5 text-sm t-ink focus:border-[var(--coral)] focus:outline-none"
+                  >
+                    <option>Part 1</option>
+                    <option>Part 2</option>
+                  </select>
+                  <input
+                    value={cbqSection}
+                    onChange={(e) => setCbqSection(e.target.value)}
+                    placeholder="Syllabus area — e.g. Internal Controls, Decision Analysis"
+                    className="rounded-xl border-[1.5px] b-line bg-[var(--paper)] px-3 py-2.5 text-sm t-ink placeholder:t-faint focus:border-[var(--coral)] focus:outline-none"
+                  />
+                </div>
+                <input
+                  value={cbqTitle}
+                  onChange={(e) => setCbqTitle(e.target.value)}
+                  placeholder="Case title — the hook students see"
+                  className="mt-3 w-full rounded-xl border-[1.5px] b-line bg-[var(--paper)] px-3 py-2.5 text-sm font-semibold t-ink placeholder:t-faint focus:border-[var(--coral)] focus:outline-none"
+                />
+                <textarea
+                  value={cbqText}
+                  onChange={(e) => setCbqText(e.target.value)}
+                  rows={4}
+                  placeholder="The scenario passage — the company, the numbers, the tension. Everything the items refer back to…"
+                  className="mt-3 w-full resize-y rounded-xl border-[1.5px] b-line bg-[var(--paper)] p-3 text-sm leading-relaxed t-ink placeholder:t-faint focus:border-[var(--coral)] focus:outline-none"
+                />
+                <div className="mt-4 space-y-3">
+                  {cbqItems.map((it, i) => (
+                    <div key={i} className="rounded-xl bg-[var(--paper)] p-4 shadow-[inset_0_0_0_1.5px_var(--line)]">
+                      <div className="flex items-center justify-between">
+                        <p className="text-[0.65rem] font-bold tracking-widest t-faint">ITEM {i + 1}</p>
+                        {cbqItems.length > 1 && (
+                          <button
+                            onClick={() => setCbqItems((items) => items.filter((_, j) => j !== i))}
+                            className="text-xs font-bold t-faint transition-colors hover:text-[var(--coral)]"
+                          >
+                            remove
+                          </button>
                         )}
                       </div>
-                      <div className="flex shrink-0 gap-2">
-                        <button
-                          onClick={() => approve(item)}
-                          disabled={reviewing === item.id}
-                          className="rounded-full bg-[#6f9c3e] px-4 py-2 text-xs font-bold text-white transition-opacity disabled:opacity-40"
+                      <input
+                        value={it.prompt}
+                        onChange={(e) => updateCbqItem(i, { prompt: e.target.value })}
+                        placeholder="Task prompt"
+                        className="mt-2 w-full rounded-lg border-[1.5px] b-line bg-[var(--card)] px-3 py-2 text-xs font-medium t-ink placeholder:t-faint focus:border-[var(--coral)] focus:outline-none"
+                      />
+                      <div className="mt-2 grid gap-2 sm:grid-cols-2">
+                        {it.options.map((opt, oi) => (
+                          <input
+                            key={oi}
+                            value={opt}
+                            onChange={(e) =>
+                              updateCbqItem(i, {
+                                options: it.options.map((x, j) => (j === oi ? e.target.value : x)),
+                              })
+                            }
+                            placeholder={`Option ${'ABCDEF'[oi]}`}
+                            className="rounded-lg border-[1.5px] b-line bg-[var(--card)] px-3 py-2 text-xs t-ink placeholder:t-faint focus:border-[var(--coral)] focus:outline-none"
+                          />
+                        ))}
+                      </div>
+                      <div className="mt-2 flex flex-wrap items-center gap-2">
+                        <select
+                          value={it.correct}
+                          onChange={(e) => updateCbqItem(i, { correct: Number(e.target.value) })}
+                          className="rounded-lg border-[1.5px] b-line bg-[var(--card)] px-2.5 py-2 text-xs font-bold t-ink focus:border-[var(--coral)] focus:outline-none"
                         >
-                          Approve
-                        </button>
-                        <button
-                          onClick={() => reject(item)}
-                          disabled={reviewing === item.id}
-                          className="rounded-full border-[1.5px] border-[var(--coral)] px-4 py-2 text-xs font-bold text-[var(--coral)] transition-opacity disabled:opacity-40"
-                        >
-                          Reject
-                        </button>
+                          {it.options.map((_, oi) => (
+                            <option key={oi} value={oi}>
+                              Answer {'ABCDEF'[oi]}
+                            </option>
+                          ))}
+                        </select>
+                        <input
+                          value={it.explanation}
+                          onChange={(e) => updateCbqItem(i, { explanation: e.target.value })}
+                          placeholder="Worked explanation (unlocks after answering)"
+                          className="min-w-0 flex-1 rounded-lg border-[1.5px] b-line bg-[var(--card)] px-3 py-2 text-xs t-ink placeholder:t-faint focus:border-[var(--coral)] focus:outline-none"
+                        />
                       </div>
                     </div>
-                  </li>
-                ))}
-              </ul>
-            )}
-          </section>
+                  ))}
+                  <button
+                    onClick={() => setCbqItems((items) => [...items, emptyCbqItem()])}
+                    className="rounded-full border-[1.5px] border-dashed b-line px-4 py-2 text-xs font-bold t-muted transition-colors hover:t-ink hover:border-[var(--ink)]"
+                  >
+                    + Add another item
+                  </button>
+                </div>
+                <div className="mt-4 flex items-center justify-between gap-3">
+                  <p className="text-xs t-faint">Students never see pending cases — approve peers' work to grow the track.</p>
+                  <button
+                    onClick={submitCbq}
+                    disabled={cbqBusy}
+                    className="rounded-full bg-[#2b2926] px-5 py-2.5 text-sm font-bold text-[#fcfbfa] transition-opacity disabled:opacity-40"
+                  >
+                    {cbqBusy ? 'Submitting…' : 'Submit for review'}
+                  </button>
+                </div>
+                {cbqMine.length > 0 && (
+                  <ul className="mt-5 space-y-2 border-t b-line pt-4">
+                    {cbqMine.slice(0, 5).map((s) => (
+                      <li key={s.id} className="flex items-center justify-between gap-3 text-xs">
+                        <span className="min-w-0 flex-1 truncate font-semibold t-ink">{s.title}</span>
+                        <span className="shrink-0 font-bold tracking-widest t-faint">{s.part.toUpperCase()}{s.section ? ` · ${s.section}` : ''}</span>
+                        <span className="shrink-0 rounded-full bg-[var(--mint)] px-2 py-0.5 text-[0.6rem] font-bold text-[var(--ink)]">
+                          LIVE
+                        </span>
+                      </li>
+                    ))}
+                  </ul>
+                )}
+              </section>
 
-          {/* recent broadcasts */}
-          <section className="rounded-[1.6rem] border-[1.5px] b-line bg-[var(--card)] p-6 md:p-8">
-            <h2 className="slab-display text-2xl t-ink">Your recent broadcasts</h2>
-            {mine.length === 0 ? (
-              <p className="mt-4 text-sm t-faint">
-                Silence so far. Your first broadcast appears here and on the Study Wall at once.
-              </p>
-            ) : (
-              <ul className="mt-5 space-y-3">
-                {mine.map((b) => (
-                  <li key={b.id} className="rounded-xl bg-[var(--paper)] p-4 shadow-[inset_0_0_0_1.5px_var(--line)]">
-                    <p className="line-clamp-2 text-sm font-medium t-ink">{b.content}</p>
-                    <p className="mt-1.5 text-[0.65rem] font-bold tracking-widest t-faint">
-                      {b.type} · ▲ {b.likes} · {relTime(b.created_at)}
-                    </p>
+              {/* student bounties */}
+              <section className="rounded-[1.6rem] border-[1.5px] b-line bg-[var(--card)] p-6 md:p-7">
+                <div className="flex items-center gap-2">
+                  <DoodleSpark className="h-5 w-5 t-muted" />
+                  <h2 className="slab-display text-xl t-ink">Student bounties</h2>
+                </div>
+                <p className="mt-1 text-xs t-faint">Put a prize on a question — the wall hears about it, the best answer earns the reward.</p>
+                {bountyMsg && (
+                  <p className="mt-4 rounded-xl border-[1.5px] border-dashed b-line px-4 py-3 text-xs font-semibold t-muted">{bountyMsg}</p>
+                )}
+                <form onSubmit={postBounty} className="mt-4 space-y-2.5">
+                  <input
+                    value={bountyForm.task}
+                    onChange={(e) => setBountyForm({ ...bountyForm, task: e.target.value })}
+                    placeholder="The task — e.g. Build the cleanest variance-analysis walkthrough for Marlow Ltd"
+                    className="w-full rounded-xl border-[1.5px] b-line bg-[var(--paper)] px-4 py-3 text-sm t-ink placeholder:t-faint focus:border-[var(--coral)] focus:outline-none"
+                  />
+                  <div className="flex flex-wrap gap-2">
+                    <input
+                      value={bountyForm.reward}
+                      onChange={(e) => setBountyForm({ ...bountyForm, reward: e.target.value })}
+                      type="number"
+                      min="0"
+                      placeholder="Reward (0 = honour only)"
+                      className="w-48 rounded-xl border-[1.5px] b-line bg-[var(--paper)] px-4 py-3 text-sm t-ink placeholder:t-faint focus:border-[var(--coral)] focus:outline-none"
+                    />
+                    <select
+                      value={bountyForm.type}
+                      onChange={(e) => setBountyForm({ ...bountyForm, type: e.target.value as 'CREDITS' | 'BADGE' })}
+                      className="rounded-xl border-[1.5px] b-line bg-[var(--paper)] px-3 py-3 text-sm t-ink focus:border-[var(--coral)] focus:outline-none"
+                    >
+                      <option value="CREDITS">Study credits</option>
+                      <option value="BADGE">Badge</option>
+                    </select>
+                    <button type="submit" disabled={bountyBusy || !bountyForm.task.trim()} className="pill-btn !px-6 !py-3 text-sm disabled:opacity-40">
+                      {bountyBusy ? 'Posting…' : 'Post bounty'}
+                    </button>
+                  </div>
+                </form>
+                {bounties.length > 0 && (
+                  <ul className="mt-5 space-y-2.5 border-t b-line pt-4">
+                    {bounties.map((b) => (
+                      <li key={b.id} className="flex flex-wrap items-center gap-3 text-xs">
+                        <span className="min-w-0 flex-1 font-semibold t-ink">{b.task}</span>
+                        <span className="t-faint">
+                          {b.reward && Number(b.reward) > 0
+                            ? b.type === 'CREDITS'
+                              ? inr(Number(b.reward))
+                              : b.type
+                            : 'honour'}
+                        </span>
+                        <button
+                          onClick={() => toggleBounty(b)}
+                          className={`rounded-full px-3 py-1 text-[0.6rem] font-bold tracking-widest transition-opacity hover:opacity-75 ${
+                            (b.status || 'OPEN') === 'OPEN' ? 'bg-[var(--mint)] text-[var(--ink)]' : 'b-line t-faint'
+                          }`}
+                        >
+                          {(b.status || 'OPEN') === 'OPEN' ? 'OPEN' : 'CLOSED'}
+                        </button>
+                      </li>
+                    ))}
+                  </ul>
+                )}
+              </section>
+            </div>
+          )}
+
+          {/* ---------------- TEACH ---------------- */}
+          {tab === 'teach' && (
+            <div className="space-y-6">
+              {/* my classrooms */}
+              <section className="rounded-[1.6rem] border-[1.5px] b-line bg-[var(--card)] p-6 md:p-7">
+                <div className="flex items-center gap-2">
+                  <DoodleBook className="h-5 w-5 t-muted" />
+                  <h2 className="slab-display text-xl t-ink">My classrooms</h2>
+                </div>
+                <p className="mt-1 text-xs t-faint">Every room you teach in — from accepted hire requests and direct invites.</p>
+                {classrooms.length === 0 ? (
+                  <p className="mt-4 text-xs t-faint">No rooms yet — accept a hire request and the room appears here.</p>
+                ) : (
+                  <ul className="mt-4 grid gap-3 sm:grid-cols-2">
+                    {classrooms.map((c) => (
+                      <li key={c.room_id} className="rounded-xl border-[1.5px] b-line p-4 transition-transform duration-500 ease-out-soft hover:-translate-y-0.5">
+                        <p className="text-sm font-bold t-ink">{c.room?.name || 'Study room'}</p>
+                        <p className="mt-1 text-[0.65rem] font-bold tracking-widest t-faint">{(c.role || 'MENTOR').toUpperCase()}</p>
+                        <Link to="/rooms" className="link-underline mt-2 inline-block text-xs font-bold tracking-widest t-ink">
+                          OPEN ROOM →
+                        </Link>
+                      </li>
+                    ))}
+                  </ul>
+                )}
+              </section>
+
+              {/* courses */}
+              <section className="rounded-[1.6rem] border-[1.5px] b-line bg-[var(--card)] p-6 md:p-7">
+                <div className="flex flex-wrap items-center justify-between gap-3">
+                  <div className="flex items-center gap-2">
+                    <DoodleBook className="h-5 w-5 t-muted" />
+                    <h2 className="slab-display text-xl t-ink">Courses &amp; cohorts</h2>
+                  </div>
+                  <button
+                    onClick={() => setShowCourse((v) => !v)}
+                    className="rounded-full border-[1.5px] b-line px-4 py-2 text-xs font-bold t-muted hover:t-ink"
+                  >
+                    {showCourse ? 'Close' : '+ New course'}
+                  </button>
+                </div>
+                <p className="mt-1 text-xs t-faint">Published offers show on the Mentors page; “Offer on wall” posts them to the Study Wall.</p>
+                {showCourse && (
+                  <form onSubmit={addCourse} className="mt-4 space-y-3 rounded-2xl border-[1.5px] border-dashed b-line p-4">
+                    <input value={courseForm.title} onChange={(e) => setCourseForm({ ...courseForm, title: e.target.value })} placeholder="Course title — e.g. Part 1 Decision Analysis intensive" className="w-full rounded-xl border-[1.5px] b-line bg-[var(--paper)] px-4 py-3 text-sm font-semibold t-ink placeholder:t-faint focus:border-[var(--coral)] focus:outline-none" />
+                    <textarea value={courseForm.description} onChange={(e) => setCourseForm({ ...courseForm, description: e.target.value })} rows={3} placeholder="What students walk away with" className="w-full resize-none rounded-xl border-[1.5px] b-line bg-[var(--paper)] p-4 text-sm t-ink placeholder:t-faint focus:border-[var(--coral)] focus:outline-none" />
+                    <div className="flex flex-wrap gap-2">
+                      <input value={courseForm.price} onChange={(e) => setCourseForm({ ...courseForm, price: e.target.value })} type="number" min="0" placeholder="Price ₹ (0 = free)" className="w-40 rounded-xl border-[1.5px] b-line bg-[var(--paper)] px-4 py-3 text-sm t-ink placeholder:t-faint focus:border-[var(--coral)] focus:outline-none" />
+                      <input value={courseForm.duration_weeks} onChange={(e) => setCourseForm({ ...courseForm, duration_weeks: e.target.value })} type="number" min="1" placeholder="Weeks" className="w-24 rounded-xl border-[1.5px] b-line bg-[var(--paper)] px-4 py-3 text-sm t-ink placeholder:t-faint focus:border-[var(--coral)] focus:outline-none" />
+                      <input value={courseForm.max_students} onChange={(e) => setCourseForm({ ...courseForm, max_students: e.target.value })} type="number" min="1" placeholder="Seats" className="w-24 rounded-xl border-[1.5px] b-line bg-[var(--paper)] px-4 py-3 text-sm t-ink placeholder:t-faint focus:border-[var(--coral)] focus:outline-none" />
+                    </div>
+                    <input value={courseForm.schedule_text} onChange={(e) => setCourseForm({ ...courseForm, schedule_text: e.target.value })} placeholder="Schedule — e.g. Tue & Sat, 7:00 AM IST" className="w-full rounded-xl border-[1.5px] b-line bg-[var(--paper)] px-4 py-3 text-sm t-ink placeholder:t-faint focus:border-[var(--coral)] focus:outline-none" />
+                    <button type="submit" className="pill-btn !px-5 !py-2.5 text-xs">Publish course</button>
+                  </form>
+                )}
+                <ul className="mt-4 space-y-3">
+                  {courses.map((c) => (
+                    <li key={c.id} className="rounded-xl border-[1.5px] b-line p-4">
+                      <div className="flex flex-wrap items-start justify-between gap-3">
+                        <div>
+                          <p className={`text-sm font-bold ${c.is_active ? 't-ink' : 't-faint line-through'}`}>{c.title}</p>
+                          <p className="mt-1 text-xs t-muted">
+                            {c.duration_weeks} weeks · {c.max_students} seats · {Number(c.price) > 0 ? inr(Number(c.price)) : 'free'}
+                            {c.schedule_text ? ` · ${c.schedule_text}` : ''}
+                          </p>
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <button onClick={() => offerOnWall(c)} className="rounded-full bg-[var(--mint)] px-3.5 py-1.5 text-[0.65rem] font-bold text-[var(--ink)] hover:opacity-85">
+                            Offer on wall
+                          </button>
+                          <button onClick={() => toggleCourse(c)} className="rounded-full border-[1.5px] b-line px-3.5 py-1.5 text-[0.65rem] font-bold t-muted hover:t-ink">
+                            {c.is_active ? 'Unpublish' : 'Publish'}
+                          </button>
+                        </div>
+                      </div>
+                    </li>
+                  ))}
+                  {courses.length === 0 && !showCourse && (
+                    <li className="text-xs t-faint">No courses yet — package what you teach and publish it here.</li>
+                  )}
+                </ul>
+              </section>
+            </div>
+          )}
+
+          {/* ---------------- EARN ---------------- */}
+          {tab === 'earn' && (
+            <div className="space-y-6">
+              {/* revenue */}
+              <section className="rounded-[1.6rem] bg-[#2b2926] p-6 text-[#fcfbfa] md:p-8">
+                <div className="flex items-center gap-2">
+                  <DoodleBulb className="h-5 w-5 text-[#f3ede3]" />
+                  <h2 className="slab-display text-xl">Revenue</h2>
+                </div>
+                <p className="mt-1 text-xs text-[#fcfbfa]/60">
+                  Students pay through Razorpay; the platform fee is yours to track, not to collect.
+                </p>
+                <ul className="mt-5 grid gap-3 sm:grid-cols-2">
+                  <li className="rounded-xl bg-[#fcfbfa]/10 p-4">
+                    <p className="text-[0.65rem] font-bold tracking-widest text-[#f3ede3]">COLLECTED</p>
+                    <p className="slab-display mt-1 text-2xl">{inr(revenue.paid)}</p>
                   </li>
-                ))}
-              </ul>
-            )}
-          </section>
+                  <li className="rounded-xl bg-[#fcfbfa]/10 p-4">
+                    <p className="text-[0.65rem] font-bold tracking-widest text-[#f3ede3]">AWAITING PAYMENT</p>
+                    <p className="slab-display mt-1 text-2xl">{inr(revenue.pending)}</p>
+                  </li>
+                  <li className="rounded-xl bg-[#fcfbfa]/10 p-4">
+                    <p className="text-[0.65rem] font-bold tracking-widest text-[#f3ede3]">CO STUDY FEE (PLATFORM)</p>
+                    <p className="slab-display mt-1 text-2xl">{inr(revenue.platformCut)}</p>
+                  </li>
+                  <li className="rounded-xl bg-[#fcfbfa]/10 p-4">
+                    <p className="text-[0.65rem] font-bold tracking-widest text-[#f3ede3]">SESSIONS LED</p>
+                    <p className="slab-display mt-1 text-2xl">{revenue.sessions}</p>
+                  </li>
+                </ul>
+                <p className="mt-4 text-[0.65rem] text-[#fcfbfa]/50">
+                  Numbers update as students complete Razorpay checkouts — pending flips to collected on payment.
+                </p>
+              </section>
+
+              {/* marketplace profile */}
+              <section className="rounded-[1.6rem] border-[1.5px] b-line bg-[var(--card)] p-6 md:p-7">
+                <div className="flex items-center gap-2">
+                  <DoodleBulb className="h-5 w-5 t-muted" />
+                  <h2 className="slab-display text-xl t-ink">Marketplace profile</h2>
+                </div>
+                <p className="mt-1 text-xs t-faint">This is your card on the Mentors page — what students see before they hire you.</p>
+                <textarea
+                  value={market.bio}
+                  onChange={(e) => setMarket({ ...market, bio: e.target.value })}
+                  rows={3}
+                  placeholder="One short paragraph — who you coach and what you’re known for"
+                  className="mt-4 w-full resize-none rounded-xl border-[1.5px] b-line bg-[var(--paper)] p-4 text-sm t-ink placeholder:t-faint focus:border-[var(--coral)] focus:outline-none"
+                />
+                <input
+                  value={market.specialties}
+                  onChange={(e) => setMarket({ ...market, specialties: e.target.value })}
+                  placeholder="Specialties — comma separated, e.g. CMA US Part 1, Internal Controls, Essay coaching"
+                  className="mt-3 w-full rounded-xl border-[1.5px] b-line bg-[var(--paper)] px-4 py-3 text-sm t-ink placeholder:t-faint focus:border-[var(--coral)] focus:outline-none"
+                />
+                <div className="mt-3 flex flex-wrap gap-2">
+                  <input value={market.years_experience} onChange={(e) => setMarket({ ...market, years_experience: e.target.value })} type="number" min="0" placeholder="Years of experience" className="w-48 rounded-xl border-[1.5px] b-line bg-[var(--paper)] px-4 py-3 text-sm t-ink placeholder:t-faint focus:border-[var(--coral)] focus:outline-none" />
+                  <input value={market.hourly_rate} onChange={(e) => setMarket({ ...market, hourly_rate: e.target.value })} type="number" min="0" placeholder="Hourly rate ₹" className="w-40 rounded-xl border-[1.5px] b-line bg-[var(--paper)] px-4 py-3 text-sm t-ink placeholder:t-faint focus:border-[var(--coral)] focus:outline-none" />
+                  <button onClick={saveMarket} className="pill-btn !px-6 !py-3 text-sm">
+                    Save profile
+                  </button>
+                </div>
+              </section>
+            </div>
+          )}
         </div>
 
         {/* right rail */}
