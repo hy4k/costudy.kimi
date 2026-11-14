@@ -1,10 +1,11 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { Link } from 'react-router';
 import AppShell from '@/components/app/AppShell';
 import { DoodleBubble, DoodleSpark } from '@/components/Doodles';
 import SupabaseStatus from '@/components/app/SupabaseStatus';
 import { useAuth } from '@/lib/authStore';
 import { supabase } from '@/lib/supabase';
+import { loadEngagements, setVouch, useEngagementLive, postTier, type EngageCounts } from '@/lib/engagements';
 
 type PostType = 'QUESTION' | 'RESOURCE' | 'MCQ' | 'AUDIT' | 'BOUNTY' | 'DISCUSS' | 'EVENT' | 'GOAL';
 
@@ -20,6 +21,9 @@ type Post = {
   tags: string[];
   likes: number;
   liked?: boolean;
+  /** live per-member vouches on top of the `likes` baseline */
+  vouches?: number;
+  vouched?: boolean;
   saved?: boolean;
   comments: number;
   live?: boolean;
@@ -162,6 +166,9 @@ export default function Wall() {
   const [threads, setThreads] = useState<Record<string, { items: WallComment[]; loaded: boolean }>>({});
   const [commentDrafts, setCommentDrafts] = useState<Record<string, string>>({});
   const [commentBusy, setCommentBusy] = useState<string | null>(null);
+  const [eng, setEng] = useState<EngageCounts>({ vouches: {}, views: {}, mine: new Set() });
+  const profileRef = useRef(profile);
+  profileRef.current = profile;
 
   // initial load from the live `posts` table
   useEffect(() => {
@@ -180,6 +187,31 @@ export default function Wall() {
       cancelled = true;
     };
   }, []);
+
+  // community vouches — one per member, loaded once the posts (and profile) resolve
+  const postIdsKey = live.map((p) => p.id).join(',');
+  useEffect(() => {
+    if (live.length === 0) return;
+    let cancelled = false;
+    loadEngagements('post', live.map((p) => p.id), profile?.id).then((counts) => {
+      if (!cancelled) setEng(counts);
+    });
+    return () => {
+      cancelled = true;
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [postIdsKey, profile?.id]);
+
+  // realtime — vouches tick live; own clicks are already applied optimistically
+  useEngagementLive('post', ({ event, resource_id, user_id, kind }) => {
+    if (kind !== 'vouch') return;
+    if (user_id && user_id === profileRef.current?.id) return;
+    setEng((e) => {
+      const vouches = { ...e.vouches };
+      vouches[resource_id] = Math.max(0, (vouches[resource_id] || 0) + (event === 'INSERT' ? 1 : -1));
+      return { ...e, vouches };
+    });
+  });
 
   // realtime — new broadcasts and thread replies appear instantly
   useEffect(() => {
@@ -241,11 +273,22 @@ export default function Wall() {
   const mutate = (id: string, fn: (p: Post) => Post) =>
     setLive((ps) => ps.map((p) => (p.id === id ? fn(p) : p)));
 
-  const toggleLike = (p: Post) => {
-    if (p.live) {
-      const next = p.liked ? p.likes - 1 : p.likes + 1;
-      mutate(p.id, (x) => ({ ...x, liked: !x.liked, likes: next }));
-      supabase.from('posts').update({ likes: next }).eq('id', p.id).then(() => {});
+  const toggleVouch = (p: Post) => {
+    if (p.live && profile) {
+      const now = eng.mine.has(p.id);
+      setEng((e) => {
+        const mine = new Set(e.mine);
+        const vouches = { ...e.vouches };
+        if (now) {
+          mine.delete(p.id);
+          vouches[p.id] = Math.max(0, (vouches[p.id] || 0) - 1);
+        } else {
+          mine.add(p.id);
+          vouches[p.id] = (vouches[p.id] || 0) + 1;
+        }
+        return { ...e, mine, vouches };
+      });
+      setVouch('post', p.id, profile.id, !now);
     } else {
       mutate(p.id, (x) => ({ ...x, liked: !x.liked, likes: x.likes + (x.liked ? -1 : 1) }));
     }
@@ -448,17 +491,42 @@ export default function Wall() {
                         ))}
                       </div>
 
-                      {/* actions — the old dashboard pair */}
+                      {/* actions — vouch + discuss + radar */}
                       <div className="mt-4 flex flex-wrap items-center gap-2 border-t b-line pt-4">
-                        <button
-                          onClick={() => toggleLike(p)}
-                          className={`flex items-center gap-1.5 rounded-full border-[1.5px] px-3.5 py-1.5 text-xs font-bold transition-all duration-300 ${
-                            p.liked ? 'border-[var(--coral)] bg-[var(--coral)] text-white' : 'b-line t-muted hover:t-ink'
-                          }`}
-                          aria-pressed={p.liked}
-                        >
-                          ▲ Helpful ({p.likes})
-                        </button>
+                        {(() => {
+                          const total = p.live ? p.likes + (eng.vouches[p.id] || 0) : p.likes;
+                          const vouched = p.live ? eng.mine.has(p.id) : !!p.liked;
+                          const tier = postTier(total);
+                          return (
+                            <>
+                              {profile ? (
+                                <button
+                                  onClick={() => toggleVouch(p)}
+                                  className={`flex items-center gap-1.5 rounded-full border-[1.5px] px-3.5 py-1.5 text-xs font-bold transition-all duration-300 ${
+                                    vouched
+                                      ? 'border-[var(--mint)] bg-[var(--mint)] text-[var(--ink)]'
+                                      : 'b-line t-muted hover:t-ink hover:border-[var(--ink)]'
+                                  }`}
+                                  aria-pressed={vouched}
+                                >
+                                  ✓ Vouch ({total})
+                                </button>
+                              ) : (
+                                <Link
+                                  to="/login"
+                                  className="flex items-center gap-1.5 rounded-full border-[1.5px] b-line px-3.5 py-1.5 text-xs font-bold t-muted hover:t-ink"
+                                >
+                                  ✓ Vouch ({total})
+                                </Link>
+                              )}
+                              {tier && (
+                                <span className="rounded-full bg-[var(--mint)] px-2 py-0.5 text-[0.6rem] font-bold tracking-widest text-[var(--ink)]">
+                                  {tier.toUpperCase()}
+                                </span>
+                              )}
+                            </>
+                          );
+                        })()}
                         {p.live ? (
                           <button
                             onClick={() => toggleThread(p.id)}

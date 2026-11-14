@@ -4,6 +4,7 @@ import AppShell from '@/components/app/AppShell';
 import { DoodleBook, DoodleBulb, DoodleNote, DoodlePeople, DoodleSpark } from '@/components/Doodles';
 import { useAuth } from '@/lib/authStore';
 import { supabase } from '@/lib/supabase';
+import { loadEngagements } from '@/lib/engagements';
 
 type Broadcast = {
   id: string;
@@ -62,6 +63,7 @@ export default function Mentor() {
   const [mine, setMine] = useState<Broadcast[]>([]);
   const [queue, setQueue] = useState<QueueItem[]>([]);
   const [queueLoaded, setQueueLoaded] = useState(false);
+  const [queueVouches, setQueueVouches] = useState<Record<string, number>>({});
   const [reviewMsg, setReviewMsg] = useState<string | null>(null);
   const [reviewing, setReviewing] = useState<string | null>(null);
   // CBQ intake + review
@@ -170,9 +172,14 @@ export default function Mentor() {
       .eq('source_kind', 'community_upload')
       .order('created_at', { ascending: false })
       .limit(50)
-      .then(({ data }) => {
-        setQueue((data as QueueItem[]) || []);
+      .then(async ({ data }) => {
+        const rows = (data as QueueItem[]) || [];
+        setQueue(rows);
         setQueueLoaded(true);
+        if (rows.length > 0) {
+          const counts = await loadEngagements('vault', rows.map((r) => `src-${r.id}`));
+          setQueueVouches(counts.vouches);
+        }
       });
     loadCbq();
   }, [profile]);
@@ -497,19 +504,24 @@ export default function Mentor() {
     setReviewing(item.id);
     setReviewMsg(null);
     // promote to the verified shelf
-    const { error: insErr } = await supabase.from('library_items').insert([{
+    const { data: inserted, error: insErr } = await supabase.from('library_items').insert([{
       title: item.name,
       description: item.metadata?.description || null,
       category: item.metadata?.kind || null,
       file_url: item.external_ref,
       file_type: item.metadata?.kind || null,
       uploaded_by: profile!.id,
-    }]);
-    if (insErr) {
+    }]).select('id').maybeSingle();
+    if (insErr || !inserted) {
       setReviewing(null);
-      setReviewMsg(`Approve failed: ${insErr.message}`);
+      setReviewMsg(`Approve failed: ${insErr?.message || 'no row returned'}`);
       return;
     }
+    // carry the campus vouches + discussion over to the verified item
+    const fromId = `src-${item.id}`;
+    const toId = `lib-${(inserted as { id: string }).id}`;
+    await supabase.from('engagements').update({ resource_id: toId }).eq('resource_type', 'vault').eq('resource_id', fromId).then(() => {});
+    await supabase.from('resource_comments').update({ resource_id: toId }).eq('resource_type', 'vault').eq('resource_id', fromId).then(() => {});
     // clear the pending row
     const { error: delErr } = await supabase.from('content_sources').delete().eq('id', item.id);
     setReviewing(null);
@@ -518,7 +530,7 @@ export default function Mentor() {
       return;
     }
     removeFromQueue(item.id);
-    setReviewMsg(`“${item.name}” is now on the verified shelf.`);
+    setReviewMsg(`“${item.name}” is now on the verified shelf — community vouches carried over.`);
   };
 
   const reject = async (item: QueueItem) => {
@@ -526,6 +538,9 @@ export default function Mentor() {
     setReviewing(item.id);
     setReviewMsg(null);
     const { error } = await supabase.from('content_sources').delete().eq('id', item.id);
+    // nothing lingers: vouches, views and discussion go with it
+    await supabase.from('engagements').delete().eq('resource_type', 'vault').eq('resource_id', `src-${item.id}`).then(() => {});
+    await supabase.from('resource_comments').delete().eq('resource_type', 'vault').eq('resource_id', `src-${item.id}`).then(() => {});
     setReviewing(null);
     if (error) {
       setReviewMsg(`Reject failed: ${error.message}`);
@@ -1135,8 +1150,13 @@ export default function Mentor() {
                         <p className="mt-1 text-xs leading-relaxed t-muted">
                           {item.metadata?.description || 'No summary provided.'}
                         </p>
-                        <p className="mt-1.5 text-[0.65rem] font-bold tracking-widest t-faint">
-                          {item.metadata?.kind?.toUpperCase() || 'NOTES'} · by {item.metadata?.submitted_by || 'Community'} · {relTime(item.created_at)}
+                        <p className="mt-1.5 flex flex-wrap items-center gap-x-2 text-[0.65rem] font-bold tracking-widest t-faint">
+                          <span>{item.metadata?.kind?.toUpperCase() || 'NOTES'} · by {item.metadata?.submitted_by || 'Community'} · {relTime(item.created_at)}</span>
+                          {(queueVouches[`src-${item.id}`] || 0) > 0 && (
+                            <span className="rounded-full bg-[var(--mint)] px-2 py-0.5 text-[0.6rem] tracking-widest text-[var(--ink)]">
+                              ✓ {queueVouches[`src-${item.id}`]} CAMPUS VOUCH{queueVouches[`src-${item.id}`] === 1 ? '' : 'ES'}
+                            </span>
+                          )}
                         </p>
                         {item.external_ref && (
                           <a href={item.external_ref} target="_blank" rel="noreferrer" className="link-underline mt-1 inline-block text-xs font-semibold text-[var(--coral)]">
