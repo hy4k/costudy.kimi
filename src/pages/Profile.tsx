@@ -262,10 +262,10 @@ export default function Profile() {
     <AppShell title="Your profile" eyebrow="Identity & settings">
       <input ref={fileRef} type="file" accept="image/*" className="hidden" onChange={onFile} />
 
-      {/* identity card */}
-      <section className="relative overflow-hidden rounded-[1.8rem] border-[1.5px] b-line bg-[var(--card)] p-8 md:p-12">
+      {/* identity hero */}
+      <section className="relative overflow-hidden rounded-[1.8rem] border-[1.5px] b-line bg-[var(--card)] p-7 md:p-10">
         <DoodleSpark className="pointer-events-none absolute -right-4 -top-4 w-28 rotate-12 text-[var(--coral)]/10" />
-        <div className="flex flex-col items-start gap-8 md:flex-row md:items-center md:gap-12">
+        <div className="flex flex-col items-start gap-7 md:flex-row md:items-center md:gap-10">
           <button
             onClick={pickFile}
             className={`relative shrink-0 rounded-[2rem] shadow-[8px_8px_0_0_var(--line)] ${
@@ -277,13 +277,13 @@ export default function Profile() {
               <img
                 src={form.avatar || raw?.avatar || ''}
                 alt={profile.name}
-                className={`h-32 w-32 rounded-[2rem] object-cover md:h-40 md:w-40 ${
+                className={`h-28 w-28 rounded-[2rem] object-cover md:h-36 md:w-36 ${
                   editing ? 'opacity-60' : ''
                 }`}
               />
             ) : (
               <span
-                className="flex h-32 w-32 items-center justify-center rounded-[2rem] font-slab text-4xl font-bold text-white md:h-40 md:w-40"
+                className="flex h-28 w-28 items-center justify-center rounded-[2rem] font-slab text-4xl font-bold text-white md:h-36 md:w-36"
                 style={{ backgroundColor: accent }}
               >
                 {initials}
@@ -303,7 +303,7 @@ export default function Profile() {
           </button>
 
           <div className="min-w-0 flex-1">
-            <div className="flex flex-wrap items-center gap-3">
+            <div className="flex flex-wrap items-center gap-2">
               <span
                 className="rounded-full px-3 py-1 text-[0.6rem] font-bold uppercase tracking-[0.16em] text-white"
                 style={{ backgroundColor: accent }}
@@ -320,14 +320,10 @@ export default function Profile() {
               )}
             </div>
 
-            <h2 className="slab-display mt-4 break-words text-4xl t-ink md:text-5xl">
-              {profile.name}
-            </h2>
+            <h2 className="slab-display mt-3 break-words text-4xl t-ink md:text-5xl">{profile.name}</h2>
             <p className="mt-1 font-mono text-sm t-muted">@{profile.handle}</p>
 
-            {raw?.bio && !editing && (
-              <p className="mt-4 max-w-xl leading-relaxed t-muted">{raw.bio}</p>
-            )}
+            {raw?.bio && !editing && <p className="mt-3 max-w-xl leading-relaxed t-muted">{raw.bio}</p>}
             {(raw?.strategic_milestone || raw?.exam_window) && !editing && (
               <p className="mt-2 text-sm font-semibold t-muted">
                 {raw.strategic_milestone && <>Goal: {raw.strategic_milestone} · </>}
@@ -335,7 +331,7 @@ export default function Profile() {
               </p>
             )}
             {isTeacher && raw?.specialties && raw.specialties.length > 0 && !editing && (
-              <p className="mt-2 flex flex-wrap gap-2">
+              <p className="mt-3 flex flex-wrap gap-2">
                 {raw.specialties.map((s) => (
                   <span key={s} className="rounded-full bg-[var(--line)] px-3 py-1 text-xs font-semibold t-ink">
                     {s}
@@ -344,7 +340,7 @@ export default function Profile() {
               </p>
             )}
 
-            <div className="mt-6 flex flex-wrap gap-4">
+            <div className="mt-6 flex flex-wrap items-center gap-3">
               {!editing && (
                 <>
                   <button onClick={() => setEditing(true)} className="pill-btn !px-6 !py-3 text-sm">
@@ -363,22 +359,20 @@ export default function Profile() {
         </div>
       </section>
 
-      {/* stats */}
+      {/* stats strip */}
       <section className="mt-6 grid grid-cols-2 gap-4 sm:grid-cols-4">
         {stats.map((s) => (
           <Link
             key={s.label}
             to={s.label === 'Study partners' ? '/contracts' : '/profile'}
-            className={`block rounded-[1.4rem] border-[1.5px] b-line p-5 text-center transition-transform hover:-translate-y-0.5 ${
+            className={`block rounded-[1.4rem] border-[1.5px] b-line p-5 transition-transform duration-500 ease-out-soft hover:-translate-y-1 ${
               s.label === 'Study partners' ? 'bg-[#e9c46a]/25' : 'bg-[var(--card)]'
             }`}
           >
             <p className="slab-display text-3xl t-ink md:text-4xl">{s.value}</p>
             <p className="eyebrow mt-1 t-faint">{s.label}</p>
             {s.label === 'Study partners' && (
-              <p className="eyebrow mt-2 text-[10px] normal-case tracking-normal t-faint">
-                Manage contracts →
-              </p>
+              <p className="eyebrow mt-2 text-[10px] normal-case tracking-normal t-faint">Manage contracts →</p>
             )}
           </Link>
         ))}
@@ -387,12 +381,13 @@ export default function Profile() {
       {/* study activity */}
       <section className="mt-6 grid gap-6 lg:grid-cols-2">
         <div className="rounded-[1.8rem] border-[1.5px] b-line bg-[var(--card)] p-7 md:p-9">
-          <div className="mb-6 flex items-center justify-between">
+          <div className="mb-2 flex items-center gap-3">
             <h3 className="slab-display text-2xl t-ink">Mock history</h3>
-            <Link to="/path" className="link-underline text-xs font-bold uppercase tracking-widest t-muted hover:t-ink">
-              Mastery Path →
-            </Link>
+            <span className="rounded-full bg-[var(--line)] px-2.5 py-1 text-[0.6rem] font-bold uppercase tracking-widest t-faint">
+              {mocks.length}
+            </span>
           </div>
+          <p className="mb-6 text-xs t-faint">Your last attempts, with scores and pass marks.</p>
           {mocks.length === 0 ? (
             <p className="rounded-[1.2rem] bg-[var(--line)]/40 p-6 text-sm t-muted">
               No mocks yet — your finished attempts land here with scores and pass marks.
@@ -428,15 +423,22 @@ export default function Profile() {
               ))}
             </ul>
           )}
+          <Link
+            to="/path"
+            className="link-underline mt-6 inline-block text-xs font-bold uppercase tracking-widest t-muted hover:t-ink"
+          >
+            Open Mastery Path →
+          </Link>
         </div>
 
         <div className="rounded-[1.8rem] border-[1.5px] b-line bg-[var(--card)] p-7 md:p-9">
-          <div className="mb-6 flex items-center justify-between">
+          <div className="mb-2 flex items-center gap-3">
             <h3 className="slab-display text-2xl t-ink">On the Wall</h3>
-            <Link to="/wall" className="link-underline text-xs font-bold uppercase tracking-widest t-muted hover:t-ink">
-              Study Wall →
-            </Link>
+            <span className="rounded-full bg-[var(--line)] px-2.5 py-1 text-[0.6rem] font-bold uppercase tracking-widest t-faint">
+              {posts.length}
+            </span>
           </div>
+          <p className="mb-6 text-xs t-faint">Your latest posts and how the campus responded.</p>
           {posts.length === 0 ? (
             <p className="rounded-[1.2rem] bg-[var(--line)]/40 p-6 text-sm t-muted">
               Nothing posted yet — share a note or a win and it shows up here.
@@ -454,22 +456,31 @@ export default function Profile() {
                       {p.when ? new Date(p.when).toLocaleDateString() : ''}
                     </span>
                   </div>
-                  <p className="mt-1.5 text-xs t-muted">
-                    ▲ {p.likes ?? 0} · {p.replies ?? 0} replies
-                  </p>
+                  <p className="mt-1.5 text-xs t-muted">▲ {p.likes ?? 0} · {p.replies ?? 0} replies</p>
                 </li>
               ))}
             </ul>
           )}
+          <Link
+            to="/wall"
+            className="link-underline mt-6 inline-block text-xs font-bold uppercase tracking-widest t-muted hover:t-ink"
+          >
+            Open Study Wall →
+          </Link>
         </div>
       </section>
 
-      {/* edit form */}
+      {/* edit panel */}
       {editing && (
         <form
           onSubmit={save}
-          className="mt-6 space-y-5 rounded-[1.8rem] border-[1.5px] b-line bg-[var(--card)] p-8 md:p-10"
+          className="mt-6 space-y-6 rounded-[1.6rem] border-[1.5px] b-line bg-[var(--card)] p-7 md:p-9"
         >
+          <div>
+            <p className="eyebrow t-faint">Edit profile</p>
+            <h3 className="slab-display mt-1 text-2xl t-ink">Tune how the campus sees you</h3>
+          </div>
+
           <div className="grid gap-5 md:grid-cols-2">
             <div>
               <label htmlFor="pf-name" className={labelCls}>Full name</label>
@@ -534,7 +545,7 @@ export default function Profile() {
           </div>
 
           {isTeacher && (
-            <div className="grid gap-5 rounded-[1.4rem] bg-[var(--line)]/40 p-6 md:grid-cols-3">
+            <div className="grid gap-5 rounded-[1.4rem] border-[1.5px] border-dashed b-line bg-[var(--line)]/30 p-6 md:grid-cols-3">
               <div>
                 <label htmlFor="pf-spec" className={labelCls}>Specialties</label>
                 <input
@@ -578,7 +589,7 @@ export default function Profile() {
             </p>
           )}
 
-          <div className="flex flex-wrap items-center gap-4 pt-2">
+          <div className="flex flex-wrap items-center gap-4 pt-1">
             <button type="submit" disabled={busy} className="pill-btn !px-6 !py-3 text-sm disabled:opacity-40">
               {busy ? 'Saving…' : saved ? 'Saved ✓' : 'Save changes'}
             </button>
