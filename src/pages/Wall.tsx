@@ -152,6 +152,10 @@ const loadRadar = (): Set<string> => {
   }
 };
 
+/* Logged-in users: Radar+ syncs to post_bookmarks so it follows them across devices.
+   Anonymous users keep the localStorage set. */
+
+
 export default function Wall() {
   const { profile } = useAuth();
   const [live, setLive] = useState<Post[]>([]);
@@ -169,6 +173,7 @@ export default function Wall() {
   const [eng, setEng] = useState<EngageCounts>({ vouches: {}, views: {}, mine: new Set() });
   const profileRef = useRef(profile);
   profileRef.current = profile;
+  const liveIdsRef = useRef<Set<string>>(new Set());
 
   // initial load from the live `posts` table
   useEffect(() => {
@@ -180,13 +185,42 @@ export default function Wall() {
       .limit(50)
       .then(({ data }) => {
         if (cancelled) return;
-        setLive(((data as DbPost[]) || []).map(mapDbPost));
+        const rows = ((data as DbPost[]) || []).map(mapDbPost);
+        liveIdsRef.current = new Set(rows.map((p) => p.id));
+        setLive(rows);
         setLoaded(true);
       });
     return () => {
       cancelled = true;
     };
   }, []);
+
+  // bookmarks — logged-in users load from post_bookmarks; legacy localStorage
+  // bookmarks for live posts migrate once, then the local copy is cleared
+  useEffect(() => {
+    if (!profile) return;
+    let cancelled = false;
+    supabase
+      .from('post_bookmarks')
+      .select('post_id')
+      .eq('user_id', profile.id)
+      .then(({ data }) => {
+        if (cancelled) return;
+        const ids = new Set((data || []).map((r: { post_id: string }) => r.post_id));
+        const legacy = [...loadRadar()].filter((id) => liveIdsRef.current.has(id) && !ids.has(id));
+        if (legacy.length > 0) {
+          supabase
+            .from('post_bookmarks')
+            .insert(legacy.map((post_id) => ({ user_id: profile.id, post_id })))
+            .then(() => localStorage.removeItem(RADAR_KEY));
+          legacy.forEach((id) => ids.add(id));
+        }
+        setRadarIds(ids);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [profile?.id]);
 
   // community vouches — one per member, loaded once the posts (and profile) resolve
   const postIdsKey = live.map((p) => p.id).join(',');
@@ -225,7 +259,11 @@ export default function Wall() {
           .eq('id', row.id)
           .maybeSingle()
           .then(({ data }) => {
-            if (data) setLive((l) => (l.some((p) => p.id === (data as DbPost).id) ? l : [mapDbPost(data as DbPost), ...l]));
+            if (data) {
+              const post = mapDbPost(data as DbPost);
+              liveIdsRef.current.add(post.id);
+              setLive((l) => (l.some((p) => p.id === post.id) ? l : [post, ...l]));
+            }
           });
       })
       .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'comments' }, (payload) => {
@@ -257,13 +295,26 @@ export default function Wall() {
   }, [openThread]);
 
   const toggleRadar = (p: Post) => {
+    const had = radarIds.has(p.id);
     setRadarIds((prev) => {
       const next = new Set(prev);
-      if (next.has(p.id)) next.delete(p.id);
+      if (had) next.delete(p.id);
       else next.add(p.id);
-      localStorage.setItem(RADAR_KEY, JSON.stringify([...next]));
       return next;
     });
+    if (profile && p.live) {
+      // sync to post_bookmarks — optimistic local flip above, fire-and-forget below
+      if (had) {
+        supabase.from('post_bookmarks').delete().eq('user_id', profile.id).eq('post_id', p.id);
+      } else {
+        supabase.from('post_bookmarks').insert({ user_id: profile.id, post_id: p.id });
+      }
+    } else {
+      const next = new Set(radarIds);
+      if (had) next.delete(p.id);
+      else next.add(p.id);
+      localStorage.setItem(RADAR_KEY, JSON.stringify([...next]));
+    }
   };
 
   const posts = (live.length > 0 ? live : seed).map((p) => ({ ...p, saved: radarIds.has(p.id) }));
